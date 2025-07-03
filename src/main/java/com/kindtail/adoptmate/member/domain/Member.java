@@ -1,7 +1,11 @@
 package com.kindtail.adoptmate.member.domain;
 
+import com.kindtail.adoptmate.animal.domain.Animal;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -45,4 +49,7 @@ public class Member {
         this.address = address;
         this.role = role;
     }
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Animal> animals = new ArrayList<>();
 }
