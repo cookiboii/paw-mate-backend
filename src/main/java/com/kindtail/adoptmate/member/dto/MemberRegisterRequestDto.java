@@ -9,9 +9,9 @@ public record MemberRegisterRequestDto(
         String name,
         String email,
         String password ,
-        String address,
-        Role role,
-       String profile
+
+        Role role
+
 ) {
 
 }

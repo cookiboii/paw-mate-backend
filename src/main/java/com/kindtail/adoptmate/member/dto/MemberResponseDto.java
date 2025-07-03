@@ -17,12 +17,12 @@ public record MemberResponseDto(
         @Size(min = 8, message = "비밀번호는 최소 8자 이상이어야 합니다.")
         String password,
 
-        String address ,
+
         Role role
         ) {
     public static MemberResponseDto from(Member member) {
         return new MemberResponseDto(
-                member.getName(), member.getEmail(), member.getPassword(), member.getAddress(), member.getRole()
+                member.getName(), member.getEmail(), member.getPassword(),  member.getRole()
         );
     }
 }

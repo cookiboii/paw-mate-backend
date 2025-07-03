@@ -29,8 +29,7 @@ public class Member {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private String address;
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -46,7 +45,7 @@ public class Member {
         this.email = email;
         this.password = password;
         this.name = name;
-        this.address = address;
+
         this.role = role;
     }
 

@@ -11,4 +11,5 @@ public class AinmalSevice {
     public AinmalSevice(AinmalRepository ainmalRepository) {
         this.ainmalRepository = ainmalRepository;
     }
+
 }

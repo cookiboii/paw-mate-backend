@@ -30,7 +30,7 @@ public class MemberService {
         String email = memberRegisterRequestDto.email();
         String password = memberRegisterRequestDto.password();
         String username = memberRegisterRequestDto.name();
-        String address = memberRegisterRequestDto.address();
+
 
         password = passwordEncoder.encode(password);
   Optional<Member> findmember = memberRepository.findByEmail(email);
@@ -39,7 +39,7 @@ public class MemberService {
 
   }
 
-        Member member = Member.builder().email(email).name(username).password(password).address(address).build();
+        Member member = Member.builder().email(email).name(username).password(password).build();
         return memberRepository.save(member);
     }
     @Transactional
