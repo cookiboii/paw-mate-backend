@@ -1,8 +1,8 @@
 package com.kindtail.adoptmate.member.dto;
 
+import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
-import lombok.Builder;
-import org.springframework.security.core.userdetails.User;
+
 
 
 public record MemberRegisterRequestDto(

@@ -33,7 +33,7 @@ public class SecurityConfig {
         http.sessionManagement( session -> session.sessionCreationPolicy( SessionCreationPolicy.STATELESS ) );
         http.authorizeHttpRequests( auth->{
             auth
-                    .requestMatchers("/login").permitAll()
+                    .requestMatchers("/adoptmate/**").permitAll()
                     .anyRequest().authenticated();
         });
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

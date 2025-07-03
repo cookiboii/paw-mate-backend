@@ -8,6 +8,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "tbl_member")
+@Builder
 public class Member {
 
     @Id
@@ -18,7 +19,7 @@ public class Member {
     @Column(nullable = false)
     private String name;
 
-    @Column(unique = true, nullable = false)
+    @Column(name="email" ,unique = true, nullable = false)
     private String email;
 
     @Column(nullable = false)
@@ -29,13 +30,14 @@ public class Member {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;
+    @Builder.Default
+    private Role role = Role.USER;
 
     @Lob
     private String profile;
 
 
-    @Builder
+
     public Member(String email, String password, String name, String address, Role role) {
         this.email = email;
         this.password = password;

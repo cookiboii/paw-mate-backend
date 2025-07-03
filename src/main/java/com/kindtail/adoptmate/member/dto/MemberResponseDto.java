@@ -1,5 +1,6 @@
 package com.kindtail.adoptmate.member.dto;
 
+import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -19,4 +20,9 @@ public record MemberResponseDto(
         String address ,
         Role role
         ) {
+    public static MemberResponseDto from(Member member) {
+        return new MemberResponseDto(
+                member.getName(), member.getEmail(), member.getPassword(), member.getAddress(), member.getRole()
+        );
+    }
 }

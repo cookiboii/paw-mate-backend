@@ -39,6 +39,8 @@ logging:
 
 jwt:
   expiration: 60          # Access Token 유효 시간 (분)
-  secretKey: rI9KLc/nWq+0ehvbQXjST52lIHi+A4PurdKwAe0ZcN+0LE1QBv7p0qhFx8wzt8PaigtMXpJHdIl6p4ILsLDasA==
+  secretKey: b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550
+
   expirationRt: 120       # Refresh Token 유효 시간 (분)
-  secretKeyRt: rI9KLc/nWq+0ehvbQXjST52lIHi+A4PurdKwAe0ZcN+0LE1QBv7p0qhFx8wzt8PaigtMXpJHdIl6p4ILsLDasA==
+  secretKeyRt: b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550
+

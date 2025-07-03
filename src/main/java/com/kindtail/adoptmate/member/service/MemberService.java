@@ -6,6 +6,7 @@ import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.catalina.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class MemberService {
 
@@ -42,9 +44,14 @@ public class MemberService {
     }
     @Transactional
      public Member authenticateMember (MemberLoginResponseDto loginResponseDto ) {
-         Member member = memberRepository.findByEmail(loginResponseDto.email()).orElseThrow(()->
+
+          String email = loginResponseDto.email();
+          String password = loginResponseDto.password();
+
+         Member member = memberRepository.findByEmail(email).orElseThrow(()->
                 new EntityNotFoundException("Member not found"));
-          if (!passwordEncoder.matches(loginResponseDto.password(), member.getPassword())) {
+
+          if (!passwordEncoder.matches(password, member.getPassword())) {
               throw new IllegalArgumentException("Wrong password");
           }
 
