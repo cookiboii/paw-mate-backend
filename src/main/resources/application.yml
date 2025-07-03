@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/adoptpet_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: your_mysql_user
-    password: your_mysql_password
+    username: adoptmate
+    password: adoptmate
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -18,7 +18,7 @@ spring:
     redis:
       host: localhost
       port: 6379
-
+      # password: your_redis_password (필요 시 주석 해제)
 
   servlet:
     multipart:
@@ -30,10 +30,17 @@ spring:
       fail-on-empty-beans: false
 
 server:
-  port: 8080
+  port: 8000
 
 logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.type: trace
+
+jwt:
+  expiration: 60          # Access Token 유효 시간 (분)
+  secretKey: b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550
+
+  expirationRt: 120       # Refresh Token 유효 시간 (분)
+  secretKeyRt: b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550
 
