@@ -36,8 +36,7 @@ public class Member {
     @Builder.Default
     private Role role = Role.USER;
 
-    @Lob
-    private String profile;
+
 
 
 
