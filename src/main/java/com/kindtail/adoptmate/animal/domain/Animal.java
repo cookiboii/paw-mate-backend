@@ -6,6 +6,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -22,6 +26,8 @@ public class Animal {
 
     private String species;
 
+    @Enumerated(EnumType.STRING)
+
     private Gender gender;
 
     private String breed;
@@ -35,8 +41,15 @@ public class Animal {
     @Lob
     private String image;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY  )
     @JoinColumn(name = "member_id", nullable = false) // 외래 키 컬럼명 지정
     private Member member;
+
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 
 }

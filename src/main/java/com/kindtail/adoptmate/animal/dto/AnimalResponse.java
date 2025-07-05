@@ -11,7 +11,8 @@ public record AnimalResponse(
         String color,
         String status,
         Long age,
-        Gender gender
+        Gender gender ,
+        String image
 
 
 
@@ -26,7 +27,8 @@ public record AnimalResponse(
                 animal.getColor(),
                 animal.getStatus(),
                 animal.getAge(),
-                animal.getGender()
+                animal.getGender(),
+                animal.getImage()
         );
     }
 }
