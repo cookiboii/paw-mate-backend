@@ -24,15 +24,15 @@ import org.springframework.web.bind.annotation.*;
 public class AnimalController {
 
     private final AnimalService animalService;
-    private final MemberService memberService;
 
-    public AnimalController(AnimalService animalService, MemberService memberService) {
+
+    public AnimalController(AnimalService animalService) {
         this.animalService = animalService;
-        this.memberService = memberService;
+       
     }
 
     @PostMapping("/register")
-    @PreAuthorize("hasRole('ADMIN')")
+
     public ResponseEntity<CommonResDto> adoptAnimal(@RequestBody AnimalCreateRequest animalCreateRequest) {
 
         Animal animal = animalService.registerAnimal(animalCreateRequest);
@@ -53,4 +53,13 @@ public class AnimalController {
         Page<AnimalResponse> animalList = animalService.getAllAnimals(PageRequest.of(page, size));
         return ResponseEntity.status(HttpStatus.OK).body(animalList);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CommonResDto> getAnimalById(@PathVariable Long id) {
+        AnimalResponse animal = animalService.getAnimal(id);
+        return ResponseEntity.ok(
+                new CommonResDto(HttpStatus.OK, "상세 조회 성공", animal)
+        );
+    }
+
 }

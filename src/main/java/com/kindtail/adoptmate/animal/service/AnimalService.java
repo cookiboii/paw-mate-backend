@@ -1,7 +1,6 @@
 package com.kindtail.adoptmate.animal.service;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
-import com.kindtail.adoptmate.animal.domain.Gender;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
@@ -15,6 +14,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 public class AnimalService {
@@ -58,4 +59,12 @@ public class AnimalService {
         Page<Animal> animals = animalRepository.findAll(pageable);
         return animals.map(AnimalResponse::from);
     }
+    @Transactional(readOnly = true)
+    public AnimalResponse getAnimal(Long Id) {
+        Animal animal = animalRepository.findById(Id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 동물이 존재하지 않습니다."));
+
+        return AnimalResponse.from(animal);
+    }
+
 }
