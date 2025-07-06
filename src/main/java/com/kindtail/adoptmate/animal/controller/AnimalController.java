@@ -62,12 +62,20 @@ public class AnimalController {
                 new CommonResDto(HttpStatus.OK, "상세 조회 성공", animal)
         );
     }
-    @PatchMapping("/animals/{id}/status")
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> updateAnimal ( @PathVariable Long id,
                                                        @RequestBody AnimalStatusUpdateRequest request){
       AnimalResponse animal = animalService.updateAnimal(id, request);
        CommonResDto response = new CommonResDto(HttpStatus.OK, "상태가 성공적으로 변경되었습니다.", animal);
 
        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @DeleteMapping("delete/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CommonResDto> deleteAnimal(@PathVariable Long id) {
+        animalService.deleteAnimal(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

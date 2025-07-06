@@ -77,8 +77,8 @@ public class AnimalService {
     }
 
     @Transactional
-    public void deleteAnimal(Long Id) {
-        Animal animal = animalRepository.deleteAnimalById(Id);
+    public void deleteAnimal(Long id) {
+        animalRepository.deleteById(id);
     }
 
 }
