@@ -1,5 +1,7 @@
 package com.kindtail.adoptmate.animal.domain;
 
+import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
+import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -27,14 +29,14 @@ public class Animal {
     private String species;
 
     @Enumerated(EnumType.STRING)
-
     private Gender gender;
 
     private String breed;
 
     private String color;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private Status status=Status.PROTECTED;
 
     private Long age;
 
@@ -51,5 +53,11 @@ public class Animal {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+
+    public   void   updatestatus (AnimalStatusUpdateRequest request) {
+
+       this.status= request.status();
+    }
 
 }

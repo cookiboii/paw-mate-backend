@@ -3,6 +3,7 @@ package com.kindtail.adoptmate.animal.controller;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
+import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.service.AnimalService;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.member.domain.Member;
@@ -32,7 +33,7 @@ public class AnimalController {
     }
 
     @PostMapping("/register")
-
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> adoptAnimal(@RequestBody AnimalCreateRequest animalCreateRequest) {
 
         Animal animal = animalService.registerAnimal(animalCreateRequest);
@@ -61,5 +62,12 @@ public class AnimalController {
                 new CommonResDto(HttpStatus.OK, "상세 조회 성공", animal)
         );
     }
+    @PatchMapping("/animals/{id}/status")
+    public ResponseEntity<CommonResDto> updateAnimal ( @PathVariable Long id,
+                                                       @RequestBody AnimalStatusUpdateRequest request){
+      AnimalResponse animal = animalService.updateAnimal(id, request);
+       CommonResDto response = new CommonResDto(HttpStatus.OK, "상태가 성공적으로 변경되었습니다.", animal);
 
+       return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }

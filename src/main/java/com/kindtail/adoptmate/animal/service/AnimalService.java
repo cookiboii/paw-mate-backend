@@ -3,6 +3,7 @@ package com.kindtail.adoptmate.animal.service;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
+import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 
 import com.kindtail.adoptmate.auth.TokenUserInfo;
@@ -65,6 +66,19 @@ public class AnimalService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 동물이 존재하지 않습니다."));
 
         return AnimalResponse.from(animal);
+    }
+
+    @Transactional
+    public AnimalResponse  updateAnimal(Long id, AnimalStatusUpdateRequest request){
+          Animal animal = animalRepository.findById(id)
+                  .orElseThrow(() -> new IllegalArgumentException("해당동물이 존재하지않습니다."));
+          animal.updatestatus(request);
+          return AnimalResponse.from(animal);
+    }
+
+    @Transactional
+    public void deleteAnimal(Long Id) {
+        Animal animal = animalRepository.deleteAnimalById(Id);
     }
 
 }

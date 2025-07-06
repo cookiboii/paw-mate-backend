@@ -2,6 +2,7 @@ package com.kindtail.adoptmate.animal.dto;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Gender;
+import com.kindtail.adoptmate.animal.domain.Status;
 
 public record AnimalResponse(
 
@@ -9,7 +10,7 @@ public record AnimalResponse(
         String species,
         String breed,
         String color,
-        String status,
+        Status status,
         Long age,
         Gender gender ,
         String image
