@@ -1,7 +1,11 @@
 package com.kindtail.adoptmate.member.domain;
 
+import com.kindtail.adoptmate.animal.domain.Animal;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -25,16 +29,14 @@ public class Member {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private String address;
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private Role role = Role.USER;
 
-    @Lob
-    private String profile;
+
 
 
 
@@ -42,7 +44,10 @@ public class Member {
         this.email = email;
         this.password = password;
         this.name = name;
-        this.address = address;
+
         this.role = role;
     }
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Animal> animals = new ArrayList<>();
 }
