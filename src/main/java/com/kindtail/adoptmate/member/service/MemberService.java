@@ -1,17 +1,21 @@
 package com.kindtail.adoptmate.member.service;
 
+import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.MemberLoginResponseDto;
 import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.User;
-import org.springframework.http.ResponseEntity;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -58,5 +62,18 @@ public class MemberService {
          return member;
     }
 
+    @Transactional(readOnly = true)
+    public Member MemberInfo() {
+        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        Member member = memberRepository.findByEmail(userInfo.getEmail())
+                .orElseThrow(() -> new EntityNotFoundException("User not found!"));
+        return member;
+    }
+   @Transactional
+   public List<Member> getMembers() {
+
+        return memberRepository.findAll();
+   }
 
 }

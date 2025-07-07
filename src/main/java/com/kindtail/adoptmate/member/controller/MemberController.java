@@ -3,6 +3,7 @@ package com.kindtail.adoptmate.member.controller;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.member.domain.Member;
+import com.kindtail.adoptmate.member.dto.MemberInfoRequestDto;
 import com.kindtail.adoptmate.member.dto.MemberLoginResponseDto;
 import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
 import com.kindtail.adoptmate.member.dto.MemberResponseDto;
@@ -10,6 +11,7 @@ import com.kindtail.adoptmate.member.service.MemberService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,6 +19,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.springframework.http.HttpStatus.CREATED;
@@ -57,8 +60,28 @@ public class MemberController {
 
     }
 
+  @GetMapping("/myInfo")
+  public ResponseEntity<MemberInfoRequestDto> getMyInfo() {
+      Member member = memberService.MemberInfo();
+      MemberInfoRequestDto dto = MemberInfoRequestDto.builder()
+              .id(member.getId())
+              .name(member.getName())
+              .email(member.getEmail())
+              .role(member.getRole())
+              .build();
+
+      return new ResponseEntity<>(dto, OK);
+  }
+  @GetMapping("/all")
+ @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<CommonResDto> getAllMembers() {
+      List <Member> members = memberService.getMembers();
+      List<MemberInfoRequestDto> dtoList = members.stream()
+              .map(member -> MemberInfoRequestDto.builder()
+                      .id(member.getId()).name(member.getName()).email(member.getEmail()).role(member.getRole()).build())
+              .toList();
 
 
-
-
+      return ResponseEntity.ok(new CommonResDto(OK, "전체조회", dtoList));
+  }
 }

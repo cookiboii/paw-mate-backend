@@ -10,6 +10,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class TokenUserInfo {
+
     private String email;
     private Role role;
 }
