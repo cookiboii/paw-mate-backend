@@ -40,7 +40,7 @@ public class Member {
 
 
 
-    public Member(String email, String password, String name, String address, Role role) {
+    public Member(String email, String password, String name, Role role) {
         this.email = email;
         this.password = password;
         this.name = name;
@@ -50,4 +50,9 @@ public class Member {
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Animal> animals = new ArrayList<>();
+
+     public void updatePassword(String password) {
+         this.password = password;
+     }
+
 }
