@@ -4,13 +4,16 @@ import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.MemberLoginResponseDto;
 import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
+import com.kindtail.adoptmate.member.dto.PasswordChangeRequestDto;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -75,5 +78,30 @@ public class MemberService {
 
         return memberRepository.findAll();
    }
+
+
+
+   @Transactional
+    public void deleteUser(String email) {
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("회원이 존재하지 않습니다."));
+        memberRepository.delete(member);
+    }
+   @Transactional
+    public void changePassword(String email, PasswordChangeRequestDto dto) {
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("회원이 존재하지않습니다."));
+        if (!passwordEncoder.matches(dto.currentPassword(), member.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+        String encodedNewPassword = passwordEncoder.encode(dto.newPassword());
+       member.updatePassword(encodedNewPassword);
+    }
+   @Transactional
+    public Long getMemberIdByEmail(String email) {
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("해당 이메일의 사용자가 존재하지 않습니다."));
+        return member.getId();
+    }
 
 }

@@ -60,4 +60,7 @@ public class Animal {
        this.status= request.status();
     }
 
+    public void updatestatus(Status status) {
+        this.status=status;
+    }
 }

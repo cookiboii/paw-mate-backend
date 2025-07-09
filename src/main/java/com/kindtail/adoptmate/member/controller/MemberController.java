@@ -1,12 +1,10 @@
 package com.kindtail.adoptmate.member.controller;
 
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
+import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.member.domain.Member;
-import com.kindtail.adoptmate.member.dto.MemberInfoRequestDto;
-import com.kindtail.adoptmate.member.dto.MemberLoginResponseDto;
-import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
-import com.kindtail.adoptmate.member.dto.MemberResponseDto;
+import com.kindtail.adoptmate.member.dto.*;
 import com.kindtail.adoptmate.member.service.MemberService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -84,4 +82,24 @@ public class MemberController {
 
       return ResponseEntity.ok(new CommonResDto(OK, "전체조회", dtoList));
   }
+
+  @PostMapping("/password")
+  public ResponseEntity<CommonResDto> changePassword(@RequestBody PasswordChangeRequestDto dto){
+      TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
+              .getAuthentication().getPrincipal();
+         memberService.changePassword(userInfo.getEmail(), dto);
+
+         return ResponseEntity.ok(new CommonResDto(CREATED, "변경완료", dto));
+
+
+  }
+   @DeleteMapping("/delete")
+   public ResponseEntity deleteMember( ) {
+       TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
+               .getAuthentication().getPrincipal();
+              memberService.deleteUser(userInfo.getEmail());
+              return ResponseEntity.ok(new CommonResDto(CREATED, "삭제완료 ", userInfo));
+   }
+
+
 }

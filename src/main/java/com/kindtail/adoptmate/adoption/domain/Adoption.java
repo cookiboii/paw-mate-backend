@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.adoption.domain;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "tbl_aboption")
+@Table(name = "tbl_adoption")
 public class Adoption {
 
     @Id
@@ -24,6 +25,9 @@ public class Adoption {
 
 
     private LocalDateTime apply_date;
+
+    @Lob
+    private String interview;
 
 
     @Enumerated(EnumType.STRING)
@@ -40,14 +44,15 @@ public class Adoption {
 
 
 
-    public void update(AdoptionStatus status) {
+    public void updateAdoption(AdoptionStatus status) {
         this.status = status;
     }
-    public static Adoption of(Member member, Animal animal) {
+    public static Adoption of(Member member, Animal animal, String interview, AdoptionStatus status) {
         Adoption adoption = new Adoption();
         adoption.member = member;
         adoption.animal = animal;
-        adoption.status = AdoptionStatus.PENDING;
+        adoption.status = status;
+        adoption.interview = interview;
         adoption.apply_date = LocalDateTime.now();
         return adoption;
     }

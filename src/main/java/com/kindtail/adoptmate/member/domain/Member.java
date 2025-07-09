@@ -50,4 +50,9 @@ public class Member {
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Animal> animals = new ArrayList<>();
+
+     public void updatePassword(String password) {
+         this.password = password;
+     }
+
 }
