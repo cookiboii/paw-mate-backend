@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.member.domain;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.post.domain.Post;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -48,11 +49,16 @@ public class Member {
         this.role = role;
     }
 
-    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Animal> animals = new ArrayList<>();
 
      public void updatePassword(String password) {
          this.password = password;
      }
+
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    //  부모가 삭제되면 자식이 삭제된다 즉 멤버가 회원탈퇴면 글삭제된다
+    private List<Post> posts = new ArrayList<>();
 
 }

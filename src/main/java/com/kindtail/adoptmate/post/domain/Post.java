@@ -26,7 +26,14 @@ public class Post {
 
   private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY , cascade = CascadeType.REMOVE)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
     private  Member member;
+
+   public void updatePost(String title, String content, String image) {
+       this.title = title;
+       this.content = content;
+       this.image = image;
+   }
+
 }
