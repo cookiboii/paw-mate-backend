@@ -43,7 +43,7 @@ public class Animal {
     @Lob
     private String image;
 
-    @ManyToOne(fetch = FetchType.LAZY  )
+    @ManyToOne(fetch = FetchType.LAZY ,cascade = CascadeType.ALL  )
     @JoinColumn(name = "member_id", nullable = false) // 외래 키 컬럼명 지정
     private Member member;
 
