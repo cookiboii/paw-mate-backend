@@ -20,7 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 public class SecurityConfig {
 
-   private final JwtAuthFilter jwtAuthFilter;
+    private final JwtAuthFilter jwtAuthFilter;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
@@ -33,7 +33,7 @@ public class SecurityConfig {
         http.sessionManagement( session -> session.sessionCreationPolicy( SessionCreationPolicy.STATELESS ) );
         http.authorizeHttpRequests( auth->{
             auth
-                    .requestMatchers("/adoptmate/**","/animals/**","/adoptions/**","/post/**").permitAll()
+                    .requestMatchers("/adoptmate/**","/animals/**","/adoptions/**","/post/**","/comment/**").permitAll()
                     .anyRequest().authenticated();
         });
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

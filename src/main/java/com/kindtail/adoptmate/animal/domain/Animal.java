@@ -1,5 +1,6 @@
 package com.kindtail.adoptmate.animal.domain;
 
+import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.member.domain.Member;
@@ -12,6 +13,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -60,7 +63,6 @@ public class Animal {
        this.status= request.status();
     }
 
-    public void updatestatus(Status status) {
-        this.status=status;
-    }
+    @OneToMany(mappedBy = "animal", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Adoption> adoptions = new ArrayList<>();
 }

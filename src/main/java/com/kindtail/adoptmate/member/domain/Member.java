@@ -1,6 +1,8 @@
 package com.kindtail.adoptmate.member.domain;
 
+import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.comment.domain.Comment;
 import com.kindtail.adoptmate.post.domain.Post;
 import jakarta.persistence.*;
 import lombok.*;
@@ -60,5 +62,11 @@ public class Member {
     @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
     //  부모가 삭제되면 자식이 삭제된다 즉 멤버가 회원탈퇴면 글삭제된다
     private List<Post> posts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Adoption> adoptions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member",cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Comment> comments = new ArrayList<>();
 
 }
