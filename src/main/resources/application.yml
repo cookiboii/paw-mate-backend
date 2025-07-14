@@ -7,7 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     properties:
       hibernate:
         format_sql: true
@@ -29,6 +29,19 @@ spring:
     serialization:
       fail-on-empty-beans: false
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: luo199829@gmail.com
+    password: hsgl yoex mhfa ltzm
+    properties:
+      mail:
+        smtp:
+          auth: true
+          timeout: 5000
+          starttls:
+            enable: true
+
 server:
   port: 8000
 
@@ -41,6 +54,5 @@ jwt:
   expiration: 20000         # Access Token 유효 시간 (분)
   secretKey: b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550
 
-  expirationRt: 120       # Refresh Token 유효 시간 (분)
+  expirationRt: 120         # Refresh Token 유효 시간 (분)
   secretKeyRt: b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550
-

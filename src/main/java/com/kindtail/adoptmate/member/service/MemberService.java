@@ -1,15 +1,18 @@
 package com.kindtail.adoptmate.member.service;
 
 import com.kindtail.adoptmate.auth.TokenUserInfo;
+import com.kindtail.adoptmate.common.service.MailSenderService;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.MemberLoginResponseDto;
 import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
 import com.kindtail.adoptmate.member.dto.PasswordChangeRequestDto;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
+import jakarta.mail.MessagingException;
 import jakarta.persistence.EntityNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,18 +21,21 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
-@Slf4j
+
 @Service
 public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+
     public MemberService(MemberRepository memberRepository , PasswordEncoder passwordEncoder) {
         this.memberRepository = memberRepository;
         this.passwordEncoder = passwordEncoder;
+
     }
 
     @Transactional
@@ -40,8 +46,8 @@ public class MemberService {
 
 
         password = passwordEncoder.encode(password);
-  Optional<Member> findmember = memberRepository.findByEmail(email);
-  if (findmember.isPresent()) {
+  Optional<Member> findMember = memberRepository.findByEmail(email);
+  if (findMember.isPresent()) {
       throw new IllegalArgumentException("Email already exists");
 
   }
@@ -103,5 +109,7 @@ public class MemberService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 이메일의 사용자가 존재하지 않습니다."));
         return member.getId();
     }
+
+
 
 }
