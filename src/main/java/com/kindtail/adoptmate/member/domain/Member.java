@@ -3,6 +3,7 @@ package com.kindtail.adoptmate.member.domain;
 import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.comment.domain.Comment;
+import com.kindtail.adoptmate.member.dto.MemberResponseDto;
 import com.kindtail.adoptmate.post.domain.Post;
 import jakarta.persistence.*;
 import lombok.*;
@@ -29,7 +30,7 @@ public class Member {
     @Column(name="email" ,unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String password;
 
 
@@ -68,5 +69,27 @@ public class Member {
 
     @OneToMany(mappedBy = "member",cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
+
+    @Column
+    private String socialId; // 소셜 로그인 고유 ID
+
+    @Column
+    private String profileImage; // 프로필 이미지 url
+
+    @Column
+    private String socialProvider; // GOOGLE, KAKAO, NAVER, null(일반 로그인)
+
+
+    public MemberResponseDto toDto() {
+        return MemberResponseDto.from(this.name,
+                                                 this.email,
+                                                 this.role,
+                                                 this.password,
+                                                 this.profileImage,
+                                                 this.socialProvider,
+                                                 this.socialId
+
+        );
+    }
 
 }
