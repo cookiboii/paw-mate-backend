@@ -27,7 +27,7 @@ public class Member {
     @Column(nullable = false)
     private String name;
 
-    @Column(name="email" ,unique = true, nullable = false)
+    @Column(unique = true, nullable = false)
     private String email;
 
     @Column
@@ -81,15 +81,14 @@ public class Member {
 
 
     public MemberResponseDto toDto() {
-        return MemberResponseDto.from(this.name,
-                                                 this.email,
-                                                 this.role,
-                                                 this.password,
-                                                 this.profileImage,
-                                                 this.socialProvider,
-                                                 this.socialId
-
-        );
+        return MemberResponseDto.builder()
+                .email(this.email)
+                .name(this.name)
+                .profileImage(this.profileImage)
+                .socialProvider(this.socialProvider)
+                .role(this.role)
+                .build();
     }
+
 
 }

@@ -4,6 +4,7 @@ import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.KakaoUserDto;
 import com.kindtail.adoptmate.member.dto.MemberResponseDto;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -20,7 +21,7 @@ import java.util.Optional;
 @Service
 public class KakaoOAuthService {
 
-    private final RestTemplate restTemplate;
+
 
     private final MemberRepository memberRepository;
 
@@ -29,9 +30,10 @@ public class KakaoOAuthService {
 
     @Value("${oauth2.kakao.redirect-uri}")
     private String kakaoRedirectUri;
+    @Value("${oauth2.kakao.client-secret}")
+    private String kakaoClientSecret;
+    public KakaoOAuthService( MemberRepository memberRepository) {
 
-    public KakaoOAuthService(RestTemplate restTemplate, MemberRepository memberRepository) {
-        this.restTemplate = restTemplate;
         this.memberRepository = memberRepository;
     }
 
@@ -47,12 +49,19 @@ public class KakaoOAuthService {
         formData.add("client_id", kakaoClientId);
         formData.add("redirect_uri", kakaoRedirectUri);
 
+        // client_secret 필요하면 추가
+        formData.add("client_secret", kakaoClientSecret);
+
+        System.out.println("Request Kakao Token with code=" + code + ", client_id=" + kakaoClientId + ", redirect_uri=" + kakaoRedirectUri);
+
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(formData, headers);
         ResponseEntity<Map> responseEntity = restTemplate.exchange(requestUrl, HttpMethod.POST, request, Map.class);
 
         Map<String, Object> responseJSON = (Map<String, Object>) responseEntity.getBody();
+        System.out.println("Response from Kakao: " + responseJSON);
         return (String) responseJSON.get("access_token");
     }
+
     public KakaoUserDto getKakaoUser(String kakaoAccessToken) {
         String requestUrl = "https://kapi.kakao.com/v2/user/me";
 

@@ -7,6 +7,7 @@ import com.kindtail.adoptmate.member.dto.MemberResponseDto;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
@@ -23,7 +24,7 @@ public class KakaoAuthController {
     }
 
     @GetMapping("/kakao")
-    public void kakaoCallback(String code, HttpServletResponse response)throws IOException {
+    public void kakaoCallback(@RequestParam String code, HttpServletResponse response)throws IOException {
      String kakaoAccessToken = kakaoOAuthService.getKakaoAccessToken(code);
         KakaoUserDto kakaoUserDto = kakaoOAuthService.getKakaoUser(kakaoAccessToken);
         MemberResponseDto memberResponseDto = kakaoOAuthService.findOrCreateKakaoUser(kakaoUserDto);
@@ -44,7 +45,7 @@ public class KakaoAuthController {
                             }, 'http://localhost:5173');
                             window.close();
                         } else {
-                            window.location.href = 'http://localhost:5173';
+                            window.location.href = 'http://localhost:5173/';
                         }
                     </script>
                     <p>카카오 로그인 처리 중...</p>

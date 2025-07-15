@@ -60,3 +60,4 @@ oauth2:
   kakao:
     client-id: 16a5cc3c2d930524373be21f6bf96353
     redirect-uri: http://localhost:8000/adoptmate/kakao
+    client-secret: CryJfVnfMoA1KtUgsJkwzJohjCRMWiYz
