@@ -6,6 +6,7 @@ import com.kindtail.adoptmate.member.repository.MemberRepository;
 import jakarta.mail.MessagingException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class EmailVerificationService {
         this.mailSenderService = mailSenderService;
         this.memberRepository = memberRepository;
         this.passwordEncoder = passwordEncoder;
+    ;
     }
 
     public String mailCheck(String email) {
@@ -108,7 +110,7 @@ public class EmailVerificationService {
 
         int count = (obj != null) ? Integer.parseInt(obj.toString()) + 1 : 1;
 
-        // ✅ int → String으로 변환하여 저장
+
         redisTemplate.opsForValue().set(key, String.valueOf(count), Duration.ofMinutes(1));
 
         return count;
@@ -124,4 +126,43 @@ public class EmailVerificationService {
         member.updatePassword(encryptedPassword);
         redisTemplate.delete("reset:" + email);
     }
+
+    private String generateResetCode(){
+        return String.valueOf((int) (Math.random() *90000)+10000);
+    }
+
+
+    public  void sendPasswordResetEmail(String email) {
+
+
+        Optional<Member> byEmail = memberRepository.findByEmail(email);
+        if (! byEmail.isPresent()) {
+            throw new IllegalArgumentException("이미 존재하는 이메일 입니다!");
+        }
+
+        String authCode ;
+        try{
+            authCode = generateResetCode();
+            mailSenderService.sendAuthCode(email,authCode);
+        } catch (MessagingException e) {
+            throw new RuntimeException(e);
+        }
+
+        redisTemplate.opsForValue().set("reset:" + email, authCode, Duration.ofMinutes(5));
+
+    }
+
+    public boolean verifyPassword(String email, String code) {
+        String key = "reset:" + email;
+        String stored = redisTemplate.opsForValue().get(key);
+        if (stored == null || !stored.equals(code)) {
+            return false;
+        }
+        redisTemplate.delete(key);
+        return true;
+
+    }
+
+
+
 }

@@ -42,15 +42,35 @@ public class EmailVerificationController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
-    // 3. 비밀번호 변경
+    @PostMapping("/send-reset-code")
+    public ResponseEntity<?> sendResetCode(@RequestParam String email) {
+        try {
+            emailVerificationService.sendPasswordResetEmail(email);
+            return ResponseEntity.ok("📧 인증 코드가 이메일로 전송되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("서버 오류로 인증 메일 전송 실패");
+        }
+    }
+    @PostMapping("/verify-reset-code")
+    public ResponseEntity<?> verifyResetCode(@RequestParam String email,
+                                             @RequestParam String code) {
+        boolean verified = emailVerificationService.verifyPassword(email, code);
+        if (verified) {
+            return ResponseEntity.ok("✅ 인증 성공");
+        } else {
+            return ResponseEntity.badRequest().body("❌ 인증 실패: 잘못된 코드이거나 만료되었습니다.");
+        }
+    }
     @PatchMapping("/password")
     public ResponseEntity<?> updatePassword(@RequestBody MemberLoginResponseDto dto) {
         try {
             emailVerificationService.updatePassword(dto);
-            return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+            return ResponseEntity.ok("🔒 비밀번호가 성공적으로 변경되었습니다.");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("❌ " + e.getMessage());
         }
     }
+
 }
