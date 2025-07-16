@@ -5,8 +5,11 @@ import com.kindtail.adoptmate.member.domain.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 
+@Builder
 public record MemberResponseDto(
+        Long id,
         @NotBlank(message = "이름은 필수입니다.")
     String name ,
         @Email(message = "올바른 이메일 형식이어야 합니다.")
@@ -18,11 +21,21 @@ public record MemberResponseDto(
         String password,
 
 
-        Role role
+        Role role ,
+        String profileImage,
+        String socialProvider,
+        String socialId
+
+
         ) {
+
     public static MemberResponseDto from(Member member) {
         return new MemberResponseDto(
-                member.getName(), member.getEmail(), member.getPassword(),  member.getRole()
-        );
+                member.getId(), member.getName(), member.getEmail(), member.getPassword(), member.getRole(), member.getProfileImage(),
+                member.getSocialProvider(),
+                member.getSocialId()
+                );
     }
+
+
 }
