@@ -43,5 +43,43 @@ React와 Spring Boot를 기반으로 개발되었으며, 입양 신청부터 후
 
 ---
 
-## 🎯 주요 화면 (스크린샷이 있다면 첨부)
+## DB 설계
+<img width="1280" height="952" alt="image" src="https://github.com/user-attachments/assets/250cbc1b-0326-459e-a89d-17a871cc97be" />
+## 유스케이스 다이어그램
+<img width="1104" height="930" alt="image" src="https://github.com/user-attachments/assets/ee9125c5-c1a1-4dbd-a8b3-63ffeee61a5d" />
 
+## 백엔드 패키지구조
+com.kindtail.adoptmate
+├── member
+│   ├── controller
+│   ├── service
+│   ├── repository
+│   ├── domain       ← Member 엔티티 클래스
+│   └── dto
+├── comment
+│   ├── controller
+│   ├── service
+│   ├── repository
+│   ├── domain       ← Comment 엔티티 클래스
+│   └── dto
+├── animal
+│   ├── controller
+│   ├── service
+│   ├── repository
+│   ├── domain       ← Animal 엔티티 클래스
+│   └── dto
+├── adoption
+│   ├── controller
+│   ├── service
+│   ├── repository
+│   ├── domain       ← Adoption 엔티티 클래스
+│   └── dto
+├── board
+│   ├── controller
+│   ├── service
+│   ├── repository
+│   ├── domain       ← Board(Post) 엔티티 클래스
+│   └── dto
+├── config
+└── Application.java
+## API  명세서
