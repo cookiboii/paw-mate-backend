@@ -48,38 +48,23 @@ React와 Spring Boot를 기반으로 개발되었으며, 입양 신청부터 후
 ## 유스케이스 다이어그램
 <img width="1104" height="930" alt="image" src="https://github.com/user-attachments/assets/ee9125c5-c1a1-4dbd-a8b3-63ffeee61a5d" />
 
-## 백엔드 패키지구조
-com.kindtail.adoptmate
-├── member
-│   ├── controller
-│   ├── service
-│   ├── repository
-│   ├── domain       ← Member 엔티티 클래스
-│   └── dto
-├── comment
-│   ├── controller
-│   ├── service
-│   ├── repository
-│   ├── domain       ← Comment 엔티티 클래스
-│   └── dto
-├── animal
-│   ├── controller
-│   ├── service
-│   ├── repository
-│   ├── domain       ← Animal 엔티티 클래스
-│   └── dto
-├── adoption
-│   ├── controller
-│   ├── service
-│   ├── repository
-│   ├── domain       ← Adoption 엔티티 클래스
-│   └── dto
-├── board
-│   ├── controller
-│   ├── service
-│   ├── repository
-│   ├── domain       ← Board(Post) 엔티티 클래스
-│   └── dto
-├── config
-└── Application.java
-## API  명세서
+| 번호 | 기능        | 메서드      | URL                         | 설명                   | 요청 예시                                                                                                                                                                | 응답 예시                                                   |
+| -- | --------- | -------- | --------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 1  | 동물 등록     | `POST`   | `/adoptmate/animals`        | 유기동물 정보 등록 (관리자)     | `{ "species": "dog", "gender": "male", "color": "brown", "age": 3, "breed": "bulldog", "status": "available", "imgUrl": "https://storage.example.com/animal1.jpg" }` | `{ "animalId": 1, "species": "dog", ... }`              |
+| 2  | 동물 전체 조회  | `GET`    | `/adoptmate/animals`        | 모든 유기동물 목록 조회        | 없음                                                                                                                                                                   | `[ { "animalId": 1, "species": "dog", ... }, {...} ]`   |
+| 3  | 동물 상세 조회  | `GET`    | `/adoptmate/animals/{id}`   | 특정 동물 상세 조회          | 없음                                                                                                                                                                   | `{ "animalId": 1, "species": "dog", ... }`              |
+| 4  | 동물 수정     | `PUT`    | `/adoptmate/animals/{id}`   | 동물 정보 수정 (관리자)       | `{ "color": "black", "status": "adopted", "imgUrl": "..." }`                                                                                                         | `{ "animalId": 1, "color": "black", ... }`              |
+| 5  | 동물 삭제     | `DELETE` | `/adoptmate/animals/{id}`   | 동물 정보 삭제 (관리자)       | 없음                                                                                                                                                                   | `{ "message": "Animal deleted successfully." }`         |
+| 6  | 입양 신청     | `POST`   | `/adoptmate/adoptions`      | 유저가 입양 신청            | `{ "animalId": 1, "memberId": 100, "applyDate": "2025-07-01T10:00:00Z" }`                                                                                            | `{ "adoptionId": 10, "status": "PENDING" }`             |
+| 7  | 입양 전체 조회  | `GET`    | `/adoptmate/adoptions`      | 입양 신청 목록 전체 조회 (관리자) | 없음                                                                                                                                                                   | `[ { "adoptionId": 10, "animalId": 1, ... }, {...} ]`   |
+| 8  | 입양 상세 조회  | `GET`    | `/adoptmate/adoptions/{id}` | 특정 입양 신청 상세 조회       | 없음                                                                                                                                                                   | `{ "adoptionId": 10, "animalId": 1, ... }`              |
+| 9  | 입양 상태 변경  | `PATCH`  | `/adoptmate/adoptions/{id}` | 입양 승인/거절 처리 (관리자)    | `{ "status": "APPROVED" }`                                                                                                                                           | `{ "adoptionId": 10, "status": "APPROVED" }`            |
+| 10 | 입양 신청 취소  | `DELETE` | `/adoptmate/adoptions/{id}` | 유저가 입양 신청 취소         | 없음                                                                                                                                                                   | `{ "message": "Adoption request cancelled." }`          |
+| 11 | 게시글 작성    | `POST`   | `/adoptmate/posts`          | 유저가 게시글 작성           | `{ "title": "입양 후기", "content": "...", "images": ["url1", "url2"] }`                                                                                                 | `{ "postId": 5, "title": "...", ... }`                  |
+| 12 | 게시글 전체 조회 | `GET`    | `/adoptmate/posts`          | 게시글 목록 전체 조회         | 없음                                                                                                                                                                   | `[ { "postId": 5, "title": "...", ... }, {...} ]`       |
+| 13 | 게시글 상세 조회 | `GET`    | `/adoptmate/posts/{id}`     | 특정 게시글 상세 조회         | 없음                                                                                                                                                                   | `{ "postId": 5, "title": "...", ... }`                  |
+| 14 | 게시글 수정    | `PUT`    | `/adoptmate/posts/{id}`     | 게시글 수정 (작성자 본인)      | `{ "title": "수정된 제목", "content": "...", "images": ["url"] }`                                                                                                         | `{ "postId": 5, "title": "...", ... }`                  |
+| 15 | 게시글 삭제    | `DELETE` | `/adoptmate/posts/{id}`     | 게시글 삭제 (작성자 본인)      | 없음                                                                                                                                                                   | `{ "message": "Post deleted successfully." }`           |
+| 16 | 이미지 업로드   | `POST`   | `/adoptmate/uploads/images` | 게시글용 이미지 업로드         | Multipart/form-data (이미지 파일)                                                                                                                                         | `{ "imageUrl": "https://storage.example.com/abc.jpg" }` |
+
+
