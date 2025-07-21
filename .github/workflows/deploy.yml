@@ -35,7 +35,7 @@ jobs:
         with:
           host: ${{ secrets.OCI_HOST }}        # OCI 인스턴스 퍼블릭 IP
           username: ubuntu                     # 우분투 기본 사용자명
-          key: ${{ secrets.OCI_SSH_KEY }}     # SSH 개인키 (PEM 내용)
+          key: ${{ secrets.ORARLE_SECRET_ACCESS_KEY }}     # SSH 개인키 (PEM 내용)
           source: "spring-backend.tar"
           target: "~/"
 
@@ -44,7 +44,7 @@ jobs:
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
-          key: ${{ secrets.OCI_SSH_KEY }}
+          key: ${{ secrets.ORARLE_SECRET_ACCESS_KEY }}
           script: |
             docker load -i spring-backend.tar
             docker stop spring-backend || true
