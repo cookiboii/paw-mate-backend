@@ -32,22 +32,23 @@ jobs:
           docker save spring-backend -o spring-backend.tar
           chmod 644 spring-backend.tar
 
-      - name: Copy image to OCI instance
+      - name: Copy Docker image to OCI instance
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
-          source: "spring-backend.tar"
+          source: "./spring-backend.tar"
           target: "~/"
 
-      - name: Run containers on OCI
+      - name: Run containers on OCI server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
           script: |
+            # Docker 네트워크 생성 (이미 존재하면 무시)
             docker network create adoptnet 2>/dev/null || echo "Network adoptnet already exists"
 
             # MySQL
