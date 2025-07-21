@@ -18,21 +18,16 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
-      - name: Grant permission to gradlew
-        run: chmod +x ./gradlew
-
-      - name: Build Spring Boot JAR
+      - name: Build with Gradle
         run: ./gradlew bootJar
 
       - name: Build Docker image
         run: docker build -t spring-backend .
 
-      - name: Save Docker image to tar
-        run: |
-          docker save -o spring-backend.tar spring-backend
-          chmod 644 spring-backend.tar
+      - name: Save Docker image as tar
+        run: docker save spring-backend -o spring-backend.tar
 
-      - name: Upload image and docker-compose to OCI
+      - name: Copy Docker image and compose file to OCI
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.OCI_HOST }}
@@ -43,7 +38,7 @@ jobs:
             docker-compose.yml
           target: "~/"
 
-      - name: Deploy on OCI server
+      - name: Deploy to OCI using SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.OCI_HOST }}
@@ -52,9 +47,6 @@ jobs:
           script: |
             docker stop $(docker ps -aq) || true
             docker rm $(docker ps -aq) || true
-            docker rmi -f $(docker images -aq) || true
-
             docker load -i spring-backend.tar
-
             docker-compose down || true
             docker-compose up -d --remove-orphans
