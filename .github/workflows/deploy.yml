@@ -41,9 +41,7 @@ jobs:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
-          source: |
-            ./spring-backend.tar
-            ./docker-compose.yml
+          source: "./spring-backend.tar ./docker-compose.yml"
           target: "~/"
 
       - name: Deploy with docker-compose on OCI server
