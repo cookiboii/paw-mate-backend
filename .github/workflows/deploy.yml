@@ -32,81 +32,24 @@ jobs:
           docker save spring-backend -o spring-backend.tar
           chmod 644 spring-backend.tar
 
-      - name: Copy Docker image to OCI instance
+      - name: Copy project files to OCI
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
-          source: "./spring-backend.tar"
+          source: |
+            ./spring-backend.tar
+            ./docker-compose.yml
           target: "~/"
 
-      - name: Run containers on OCI server
+      - name: Run containers on OCI server with docker-compose
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
           script: |
-            # Docker 네트워크 생성 (이미 존재하면 무시)
-            docker network create adoptnet 2>/dev/null || echo "Network adoptnet already exists"
-
-            # MySQL
-            if [ "$(docker ps -a -q -f name=mysql)" ]; then
-              if [ "$(docker ps -q -f name=mysql)" ]; then
-                echo "MySQL container already running"
-              else
-                echo "Starting existing MySQL container"
-                docker start mysql
-              fi
-            else
-              echo "Creating and starting MySQL container"
-              docker run -d \
-                --name mysql \
-                --network adoptnet \
-                -e MYSQL_ROOT_PASSWORD=qwer1234 \
-                -e MYSQL_DATABASE=adoptpet_db \
-                -p 3306:3306 \
-                -v mysql-data:/var/lib/mysql \
-                mysql:8.0
-            fi
-
-            # Redis
-            if [ "$(docker ps -a -q -f name=redis)" ]; then
-              if [ "$(docker ps -q -f name=redis)" ]; then
-                echo "Redis container already running"
-              else
-                echo "Starting existing Redis container"
-                docker start redis
-              fi
-            else
-              echo "Creating and starting Redis container"
-              docker run -d \
-                --name redis \
-                --network adoptnet \
-                -p 6379:6379 \
-                redis:7
-            fi
-
-            # Spring Boot backend
-            if [ "$(docker ps -a -q -f name=spring-backend)" ]; then
-              if [ "$(docker ps -q -f name=spring-backend)" ]; then
-                echo "Spring Backend container already running, restarting"
-                docker restart spring-backend
-              else
-                echo "Starting existing Spring Backend container"
-                docker start spring-backend
-              fi
-            else
-              echo "Loading Docker image and creating Spring Backend container"
-              docker load -i spring-backend.tar
-              docker run -d \
-                --name spring-backend \
-                --network adoptnet \
-                -p 80:8000 \
-                -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/adoptpet_db?useSSL=false&serverTimezone=Asia/Seoul \
-                -e SPRING_DATASOURCE_USERNAME=root \
-                -e SPRING_DATASOURCE_PASSWORD=qwer1234 \
-                -e SPRING_REDIS_HOST=redis \
-                spring-backend
-            fi
+            docker load -i spring-backend.tar
+            docker compose -f docker-compose.yml down || true
+            docker compose -f docker-compose.yml up -d
