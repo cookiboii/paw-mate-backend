@@ -18,21 +18,35 @@ jobs:
           distribution: 'temurin'
           java-version: 17
 
+      - name: Grant permission to gradlew
+        run: chmod +x ./gradlew
+
       - name: Build with Gradle
         run: ./gradlew bootJar
 
       - name: Build Docker image
         run: docker build -t spring-backend .
 
-      - name: Log in to OCI Instance
+      - name: Save Docker image as tar
+        run: docker save spring-backend -o spring-backend.tar
+
+      - name: Copy image to OCI instance
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER }}
+          key: ${{ secrets.OCI_SSH_KEY }}
+          source: "spring-backend.tar"
+          target: "~/"
+
+      - name: Run Docker container on OCI
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ${{ secrets.OCI_USER }}
           key: ${{ secrets.OCI_SSH_KEY }}
           script: |
+            docker load -i spring-backend.tar
             docker stop spring-backend || true
             docker rm spring-backend || true
-            docker rmi spring-backend || true
-            docker pull cookiboii/spring-backend:latest || true
             docker run -d -p 80:8000 --name spring-backend spring-backend
