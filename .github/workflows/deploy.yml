@@ -30,7 +30,7 @@ jobs:
       - name: Save Docker image as tar
         run: docker save spring-backend -o spring-backend.tar
 
-      - name: Copy Docker image and docker-compose.yml to OCI
+      - name: Copy Docker image and docker-compose.yml to OCI instance
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.OCI_HOST }}
@@ -39,16 +39,15 @@ jobs:
           source: |
             spring-backend.tar
             docker-compose.yml
-          target: "~/"
+          target: "~/"  # OCI 서버 홈 디렉토리
 
-      - name: Deploy on OCI with docker-compose
+      - name: Deploy with docker-compose on OCI
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
           script: |
-            chmod +x docker-compose.yml || true
             docker-compose down || true
             docker stop $(docker ps -aq) || true
             docker rm $(docker ps -aq) || true
