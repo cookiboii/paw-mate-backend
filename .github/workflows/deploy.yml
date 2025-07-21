@@ -1,8 +1,8 @@
-name: Build and Deploy Spring Boot to OCI
+name: Build and Deploy Spring Boot to OCI without Compose
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build_and_deploy:
@@ -30,29 +30,50 @@ jobs:
       - name: Save Docker image as tar
         run: docker save spring-backend -o spring-backend.tar
 
-      - name: ✅ Copy Docker image and docker-compose.yml to OCI
+      - name: Copy Docker image to OCI instance
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
-          source: |
-            ./spring-backend.tar
-            ./docker-compose.yml
+          source: spring-backend.tar
           target: "~/"
-      - name: 📂 List current files (debug)
-        run: ls -al
 
-      - name: 🚀 Deploy with docker-compose on OCI
+      - name: Deploy to OCI (no docker-compose)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
           script: |
-            cd ~
-            docker-compose down || true
-            docker stop $(docker ps -aq) || true
-            docker rm $(docker ps -aq) || true
+            docker stop spring-backend mysql redis || true
+            docker rm spring-backend mysql redis || true
+
+            docker network create adoptnet || true
+
+            # Run MySQL
+            docker run -d \
+              --name mysql \
+              --network adoptnet \
+              -e MYSQL_ROOT_PASSWORD=qwer1234 \
+              -e MYSQL_DATABASE=adoptpet_db \
+              -p 3306:3306 \
+              -v mysql-data:/var/lib/mysql \
+              mysql:8.0
+
+            # Run Redis
+            docker run -d \
+              --name redis \
+              --network adoptnet \
+              -p 6379:6379 \
+              redis:7
+
+            # Load Spring Boot image
             docker load -i spring-backend.tar
-            docker-compose up -d --remove-orphans
+
+            # Run Spring Boot
+            docker run -d \
+              --name spring-backend \
+              --network adoptnet \
+              -p 80:8000 \
+              spring-backend
