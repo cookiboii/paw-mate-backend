@@ -30,25 +30,27 @@ jobs:
       - name: Save Docker image as tar
         run: |
           docker save spring-backend -o spring-backend.tar
-          chmod 644 spring-backend.tar  # tar 파일에 읽기 권한 추가
+          chmod 644 spring-backend.tar
 
-      - name: Copy image to OCI instance
+      - name: Copy image & docker-compose.yml to OCI instance
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
-          key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }} # ← .pem 키를 secret에 저장
-          source: "spring-backend.tar"
-          target: "~/"
+          key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
+          source: |
+            spring-backend.tar
+            docker-compose.yml
+          target: "~/adoptpet"
 
-      - name: Run Docker container on OCI
+      - name: Run Docker Compose on OCI
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
           script: |
+            cd ~/adoptpet
             docker load -i spring-backend.tar
-            docker stop spring-backend || true
-            docker rm spring-backend || true
-            docker run -d -p 80:8000 --name spring-backend spring-backend
+            docker-compose down || true
+            docker-compose up -d
