@@ -1,0 +1,38 @@
+name: Deploy Spring Boot to OCI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Build with Gradle
+        run: ./gradlew bootJar
+
+      - name: Build Docker image
+        run: docker build -t spring-backend .
+
+      - name: Log in to OCI Instance
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER }}
+          key: ${{ secrets.OCI_SSH_KEY }}
+          script: |
+            docker stop spring-backend || true
+            docker rm spring-backend || true
+            docker rmi spring-backend || true
+            docker pull cookiboii/spring-backend:latest || true
+            docker run -d -p 80:8080 --name spring-backend spring-backend

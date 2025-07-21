@@ -7,6 +7,7 @@ import java.util.List;
 
 public record CommentResponseDto(     Long id,
                                       String authorName,
+                                      Long authorId,
                                       String authorEmail,
                                       String content,
                                       LocalDateTime createdAt,
@@ -17,6 +18,7 @@ public record CommentResponseDto(     Long id,
             return new CommentResponseDto(
                     comment.getId(),
                     comment.getMember().getName(),
+                    comment.getMember().getId(),
                     comment.getMember().getEmail(),
                     comment.getContent(),
                     comment.getCreationDate(),
