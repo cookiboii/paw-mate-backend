@@ -28,14 +28,16 @@ jobs:
         run: docker build -t spring-backend .
 
       - name: Save Docker image as tar
-        run: docker save spring-backend -o spring-backend.tar
+        run: |
+          docker save spring-backend -o spring-backend.tar
+          chmod 644 spring-backend.tar  # tar 파일에 읽기 권한 추가
 
       - name: Copy image to OCI instance
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.OCI_HOST }}        # OCI 인스턴스 퍼블릭 IP
-          username: ubuntu                     # 우분투 기본 사용자명
-          key: ${{ secrets.ORARLE_SECRET_ACCESS_KEY }}     # SSH 개인키 (PEM 내용)
+          host: ${{ secrets.OCI_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }} # ← .pem 키를 secret에 저장
           source: "spring-backend.tar"
           target: "~/"
 
@@ -44,7 +46,7 @@ jobs:
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
-          key: ${{ secrets.ORARLE_SECRET_ACCESS_KEY }}
+          key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
           script: |
             docker load -i spring-backend.tar
             docker stop spring-backend || true
