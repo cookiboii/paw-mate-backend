@@ -32,6 +32,12 @@ jobs:
           docker save spring-backend -o spring-backend.tar
           chmod 644 spring-backend.tar
 
+      - name: ✅ Check files exist (디버깅용 — optional)
+        run: |
+          ls -al
+          ls -al spring-backend.tar
+          ls -al docker-compose.yml
+
       - name: Copy image & docker-compose.yml to OCI instance
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -39,8 +45,8 @@ jobs:
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
           source: |
-            spring-backend.tar
-            docker-compose.yml
+            ./spring-backend.tar
+            ./docker-compose.yml
           target: "~/adoptpet"
 
       - name: Run Docker Compose on OCI
