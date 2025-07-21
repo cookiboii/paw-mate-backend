@@ -7,8 +7,8 @@ services:
     ports:
       - "80:8000"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/adoptpet_db?useSSL=false&serverTimezone=Asia/Seoul
-      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/adoptmate?useSSL=false&serverTimezone=Asia/Seoul
+      - SPRING_DATASOURCE_USERNAME=adoptpet_db
       - SPRING_DATASOURCE_PASSWORD=qwer1234
       - SPRING_REDIS_HOST=redis
     depends_on:
