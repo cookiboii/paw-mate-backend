@@ -30,7 +30,7 @@ jobs:
       - name: Save Docker image as tar
         run: |
           docker save spring-backend -o spring-backend.tar
-          chmod 644 spring-backend.tar  # tar 파일에 읽기 권한 추가
+          chmod 644 spring-backend.tar
 
       - name: Copy image to OCI instance
         uses: appleboy/scp-action@v0.1.7
@@ -48,14 +48,14 @@ jobs:
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
           script: |
-            # 네트워크 생성
+            # Docker network 생성 (이미 존재해도 무시)
             docker network create adoptnet || true
 
-            # 기존 컨테이너 정리
+            # 기존 컨테이너 정리 (안 존재해도 무시)
             docker stop spring-backend mysql redis || true
             docker rm spring-backend mysql redis || true
 
-            # MySQL 실행
+            # MySQL 컨테이너 실행
             docker run -d \
               --name mysql \
               --network adoptnet \
@@ -65,7 +65,7 @@ jobs:
               -v mysql-data:/var/lib/mysql \
               mysql:8.0
 
-            # Redis 실행
+            # Redis 컨테이너 실행
             docker run -d \
               --name redis \
               --network adoptnet \
@@ -75,11 +75,11 @@ jobs:
             # Spring Boot 이미지 불러오기
             docker load -i spring-backend.tar
 
-            # Spring Boot 실행
+            # Spring Boot 컨테이너 실행
             docker run -d \
               --name spring-backend \
               --network adoptnet \
-              -p 80:8000 \
+              -p 8000:8000 \
               -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/adoptpet_db?useSSL=false&serverTimezone=Asia/Seoul \
               -e SPRING_DATASOURCE_USERNAME=root \
               -e SPRING_DATASOURCE_PASSWORD=qwer1234 \
