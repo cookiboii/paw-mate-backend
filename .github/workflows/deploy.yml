@@ -48,6 +48,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
           script: |
+            chmod +x docker-compose.yml || true
             docker-compose down || true
             docker stop $(docker ps -aq) || true
             docker rm $(docker ps -aq) || true
