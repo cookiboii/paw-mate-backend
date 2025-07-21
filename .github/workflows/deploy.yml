@@ -35,4 +35,4 @@ jobs:
             docker rm spring-backend || true
             docker rmi spring-backend || true
             docker pull cookiboii/spring-backend:latest || true
-            docker run -d -p 80:8080 --name spring-backend spring-backend
+            docker run -d -p 80:8000 --name spring-backend spring-backend
