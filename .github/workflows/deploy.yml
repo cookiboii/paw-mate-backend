@@ -1,57 +1,61 @@
-name: Build and Deploy Spring Boot to OCI without Compose
+name: Deploy Spring Boot to OCI
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  build_and_deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: 17
 
       - name: Grant permission to gradlew
         run: chmod +x ./gradlew
 
-      - name: Build Spring Boot jar
+      - name: Build with Gradle
         run: ./gradlew bootJar
 
       - name: Build Docker image
         run: docker build -t spring-backend .
 
       - name: Save Docker image as tar
-        run: docker save spring-backend -o spring-backend.tar
+        run: |
+          docker save spring-backend -o spring-backend.tar
+          chmod 644 spring-backend.tar  # tar 파일에 읽기 권한 추가
 
-      - name: Copy Docker image to OCI instance
+      - name: Copy image to OCI instance
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
-          source: spring-backend.tar
+          source: "spring-backend.tar"
           target: "~/"
 
-      - name: Deploy to OCI (no docker-compose)
+      - name: Run containers on OCI
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
           script: |
+            # 네트워크 생성
+            docker network create adoptnet || true
+
+            # 기존 컨테이너 정리
             docker stop spring-backend mysql redis || true
             docker rm spring-backend mysql redis || true
 
-            docker network create adoptnet || true
-
-            # Run MySQL
+            # MySQL 실행
             docker run -d \
               --name mysql \
               --network adoptnet \
@@ -61,19 +65,23 @@ jobs:
               -v mysql-data:/var/lib/mysql \
               mysql:8.0
 
-            # Run Redis
+            # Redis 실행
             docker run -d \
               --name redis \
               --network adoptnet \
               -p 6379:6379 \
               redis:7
 
-            # Load Spring Boot image
+            # Spring Boot 이미지 불러오기
             docker load -i spring-backend.tar
 
-            # Run Spring Boot
+            # Spring Boot 실행
             docker run -d \
               --name spring-backend \
               --network adoptnet \
               -p 80:8000 \
+              -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/adoptpet_db?useSSL=false&serverTimezone=Asia/Seoul \
+              -e SPRING_DATASOURCE_USERNAME=root \
+              -e SPRING_DATASOURCE_PASSWORD=qwer1234 \
+              -e SPRING_REDIS_HOST=redis \
               spring-backend
