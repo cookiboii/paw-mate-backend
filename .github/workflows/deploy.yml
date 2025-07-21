@@ -30,7 +30,7 @@ jobs:
         run: ls -l spring-backend.tar docker-compose.yml || true
 
       - name: Copy files to OCI
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v0.1.3
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
