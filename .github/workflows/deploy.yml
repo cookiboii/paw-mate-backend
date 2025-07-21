@@ -26,15 +26,16 @@ jobs:
           docker save spring-backend -o spring-backend.tar
           chmod 644 spring-backend.tar
 
+      - name: List files before SCP
+        run: ls -l spring-backend.tar docker-compose.yml || true
+
       - name: Copy files to OCI
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ubuntu
           key: ${{ secrets.ORACLE_SECRET_ACCESS_KEY }}
-          source: |
-            ./spring-backend.tar
-            ./docker-compose.yml
+          source: ./spring-backend.tar ./docker-compose.yml
           target: "~/"
 
       - name: Deploy on OCI
@@ -47,5 +48,3 @@ jobs:
             docker load -i spring-backend.tar
             docker compose -f docker-compose.yml down || true
             docker compose -f docker-compose.yml up -d
-
-
