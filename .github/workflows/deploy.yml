@@ -33,18 +33,18 @@ jobs:
       - name: Copy image to OCI instance
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ OCI_HOST }}
-          username:  ubuntu
-          key: ${{ ORARLE_SECRET_ACCESS_KEY }}
+          host: ${{ secrets.OCI_HOST }}        # OCI 인스턴스 퍼블릭 IP
+          username: ubuntu                     # 우분투 기본 사용자명
+          key: ${{ secrets.OCI_SSH_KEY }}     # SSH 개인키 (PEM 내용)
           source: "spring-backend.tar"
           target: "~/"
 
       - name: Run Docker container on OCI
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ OCI_HOST }}
+          host: ${{ secrets.OCI_HOST }}
           username: ubuntu
-          key: ${{ORARLE_SECRET_ACCESS_KEY}}
+          key: ${{ secrets.OCI_SSH_KEY }}
           script: |
             docker load -i spring-backend.tar
             docker stop spring-backend || true
