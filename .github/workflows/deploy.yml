@@ -40,6 +40,8 @@ jobs:
             ./spring-backend.tar
             ./docker-compose.yml
           target: "~/"
+      - name: 📂 List current files (debug)
+        run: ls -al
 
       - name: 🚀 Deploy with docker-compose on OCI
         uses: appleboy/ssh-action@v1.0.3
