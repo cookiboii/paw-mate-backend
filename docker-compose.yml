@@ -25,7 +25,7 @@ services:
       - "6379:6379"
 
   spring-backend:
-    image: spring-backend  # 🔥 사전에 .tar로 전달해서 docker load로 등록됨
+    image: spring-backend
     container_name: spring-backend
     depends_on:
       - mysql
