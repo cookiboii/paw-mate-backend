@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mysql:
@@ -6,42 +6,33 @@ services:
     container_name: mysql
     restart: always
     environment:
+      MYSQL_DATABASE: adoptpet_db
+      MYSQL_USER: adoptmate
+      MYSQL_PASSWORD: qwer1234
       MYSQL_ROOT_PASSWORD: qwer1234
-      MYSQL_DATABASE: adoptmate
-    volumes:
-      - mysql-data:/var/lib/mysql
-    networks:
-      - adoptnet
     ports:
       - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
-    image: redis:7
+    image: redis:alpine
     container_name: redis
-    restart: always
-    networks:
-      - adoptnet
     ports:
       - "6379:6379"
 
   spring-backend:
     image: spring-backend
     container_name: spring-backend
-    depends_on:
-      - mysql
-      - redis
+    build:
+      context: .
     ports:
-      - "80:8000"
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/adoptpet_db?useSSL=false&serverTimezone=Asia/Seoul
-      SPRING_DATASOURCE_USERNAME: adoptmate
-      SPRING_DATASOURCE_PASSWORD: qwer1234
-      SPRING_REDIS_HOST: redis
-    networks:
-      - adoptnet
-
-volumes:
-  mysql-data:
-
-networks:
-  adoptnet:
+      SPRING_PROFILES_ACTIVE: prod
