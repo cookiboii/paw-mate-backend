@@ -1,2 +1,0 @@
-# .dockerignore 예시
-!build/libs/*.jar
