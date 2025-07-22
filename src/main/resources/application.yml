@@ -1,7 +1,6 @@
-
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/adoptpet_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
+    url: jdbc:mysql://mysql:3306/adoptpet_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
     username: adoptmate
     password: adoptmate
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -13,13 +12,12 @@ spring:
       hibernate:
         format_sql: true
         show_sql: true
-
+        dialect: org.hibernate.dialect.MySQL8Dialect
 
   data:
     redis:
-      host: localhost
+      host: redis
       port: 6379
-      # password: your_redis_password (필요 시 주석 해제)
 
   servlet:
     multipart:
@@ -52,13 +50,13 @@ logging:
     org.hibernate.type: trace
 
 jwt:
-  expiration: 20000         # Access Token 유효 시간 (분)
+  expiration: 20000
   secretKey: b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550
-
-  expirationRt: 120         # Refresh Token 유효 시간 (분)
+  expirationRt: 120
   secretKeyRt: b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550
+
 oauth2:
   kakao:
     client-id: 16a5cc3c2d930524373be21f6bf96353
-    redirect-uri: http://localhost:8000/adoptmate/kakao
+    redirect-uri: http://158.180.81.246:8000/adoptmate/kakao
     client-secret: CryJfVnfMoA1KtUgsJkwzJohjCRMWiYz
