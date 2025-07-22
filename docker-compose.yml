@@ -6,8 +6,8 @@ services:
     container_name: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: adoptmate
-      MYSQL_DATABASE:  qwer1234
+      MYSQL_ROOT_PASSWORD: qwer1234
+      MYSQL_DATABASE: adoptpet_db
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -34,7 +34,7 @@ services:
       - "80:8000"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/adoptpet_db?useSSL=false&serverTimezone=Asia/Seoul
-      SPRING_DATASOURCE_USERNAME: adoptmate
+      SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: qwer1234
       SPRING_REDIS_HOST: redis
     networks:
