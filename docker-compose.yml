@@ -6,8 +6,8 @@ services:
     container_name: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: qwer1234
-      MYSQL_DATABASE: adoptpet_db
+      MYSQL_ROOT_PASSWORD: adoptmate
+      MYSQL_DATABASE:  adoptmate
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
