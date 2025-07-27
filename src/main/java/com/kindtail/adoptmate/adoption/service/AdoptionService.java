@@ -72,14 +72,15 @@ public class AdoptionService {
        @Transactional
        public Adoption updateStatus(Long adoptionId, AdoptionStatus status) {
           Adoption adoption = adoptionRepository.findById( adoptionId).orElseThrow(() -> new IllegalArgumentException("Adoption not found"));
+           Animal animal = adoption.getAnimal();
           if (status == AdoptionStatus.REJECTED) {
              adoptionRepository.delete(adoption);
-
-
+              animal.updatestatus(new AnimalStatusUpdateRequest(Status.PROTECTED));
+              return adoption;
           }
           else if (status == AdoptionStatus.APPROVED) {
              adoption.updateAdoption(status);
-             Animal animal =adoption.getAnimal();
+
              animal.updatestatus(new AnimalStatusUpdateRequest(Status.ADOPTED));
           }
           return adoption;

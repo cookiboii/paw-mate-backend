@@ -58,11 +58,11 @@ public class Animal {
     private LocalDateTime updatedAt;
 
 
-    public   void   updatestatus (AnimalStatusUpdateRequest request) {
+    public  void updatestatus (AnimalStatusUpdateRequest request) {
 
        this.status= request.status();
     }
 
-    @OneToMany(mappedBy = "animal", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "animal", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Adoption> adoptions = new ArrayList<>();
 }
