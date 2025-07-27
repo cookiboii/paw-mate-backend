@@ -46,7 +46,7 @@ public class Animal {
     @Lob
     private String image;
 
-    @ManyToOne(fetch = FetchType.LAZY ,cascade = CascadeType.ALL  )
+    @ManyToOne(fetch = FetchType.LAZY ) // @manyToOne 일때 cascade = CascadeType.ALL 필요없음
     @JoinColumn(name = "member_id", nullable = false) // 외래 키 컬럼명 지정
     private Member member;
 
