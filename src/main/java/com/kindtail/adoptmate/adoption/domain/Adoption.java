@@ -1,7 +1,7 @@
 package com.kindtail.adoptmate.adoption.domain;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
-import com.kindtail.adoptmate.animal.domain.Status;
+
 import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

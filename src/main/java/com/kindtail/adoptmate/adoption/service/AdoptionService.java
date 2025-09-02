@@ -33,7 +33,7 @@ public class AdoptionService {
     }
 
     @Transactional
-    public Adoption applyAdoption(AdoptionRequestDto dto,Long memberId ,Long animalId) {
+    public AdoptionResponseDto  applyAdoption(AdoptionRequestDto dto,Long memberId ,Long animalId) {
         Animal animal = animalRepository.findById(animalId)
                 .orElseThrow(() -> new IllegalArgumentException("Animal not found"));
        Member member = memberRepository.findById(memberId).orElseThrow(() -> new IllegalArgumentException("Member not found"));
@@ -46,7 +46,10 @@ public class AdoptionService {
         }
 
         Adoption adoption = Adoption.of(member, animal, dto.interview(), AdoptionStatus.PENDING );
-        return adoptionRepository.save(adoption);
+        Adoption saved= adoptionRepository.save(adoption);
+
+
+        return AdoptionResponseDto.from(saved);
     }
      @Transactional(readOnly = true)
       public List<AdoptionResponseDto> getAdoptions(Long  memberId) {
@@ -70,20 +73,20 @@ public class AdoptionService {
                  .collect(Collectors.toList());
        }
        @Transactional
-       public Adoption updateStatus(Long adoptionId, AdoptionStatus status) {
+       public  AdoptionResponseDto updateStatus(Long adoptionId, AdoptionStatus status) {
           Adoption adoption = adoptionRepository.findById( adoptionId).orElseThrow(() -> new IllegalArgumentException("Adoption not found"));
            Animal animal = adoption.getAnimal();
           if (status == AdoptionStatus.REJECTED) {
              adoptionRepository.delete(adoption);
               animal.updatestatus(new AnimalStatusUpdateRequest(Status.PROTECTED));
-              return adoption;
+              return  AdoptionResponseDto.from(adoption);
           }
           else if (status == AdoptionStatus.APPROVED) {
              adoption.updateAdoption(status);
 
              animal.updatestatus(new AnimalStatusUpdateRequest(Status.ADOPTED));
           }
-          return adoption;
+          return  AdoptionResponseDto.from(adoption);
        }
 
 

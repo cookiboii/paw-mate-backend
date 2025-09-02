@@ -38,6 +38,8 @@ public class Comment {
     @JoinColumn(name = "post_id")
     private Post post;
     private LocalDateTime creationDate;
+
+
     @Builder.Default
     @OneToMany(mappedBy = "parent",  cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Comment> children = new ArrayList<>();
