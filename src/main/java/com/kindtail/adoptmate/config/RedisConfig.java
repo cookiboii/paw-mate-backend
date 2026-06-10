@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
@@ -19,6 +20,7 @@ public class RedisConfig {
     private int port;
 
 
+    @Bean
     public RedisConnectionFactory redisConnectionFactory (){
         RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
         redisStandaloneConfiguration.setHostName(host);
@@ -26,7 +28,7 @@ public class RedisConfig {
         redisStandaloneConfiguration.setDatabase(1);
         return new LettuceConnectionFactory(redisStandaloneConfiguration);
     }
-
+    @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setKeySerializer(new StringRedisSerializer());
