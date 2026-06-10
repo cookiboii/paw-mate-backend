@@ -33,9 +33,21 @@ public class SecurityConfig {
         http.sessionManagement( session -> session.sessionCreationPolicy( SessionCreationPolicy.STATELESS ) );
         http.authorizeHttpRequests( auth->{
             auth
-                    .requestMatchers("/adoptmate/**","/animals/**","/adoptions/**","/post/**","/comment/**","/favicon.ico/**").permitAll()
+                    .requestMatchers(
+                            "/adoptmate/**",
+                            "/animals/**",
+                            "/adoptions/**",
+                            "/post/**",
+                            "/comment/**",
+                            "/favicon.ico/**",
+                            "/h2-console/**"      // H2 콘솔 경로 허용
+                    ).permitAll()
                     .anyRequest().authenticated();
         });
+
+        // H2 콘솔을 위한 프레임 옵션 비활성화
+        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
+
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
