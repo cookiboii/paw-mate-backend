@@ -6,12 +6,14 @@ import com.kindtail.adoptmate.comment.dto.CommentDto;
 import com.kindtail.adoptmate.comment.dto.CommentResponseDto;
 import com.kindtail.adoptmate.comment.dto.CommentUpdateDto;
 import com.kindtail.adoptmate.comment.repository.CommentRepository;
+import com.kindtail.adoptmate.common.exception.CustomException;
+import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
+import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.post.domain.Post;
 import com.kindtail.adoptmate.post.repository.PostRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,63 +24,72 @@ import java.util.stream.Collectors;
 @Service
 public class CommentService {
 
-
-    private  final CommentRepository commentRepository;
-    private  final MemberRepository memberRepository;
-    private  final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final MemberRepository memberRepository;
+    private final PostRepository postRepository;
 
     public CommentService(CommentRepository commentRepository, MemberRepository memberRepository, PostRepository postRepository) {
         this.commentRepository = commentRepository;
         this.memberRepository = memberRepository;
         this.postRepository = postRepository;
     }
-     @Transactional
-    public CommentResponseDto addComment(Long Id, CommentDto commentDto) {
+
+    @Transactional
+    public CommentResponseDto addComment(Long id, CommentDto commentDto) {
         TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
         String email = userInfo.getEmail();
-     Member member = memberRepository.findByEmail(email).orElseThrow(()->new IllegalArgumentException("Member not found"));
-     Post post = postRepository.findById(Id).orElseThrow(()->new IllegalArgumentException("Post not found"));
-    
-     Comment parent = null;
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
+        Comment parent = null;
         if (commentDto.parentId() != null) {
-             parent = commentRepository.findById(commentDto.parentId()).orElseThrow(()->new IllegalArgumentException("Parent not found"));
-
+            parent = commentRepository.findById(commentDto.parentId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
         }
 
-         Comment comment =Comment.builder()
-                 .content(commentDto.content())
-                 .parent(parent)
-                 .post(post)
-                 .member(member)
-                 .creationDate(LocalDateTime.now())
-                 .build();
-         commentRepository.save(comment);
-         return CommentResponseDto.fromComment(comment);
-
+        Comment comment = Comment.builder()
+                .content(commentDto.content())
+                .parent(parent)
+                .post(post)
+                .member(member)
+                .creationDate(LocalDateTime.now())
+                .build();
+        commentRepository.save(comment);
+        return CommentResponseDto.fromComment(comment);
     }
-  @Transactional
-    public List<CommentResponseDto> getComments(Long Id) {
-       Post post = postRepository.findById(Id).orElseThrow(()->new IllegalArgumentException("Post not found"));
-       List<Comment>   allComments = commentRepository.findByPost(post);
-        return allComments.stream()
-                .filter(comment -> comment.getParent() == null)
+
+    @Transactional(readOnly = true)
+    public List<CommentResponseDto> getComments(Long id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+        List<Comment> rootComments = commentRepository.findByPostAndParentIsNull(post);
+        return rootComments.stream()
                 .map(CommentResponseDto::fromComment)
                 .collect(Collectors.toList());
     }
+
     @Transactional
     public void deleteComment(Long id) {
+        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+
         Comment comment = commentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
-        // 🔐 현재 로그인한 사용자 정보 가져오기
+                .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
 
+        boolean isAuthor = comment.getMember().getEmail().equals(userInfo.getEmail());
+        boolean isAdmin = userInfo.getRole() == Role.ADMIN || "ADMIN".equals(userInfo.getRole().name());
 
+        if (!isAuthor && !isAdmin) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED_AUTHOR);
+        }
 
-         commentRepository.deleteById(id);
+        commentRepository.delete(comment);
     }
-
 
     @Transactional
     public CommentResponseDto updateComment(Long commentId, CommentUpdateDto dto) {
@@ -87,16 +98,16 @@ public class CommentService {
                 .getPrincipal();
 
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new IllegalArgumentException("Comment not found"));
+                .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
 
-        if (!comment.getMember().getEmail().equals(userInfo.getEmail()) &&
-                !userInfo.getRole().equals("ADMIN")) {
-            throw new SecurityException("본인 또는 관리자만 댓글을 수정할 수 있습니다.");
+        boolean isAuthor = comment.getMember().getEmail().equals(userInfo.getEmail());
+        boolean isAdmin = userInfo.getRole() == Role.ADMIN || "ADMIN".equals(userInfo.getRole().name());
+
+        if (!isAuthor && !isAdmin) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED, "본인 또는 관리자만 댓글을 수정할 수 있습니다.");
         }
 
         comment.updateComment(dto.content());
         return CommentResponseDto.fromComment(comment);
     }
-
-
 }

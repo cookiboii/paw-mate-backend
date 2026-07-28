@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+import com.kindtail.adoptmate.common.dto.CommonResDto;
+import org.springframework.http.HttpStatus;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/adoptmate")
@@ -17,60 +20,44 @@ public class EmailVerificationController {
 
     // 1. 이메일 인증 코드 발송
     @PostMapping("/verify-email")
-    public ResponseEntity<?> sendVerificationEmail(@RequestBody Map<String, String> request) {
+    public ResponseEntity<CommonResDto> sendVerificationEmail(@RequestBody Map<String, String> request) {
         String email = request.get("email");
-
         if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body("이메일이 비어있습니다.");
+            throw new IllegalArgumentException("이메일이 비어있습니다.");
         }
-
-        try {
-            emailVerificationService.mailCheck(email);
-            return ResponseEntity.ok("인증 코드가 이메일로 전송되었습니다.");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        emailVerificationService.mailCheck(email);
+        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "인증 코드가 이메일로 전송되었습니다.", null));
     }
 
     // 2. 인증 코드 확인
     @PostMapping("/verify-code")
-    public ResponseEntity<?> verifyCode(@RequestBody Map<String, String> request) {
-        try {
-            emailVerificationService.verifyEmail(request);
-            return ResponseEntity.ok("이메일 인증 완료!");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<CommonResDto> verifyCode(@RequestBody Map<String, String> request) {
+        Map<String, String> result = emailVerificationService.verifyEmail(request);
+        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "이메일 인증 완료!", result));
     }
+
+    // 3. 비밀번호 재설정 인증 코드 발송
     @PostMapping("/send-reset-code")
-    public ResponseEntity<?> sendResetCode(@RequestParam String email) {
-        try {
-            emailVerificationService.sendPasswordResetEmail(email);
-            return ResponseEntity.ok("📧 인증 코드가 이메일로 전송되었습니다.");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("서버 오류로 인증 메일 전송 실패");
-        }
+    public ResponseEntity<CommonResDto> sendResetCode(@RequestParam String email) {
+        emailVerificationService.sendPasswordResetEmail(email);
+        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "인증 코드가 이메일로 전송되었습니다.", null));
     }
+
+    // 4. 비밀번호 재설정 인증 코드 확인
     @PostMapping("/verify-reset-code")
-    public ResponseEntity<?> verifyResetCode(@RequestParam String email,
-                                             @RequestParam String code) {
+    public ResponseEntity<CommonResDto> verifyResetCode(@RequestParam String email, @RequestParam String code) {
         boolean verified = emailVerificationService.verifyPassword(email, code);
         if (verified) {
-            return ResponseEntity.ok("✅ 인증 성공");
+            return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "인증 성공", null));
         } else {
-            return ResponseEntity.badRequest().body("❌ 인증 실패: 잘못된 코드이거나 만료되었습니다.");
-        }
-    }
-    @PatchMapping("/password")
-    public ResponseEntity<?> updatePassword(@RequestBody MemberLoginResponseDto dto) {
-        try {
-            emailVerificationService.updatePassword(dto);
-            return ResponseEntity.ok("🔒 비밀번호가 성공적으로 변경되었습니다.");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("❌ " + e.getMessage());
+            throw new IllegalArgumentException("인증 실패: 잘못된 코드이거나 만료되었습니다.");
         }
     }
 
+    // 5. 비밀번호 재설정 (인증 완료 후)
+    @PatchMapping("/password")
+    public ResponseEntity<CommonResDto> updatePassword(@RequestBody MemberLoginResponseDto dto) {
+        emailVerificationService.updatePassword(dto);
+        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "비밀번호가 성공적으로 변경되었습니다.", null));
+    }
 }

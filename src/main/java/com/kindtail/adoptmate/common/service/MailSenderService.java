@@ -10,29 +10,32 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @Service
 public class MailSenderService {
     private final JavaMailSender mailSender;
+
+    @Value("${spring.mail.username:noreply@adoptmate.com}")
+    private String senderEmail;
 
     public MailSenderService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
-
-    public String  joinMail (String email) throws MessagingException {
-        String setFrom = "luo1998@gmail.com";
-        String  id = UUID.randomUUID().toString().replace("-", "").substring(0,8);  //인증 번호 랜덤 메서드 이걸한이유가 겹치는게 없어서 이걸 했음
-        String toMail =email;
-        String title = " 회원가입 인증 이메일";
+    public String joinMail(String email) throws MessagingException {
+        String setFrom = senderEmail;
+        String id = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String toMail = email;
+        String title = "회원가입 인증 이메일";
         String content = "홈페이지 가입을 신청해 주셔서 감사합니다." +
                 "<br><br>" +
-                "인증 번호는 <strong>" + id+ "</strong> 입니다. <br>" +
+                "인증 번호는 <strong>" + id + "</strong> 입니다. <br>" +
                 "해당 인증 번호를 인증번호 확인란에 기입해 주세요.";
 
         mailSend(setFrom, toMail, title, content);
 
         return id;
-
     }
 
     private void mailSend(String setFrom, String toMail, String title, String content)throws MessagingException {
