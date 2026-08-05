@@ -70,6 +70,7 @@ public class  Member {
     private List<Adoption> adoptions = new ArrayList<>();
 
     @Builder.Default
+
     @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 

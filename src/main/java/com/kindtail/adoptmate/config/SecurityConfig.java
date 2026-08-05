@@ -65,7 +65,7 @@ public class SecurityConfig {
                     "/adoptmate/kakao",
                     "/login/oauth2/**",
                     "/oauth2/**",
-                    "/favicon.ico",
+                    "/favicon.ico/**",
                     "/h2-console/**",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",

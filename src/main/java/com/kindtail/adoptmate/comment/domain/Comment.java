@@ -5,6 +5,9 @@ import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.post.domain.Post;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -16,6 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Table(name = "comment")
+@EntityListeners(AuditingEntityListener.class)
 public class Comment {
 
     @Id
@@ -37,10 +41,13 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     private Post post;
+    @CreatedDate
+    @Column(updatable = false)
     private LocalDateTime creationDate;
 
 
     @Builder.Default
+    @BatchSize(size = 100)
     @OneToMany(mappedBy = "parent",  cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Comment> children = new ArrayList<>();
 
