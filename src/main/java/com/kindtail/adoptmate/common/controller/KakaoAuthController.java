@@ -12,23 +12,36 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 
+import com.kindtail.adoptmate.member.service.MemberService;
+import org.springframework.beans.factory.annotation.Value;
+
 @RestController
 @RequestMapping("/adoptmate")
 public class KakaoAuthController {
 
     private final KakaoOAuthService kakaoOAuthService;
     private final JwtTokenProvider jwtTokenProvider;
-    public KakaoAuthController(KakaoOAuthService kakaoOAuthService, JwtTokenProvider jwtTokenProvider) {
+    private final MemberService memberService;
+
+    @Value("${client.url:http://localhost:5173}")
+    private String clientUrl;
+
+    public KakaoAuthController(KakaoOAuthService kakaoOAuthService, JwtTokenProvider jwtTokenProvider, MemberService memberService) {
         this.kakaoOAuthService = kakaoOAuthService;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.memberService = memberService;
     }
 
     @GetMapping("/kakao")
-    public void kakaoCallback(@RequestParam String code, HttpServletResponse response)throws IOException {
-     String kakaoAccessToken = kakaoOAuthService.getKakaoAccessToken(code);
+    public void kakaoCallback(@RequestParam String code, HttpServletResponse response) throws IOException {
+        String kakaoAccessToken = kakaoOAuthService.getKakaoAccessToken(code);
         KakaoUserDto kakaoUserDto = kakaoOAuthService.getKakaoUser(kakaoAccessToken);
         MemberResponseDto memberResponseDto = kakaoOAuthService.findOrCreateKakaoUser(kakaoUserDto);
-        String token = jwtTokenProvider.createToken(memberResponseDto.email(),memberResponseDto.role().toString());
+        String token = jwtTokenProvider.createToken(memberResponseDto.email(), memberResponseDto.role().toString());
+        String refreshToken = jwtTokenProvider.createRefreshToken(memberResponseDto.email());
+
+        memberService.saveRefreshToken(memberResponseDto.email(), refreshToken);
+
         String html = String.format("""
                 <!DOCTYPE html>
                 <html>
@@ -39,22 +52,21 @@ public class KakaoAuthController {
                             window.opener.postMessage({
                                 type: 'OAUTH_SUCCESS',
                                 token: '%s',
+                                refreshToken: '%s',
                                 id: '%s',
                                 role: '%s',
                                 provider: 'KAKAO'
-                            }, 'http://localhost:5173');
+                            }, '%s');
                             window.close();
                         } else {
-                            window.location.href = 'http://localhost:5173/';
+                            window.location.href = '%s/';
                         }
                     </script>
                     <p>카카오 로그인 처리 중...</p>
                 </body>
                 </html>
-                """, token, memberResponseDto.id() , memberResponseDto.role());
+                """, token, refreshToken, memberResponseDto.id(), memberResponseDto.role(), clientUrl, clientUrl);
         response.setContentType("text/html;charset=UTF-8");
         response.getWriter().write(html);
-
     }
-
 }

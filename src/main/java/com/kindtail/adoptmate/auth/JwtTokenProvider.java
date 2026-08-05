@@ -34,22 +34,57 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + expiration * 1000))
-                .signWith(SignatureAlgorithm.HS512, secretKeyRt)
+                .setExpiration(new Date(now.getTime() + expiration * 1000L))
+                .signWith(SignatureAlgorithm.HS512, secretKey)
                 .compact();
 
     }
 
-    public TokenUserInfo validateAndTokenUserInfo(String token)throws Exception{
-        Claims claims  = Jwts.parserBuilder()
+    public TokenUserInfo validateAndTokenUserInfo(String token) throws Exception {
+        Claims claims = Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-       return   TokenUserInfo.builder()
-               .email(claims.getSubject())
-               .role(Role.valueOf(claims.get("role", String.class)))
-               .build();
+        return TokenUserInfo.builder()
+                .email(claims.getSubject())
+                .role(Role.valueOf(claims.get("role", String.class)))
+                .build();
+    }
 
+    public String createRefreshToken(String email) {
+        Claims claims = Jwts.claims().setSubject(email);
+        Date now = new Date();
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + expirationRt * 1000L))
+                .signWith(SignatureAlgorithm.HS512, secretKeyRt)
+                .compact();
+    }
+
+    public String validateRefreshToken(String refreshToken) throws Exception {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secretKeyRt)
+                .build()
+                .parseClaimsJws(refreshToken)
+                .getBody();
+        return claims.getSubject();
+    }
+
+    public long getRemainingExpirationMillis(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        Date expiration = claims.getExpiration();
+        long now = new Date().getTime();
+        return Math.max(0, expiration.getTime() - now);
+    }
+
+    public int getExpirationRt() {
+        return expirationRt;
     }
 }

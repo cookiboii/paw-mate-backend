@@ -6,6 +6,8 @@ import com.kindtail.adoptmate.animal.dto.AnimalResponse;
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 
+import com.kindtail.adoptmate.common.exception.CustomException;
+import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
@@ -61,19 +63,19 @@ public class AnimalService {
         return animals.map(AnimalResponse::from);
     }
     @Transactional(readOnly = true)
-    public AnimalResponse getAnimal(Long Id) {
-        Animal animal = animalRepository.findById(Id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 동물이 존재하지 않습니다."));
+    public AnimalResponse getAnimal(Long id) {
+        Animal animal = animalRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
 
         return AnimalResponse.from(animal);
     }
 
     @Transactional
-    public AnimalResponse  updateAnimal(Long id, AnimalStatusUpdateRequest request){
-          Animal animal = animalRepository.findById(id)
-                  .orElseThrow(() -> new IllegalArgumentException("해당동물이 존재하지않습니다."));
-          animal.updatestatus(request);
-          return AnimalResponse.from(animal);
+    public AnimalResponse updateAnimal(Long id, AnimalStatusUpdateRequest request) {
+        Animal animal = animalRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
+        animal.updateStatus(request);
+        return AnimalResponse.from(animal);
     }
 
     @Transactional

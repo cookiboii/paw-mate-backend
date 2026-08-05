@@ -6,6 +6,7 @@ import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -18,7 +19,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "tbl_animal")
+@Table(name = "animal")
 public class Animal {
 
     @Id
@@ -36,14 +37,15 @@ public class Animal {
     private String color;
 
     @Enumerated(EnumType.STRING)
-    private Status status=Status.PROTECTED;
+    @Builder.Default
+    private Status status = Status.PROTECTED;
 
     private Long age;
 
     @Lob
     private String image;
 
-    @ManyToOne(fetch = FetchType.LAZY ) // @manyToOne 일때 cascade = CascadeType.ALL 필요없음
+    @ManyToOne(fetch = FetchType.LAZY) // @manyToOne 일때 cascade = CascadeType.ALL 필요없음
     @JoinColumn(name = "member_id", nullable = false) // 외래 키 컬럼명 지정
     private Member member;
 
@@ -55,11 +57,12 @@ public class Animal {
     private LocalDateTime updatedAt;
 
 
-    public  void updatestatus (AnimalStatusUpdateRequest request) {
-
-       this.status= request.status();
+    public void updateStatus(AnimalStatusUpdateRequest request) {
+        this.status = request.status();
     }
 
+    @Builder.Default
+    @BatchSize(size = 100)
     @OneToMany(mappedBy = "animal", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Adoption> adoptions = new ArrayList<>();
 }

@@ -35,19 +35,16 @@ public class CommentController {
     }
 
     @DeleteMapping("/{commentId}")
-    public void deleteComment(@PathVariable Long commentId) {
+    public ResponseEntity<CommonResDto> deleteComment(@PathVariable Long commentId) {
         commentService.deleteComment(commentId);
+        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "댓글삭제성공", null));
     }
 
-
-
     @PutMapping("/update/{commentId}")
-    public ResponseEntity<CommonResDto> updateComment(@PathVariable Long commentId, @RequestBody CommentUpdateDto Dto) {
-    CommentResponseDto comment    =commentService.updateComment(commentId, Dto);
-    Dto.commentId();
-     CommonResDto commonResDto = new CommonResDto(HttpStatus.ACCEPTED,"수정성공",comment);
-    return ResponseEntity.ok(commonResDto);
-
+    public ResponseEntity<CommonResDto> updateComment(@PathVariable Long commentId, @RequestBody CommentUpdateDto dto) {
+        CommentResponseDto comment = commentService.updateComment(commentId, dto);
+        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "수정성공", comment);
+        return ResponseEntity.ok(commonResDto);
     }
 
 
