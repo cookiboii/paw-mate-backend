@@ -47,7 +47,7 @@ public class PostController {
    }
    @DeleteMapping("/{postId}")
    public ResponseEntity <CommonResDto> deletePostById (@PathVariable Long postId) {
-          postService.DeletePost(postId);
+          postService.deletePost(postId);
           CommonResDto commonResDto = new CommonResDto(HttpStatus.OK,"삭제완료",null);
           return ResponseEntity.ok(commonResDto);
    }

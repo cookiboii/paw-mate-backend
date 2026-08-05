@@ -18,7 +18,7 @@ public record AdoptionResponseDto(
                 adoption.getStatus(),
                 adoption.getInterview(),
                 adoption.getAnimal().getImage(),
-                adoption.getApply_date().toString()
+                adoption.getApplyDate().toString()
         );
     }
 }

@@ -15,9 +15,9 @@ import java.util.List;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "tbl_member")
+@Table(name = "member")
 @Builder
-public class Member {
+public class  Member {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,22 +52,26 @@ public class Member {
         this.role = role;
     }
 
+    @Builder.Default
     @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Animal> animals = new ArrayList<>();
 
-     public void updatePassword(String password) {
-         this.password = password;
-     }
+    public void updatePassword(String password) {
+        this.password = password;
+    }
 
-
+    @Builder.Default
     @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
     //  부모가 삭제되면 자식이 삭제된다 즉 멤버가 회원탈퇴면 글삭제된다
     private List<Post> posts = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Adoption> adoptions = new ArrayList<>();
 
-    @OneToMany(mappedBy = "member",cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @Builder.Default
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 
     @Column

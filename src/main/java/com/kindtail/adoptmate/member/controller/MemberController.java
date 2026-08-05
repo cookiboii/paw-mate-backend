@@ -1,13 +1,11 @@
 package com.kindtail.adoptmate.member.controller;
 
-import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
-import com.kindtail.adoptmate.common.service.EmailVerificationService;
-import com.kindtail.adoptmate.common.service.MailSenderService;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.*;
 import com.kindtail.adoptmate.member.service.MemberService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -28,16 +26,9 @@ import static org.springframework.http.HttpStatus.*;
 public class MemberController {
 
     private final MemberService memberService;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final EmailVerificationService emailVerificationService;
-    private final MailSenderService mailSenderService;
 
-    public MemberController(MemberService memberService, JwtTokenProvider jwtTokenProvider,
-                            EmailVerificationService emailVerificationService, MailSenderService mailSenderService) {
+    public MemberController(MemberService memberService) {
         this.memberService = memberService;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.emailVerificationService = emailVerificationService;
-        this.mailSenderService = mailSenderService;
     }
 
     @PostMapping("/register")
@@ -49,20 +40,34 @@ public class MemberController {
 
     @PostMapping("/login")
     public ResponseEntity<CommonResDto> login(@RequestBody MemberLoginResponseDto dto) {
-        Member member = memberService.authenticateMember(dto);
-        String token = jwtTokenProvider.createToken(member.getEmail(), member.getRole().toString());
+        MemberLoginResultDto result = memberService.login(dto);
+        return ResponseEntity.ok(new CommonResDto(OK, "Login Success", result));
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<CommonResDto> refreshToken(@RequestBody Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
+        String newToken = memberService.refreshAccessToken(refreshToken);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("token", token);
-        result.put("email", member.getEmail());
-        result.put("role", member.getRole().toString());
+        result.put("token", newToken);
 
-        return ResponseEntity.ok(new CommonResDto(OK, "Login Success", result));
+        return ResponseEntity.ok(new CommonResDto(OK, "토큰 재발급 성공", result));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<CommonResDto> logout(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            String accessToken = bearerToken.substring(7);
+            memberService.logout(accessToken);
+        }
+        return ResponseEntity.ok(new CommonResDto(OK, "로그아웃 성공", null));
     }
 
     @GetMapping("/myInfo")
     public ResponseEntity<MemberInfoRequestDto> getMyInfo() {
-        Member member = memberService.MemberInfo();
+        Member member = memberService.getMemberInfo();
         MemberInfoRequestDto dto = MemberInfoRequestDto.builder()
                 .id(member.getId())
                 .name(member.getName())

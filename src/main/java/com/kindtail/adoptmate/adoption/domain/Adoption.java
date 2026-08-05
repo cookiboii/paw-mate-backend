@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "tbl_adoption")
+@Table(name = "adoption")
 public class Adoption {
 
     @Id
@@ -24,7 +24,8 @@ public class Adoption {
     private Long id;
 
 
-    private LocalDateTime apply_date;
+    @Column(name = "apply_date")
+    private LocalDateTime applyDate;
 
     @Lob
     private String interview;
@@ -53,7 +54,7 @@ public class Adoption {
         adoption.animal = animal;
         adoption.status = status;
         adoption.interview = interview;
-        adoption.apply_date = LocalDateTime.now();
+        adoption.applyDate = LocalDateTime.now();
         return adoption;
     }
 }
