@@ -1,5 +1,6 @@
 package com.kindtail.adoptmate.animal.domain;
 
+import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import org.junit.jupiter.api.DisplayName;

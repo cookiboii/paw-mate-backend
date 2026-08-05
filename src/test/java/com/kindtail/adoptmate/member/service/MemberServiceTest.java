@@ -61,8 +61,6 @@ class MemberServiceTest {
                 .password("encodedPassword123")
                 .role(Role.USER)
                 .build();
-
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
     @Test
@@ -70,9 +68,10 @@ class MemberServiceTest {
     void registerMember_성공 () {
         // given
         MemberRegisterRequestDto request = new MemberRegisterRequestDto(
+                "테스트 사용자",
                 "test@example.com",
                 "password123",
-                "테스트 사용자"
+                Role.USER
         );
 
         given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.empty());
@@ -93,9 +92,10 @@ class MemberServiceTest {
     void registerMember_이메일_중복_예외 () {
         // given
         MemberRegisterRequestDto request = new MemberRegisterRequestDto(
+                "테스트 사용자",
                 "test@example.com",
                 "password123",
-                "테스트 사용자"
+                Role.USER
         );
 
         given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.of(testMember));
@@ -114,6 +114,7 @@ class MemberServiceTest {
         String accessToken = "accessToken123";
         String refreshToken = "refreshToken123";
 
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.of(testMember));
         given(passwordEncoder.matches("password123", "encodedPassword123")).willReturn(true);
         given(jwtTokenProvider.createToken("test@example.com", "USER")).willReturn(accessToken);

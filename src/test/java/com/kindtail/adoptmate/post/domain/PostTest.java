@@ -5,36 +5,45 @@ import com.kindtail.adoptmate.member.domain.Role;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PostTest {
 
     @Test
-    @DisplayName("Post 엔티티 빌더로 생성된다")
-    void 게시글_엔티티_빌더로_생성 () {
+    @DisplayName("Post 엔티티가 빌더 패턴으로 올바르게 생성된다")
+    void createPostWithBuilder() {
         // given
         Member member = Member.builder()
                 .email("test@example.com")
                 .name("테스트 사용자")
                 .role(Role.USER)
                 .build();
+        LocalDateTime now = LocalDateTime.now();
 
         // when
         Post post = Post.builder()
+                .id(1L)
                 .title("테스트 제목")
                 .content("테스트 내용")
+                .image("http://example.com/image.jpg")
                 .member(member)
+                .createdAt(now)
                 .build();
 
         // then
+        assertThat(post.getId()).isEqualTo(1L);
         assertThat(post.getTitle()).isEqualTo("테스트 제목");
         assertThat(post.getContent()).isEqualTo("테스트 내용");
+        assertThat(post.getImage()).isEqualTo("http://example.com/image.jpg");
         assertThat(post.getMember()).isEqualTo(member);
+        assertThat(post.getCreatedAt()).isEqualTo(now);
     }
 
     @Test
-    @DisplayName("update 메서드로 게시글을 수정할 수 있다")
-    void update_로_게시글_수정 () {
+    @DisplayName("updatePost 메서드로 게시글의 제목, 내용, 이미지를 수정할 수 있다")
+    void updatePost() {
         // given
         Member member = Member.builder()
                 .email("test@example.com")
@@ -45,14 +54,16 @@ class PostTest {
         Post post = Post.builder()
                 .title("원래 제목")
                 .content("원래 내용")
+                .image("old_image.jpg")
                 .member(member)
                 .build();
 
         // when
-        post.update("수정된 제목", "수정된 내용");
+        post.updatePost("수정된 제목", "수정된 내용", "new_image.jpg");
 
         // then
         assertThat(post.getTitle()).isEqualTo("수정된 제목");
         assertThat(post.getContent()).isEqualTo("수정된 내용");
+        assertThat(post.getImage()).isEqualTo("new_image.jpg");
     }
 }

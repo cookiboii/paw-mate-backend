@@ -13,6 +13,7 @@ import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static com.kindtail.adoptmate.member.domain.Role.ADMIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -62,7 +64,7 @@ class AnimalServiceTest {
                 .id(1L)
                 .email("test@example.com")
                 .name("테스트 사용자")
-                .role(Role.ADMIN)
+                .role(ADMIN)
                 .build();
 
         // 테스트용 동물 생성
@@ -77,11 +79,17 @@ class AnimalServiceTest {
                 .status(Status.PROTECTED)
                 .member(testMember)
                 .build();
+    }
 
-        // SecurityContext mocking
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void setupSecurityContext() {
         securityContext = mock(SecurityContext.class);
         authentication = mock(Authentication.class);
-        tokenUserInfo = new TokenUserInfo("test@example.com", "ADMIN");
+        tokenUserInfo = new TokenUserInfo("test@example.com", ADMIN);
 
         given(securityContext.getAuthentication()).willReturn(authentication);
         given(authentication.getPrincipal()).willReturn(tokenUserInfo);
@@ -92,6 +100,7 @@ class AnimalServiceTest {
     @DisplayName("동물을 등록할 수 있다")
     void registerAnimal_성공 () {
         // given
+        setupSecurityContext();
         AnimalCreateRequest request = new AnimalCreateRequest(
                 "강아지",
                 "진도개",
@@ -121,6 +130,7 @@ class AnimalServiceTest {
     @DisplayName("사용자가 존재하지 않으면 예외가 발생한다")
     void registerAnimal_사용자_없음_예외 () {
         // given
+        setupSecurityContext();
         AnimalCreateRequest request = new AnimalCreateRequest(
                 "강아지",
                 "진도개",

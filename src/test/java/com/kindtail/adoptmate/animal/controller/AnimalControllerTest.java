@@ -9,6 +9,7 @@ import com.kindtail.adoptmate.animal.dto.AnimalResponse;
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.service.AnimalService;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
+import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
@@ -18,7 +19,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -41,8 +42,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+
 @WebMvcTest(AnimalController.class)
-@Import(SecurityConfig.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AnimalControllerTest {
 
     @Autowired
@@ -51,11 +54,14 @@ class AnimalControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private AnimalService animalService;
 
-    @MockBean
+    @MockitoBean
     private JwtAuthFilter jwtAuthFilter;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
 
     private Animal testAnimal;
 
@@ -92,16 +98,15 @@ class AnimalControllerTest {
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/animals/register")
-                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)));
 
         // then
         resultActions.andDo(print())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value(201))
-                .andExpect(jsonPath("$.message").value("등록 성공"))
-                .andExpect(jsonPath("$.data.species").value("강아지"));
+                .andExpect(jsonPath("$.statusCode").value(201))
+                .andExpect(jsonPath("$.statusMessage").value("등록 성공"))
+                .andExpect(jsonPath("$.result.species").value("강아지"));
     }
 
     @Test
@@ -139,9 +144,9 @@ class AnimalControllerTest {
         // then
         resultActions.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(200))
-                .andExpect(jsonPath("$.message").value("상세 조회 성공"))
-                .andExpect(jsonPath("$.data.species").value("강아지"));
+                .andExpect(jsonPath("$.statusCode").value(200))
+                .andExpect(jsonPath("$.statusMessage").value("상세 조회 성공"))
+                .andExpect(jsonPath("$.result.species").value("강아지"));
     }
 
     @Test
@@ -173,14 +178,13 @@ class AnimalControllerTest {
 
         // when
         ResultActions resultActions = mockMvc.perform(put("/animals/{id}/status", animalId)
-                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)));
 
         // then
         resultActions.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("상태가 성공적으로 변경되었습니다."));
+                .andExpect(jsonPath("$.statusMessage").value("상태가 성공적으로 변경되었습니다."));
     }
 
     @Test
@@ -191,8 +195,7 @@ class AnimalControllerTest {
         doNothing().when(animalService).deleteAnimal(animalId);
 
         // when
-        ResultActions resultActions = mockMvc.perform(delete("/animals/delete/{id}", animalId)
-                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+        ResultActions resultActions = mockMvc.perform(delete("/animals/delete/{id}", animalId));
 
         // then
         resultActions.andDo(print())

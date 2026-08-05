@@ -161,12 +161,9 @@ class AnimalRepositoryTest {
         Animal savedAnimal = animalRepository.save(animal);
 
         // when
-        Animal deletedAnimal = animalRepository.deleteAnimalById(savedAnimal.getId());
+        animalRepository.deleteAnimalById(savedAnimal.getId());
 
         // then
-        assertThat(deletedAnimal).isNotNull();
-        assertThat(deletedAnimal.getBreed()).isEqualTo("비글");
-        
         Optional<Animal> foundAnimal = animalRepository.findById(savedAnimal.getId());
         assertThat(foundAnimal).isEmpty();
     }

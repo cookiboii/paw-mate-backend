@@ -69,7 +69,7 @@ class MemberRepositoryTest {
         memberRepository.save(socialMember);
 
         // when
-        Optional<Member> foundMember = memberRepository.findBySocialProviderAndSocialId("1234567890", "GOOGLE");
+        Optional<Member> foundMember = memberRepository.findBySocialProviderAndSocialId("GOOGLE", "1234567890");
 
         // then
         assertThat(foundMember).isPresent();
@@ -82,7 +82,7 @@ class MemberRepositoryTest {
     @DisplayName("일치하는 소셜 정보가 없으면 빈 Optional 을 반환한다")
     void findBySocialProviderAndSocialId_없음 () {
         // when
-        Optional<Member> foundMember = memberRepository.findBySocialProviderAndSocialId("invalid", "GOOGLE");
+        Optional<Member> foundMember = memberRepository.findBySocialProviderAndSocialId("GOOGLE", "invalid");
 
         // then
         assertThat(foundMember).isEmpty();
