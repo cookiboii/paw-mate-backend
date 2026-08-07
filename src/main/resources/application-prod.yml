@@ -22,9 +22,13 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:redis}
+      url: ${REDIS_URL:rediss://default:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ@skilled-starling-196738.upstash.io:6379}
+      host: ${REDIS_HOST:skilled-starling-196738.upstash.io}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ}
+      ssl:
+        enabled: ${REDIS_SSL:true}
 
   servlet:
     multipart:
@@ -89,3 +93,11 @@ oauth2:
     client-id: ${KAKAO_CLIENT_ID:16a5cc3c2d930524373be21f6bf96353}
     redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8000/adoptmate/kakao}
     client-secret: ${KAKAO_CLIENT_SECRET:CryJfVnfMoA1KtUgsJkwzJohjCRMWiYz}
+
+kv:
+  url: ${KV_URL:rediss://default:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ@skilled-starling-196738.upstash.io:6379}
+  rest:
+    api:
+      url: ${KV_REST_API_URL:https://skilled-starling-196738.upstash.io}
+      token: ${KV_REST_API_TOKEN:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ}
+      read-only-token: ${KV_REST_API_READ_ONLY_TOKEN:ggAAAAAAAwCCAAIgcDJJIvYwgozDXn0_XwGIweD6h4p8Vlx-ScR_FJRI-zmrYA}
