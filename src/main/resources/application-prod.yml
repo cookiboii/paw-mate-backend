@@ -28,7 +28,7 @@ spring:
       username: ${REDIS_USERNAME:default}
       password: ${REDIS_PASSWORD:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ}  # ✅ 기본값 입력됨
       ssl:
-        enabled: ${REDIS_SSL:true}
+        enabled: ${true}
 
   servlet:
     multipart:
@@ -94,10 +94,3 @@ oauth2:
     redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8000/adoptmate/kakao}
     client-secret: ${KAKAO_CLIENT_SECRET:CryJfVnfMoA1KtUgsJkwzJohjCRMWiYz}
 
-kv:
-  url: ${KV_URL:rediss://default:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ@resolved-drake-197654.upstash.io:6379}  # ✅ 수정됨
-  rest:
-    api:
-      url: ${KV_REST_API_URL:https://resolved-drake-197654.upstash.io}  # ✅ 수정됨
-      token: ${KV_REST_API_TOKEN:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ}
-      read-only-token: ${KV_REST_API_READ_ONLY_TOKEN:ggAAAAAAAwCCAAIgcDJJIvYwgozDXn0_XwGIweD6h4p8Vlx-ScR_FJRI-zmrYA}
