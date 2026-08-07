@@ -35,7 +35,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = parseBearerToken(request);
         if (token != null) {
-            if (Boolean.TRUE.equals(redisTemplate.hasKey("blackList:" + token))) {
+            if (redisTemplate.hasKey("blackList:" + token)) {
                 log.warn("Attempt to access with blacklisted token");
             } else {
                 try {

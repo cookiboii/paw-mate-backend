@@ -40,7 +40,7 @@ public class JwtTokenProvider {
 
     }
 
-    public TokenUserInfo validateAndTokenUserInfo(String token) throws Exception {
+    public TokenUserInfo validateAndTokenUserInfo(String token)  {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
