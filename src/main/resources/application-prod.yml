@@ -4,32 +4,28 @@ spring:
       on-profile: prod
 
   datasource:
-    # [변경 1] URL에 타임아웃 및 패킷 용량 설정 추가 (connectTimeout, socketTimeout, maxAllowedPacket)
     url: ${DB_URL:jdbc:mysql://${DB_HOST:svc.sel3.cloudtype.app}:${DB_PORT:31603}/${DB_NAME:adoptpet_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&connectTimeout=30000&socketTimeout=60000&maxAllowedPacket=134217728}
     username: ${DB_USERNAME:adoptmate}
     password: ${DB_PASSWORD:adoptmate}
     driver-class-name: com.mysql.cj.jdbc.Driver
-
-    # [변경 2] HikariCP 커넥션 풀 설정 추가 (커넥션 생명주기 및 검증 쿼리)
     hikari:
-      connection-timeout: 30000           # 커넥션 대기 최대 시간 (30초)
-      validation-timeout: 5000            # 유효성 검사 타임아웃 (5초)
-      idle-timeout: 600000                # 10분 동안 놀면 반환
-      max-lifetime: 1800000               # 최대 생명 주기 30분 (MySQL wait_timeout보다 짧게)
-      connection-test-query: SELECT 1     # 대여 시 살아있는지 확인 (죽은 커넥션 제거)
-      keepalive-time: 300000              # 5분마다 핑 전송 (네트워크 중간 차단 방지)
-      maximum-pool-size: 20               # 최대 동시 커넥션 수
+      connection-timeout: 30000
+      validation-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
+      keepalive-time: 300000
+      maximum-pool-size: 20
 
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:create}
+      ddl-auto: ${JPA_DDL_AUTO:update}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: false
-        show_sql: true
+        show_sql: false
         default_batch_fetch_size: 100
-    # [변경 3] open-in-view: false로 변경 (외부 API 호출 시 커넥션 해제)
     open-in-view: false
 
   data:
@@ -41,15 +37,6 @@ spring:
       ssl:
         enabled: true
 
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
-
-  jackson:
-    serialization:
-      fail-on-empty-beans: false
-
   security:
     oauth2:
       client:
@@ -57,50 +44,10 @@ spring:
           kakao:
             client-id: ${KAKAO_CLIENT_ID:16a5cc3c2d930524373be21f6bf96353}
             client-secret: ${KAKAO_CLIENT_SECRET:CryJfVnfMoA1KtUgsJkwzJohjCRMWiYz}
-            client-name: Kakao
-            authorization-grant-type: authorization_code
             redirect-uri: ${KAKAO_REDIRECT_URI:https://port-0-paw-mate-backend-msiq1pqe2aa00cb9.sel3.cloudtype.app/adoptmate/kakao}
-            client-authentication-method: client_secret_post
-            scope:
-              - profile_nickname
-              - account_email
-        provider:
-          kakao:
-            authorization-uri: https://kauth.kakao.com/oauth/authorize
-            token-uri: https://kauth.kakao.com/oauth/token
-            user-info-uri: https://kapi.kakao.com/v2/user/me
-            user-name-attribute: id
-
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:luo199829@gmail.com}
-    password: ${MAIL_PASSWORD:hsglyoexmhfaltzm}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          timeout: 5000
-          starttls:
-            enable: true
-
-server:
-  port: ${SERVER_PORT:8000}
 
 logging:
   level:
     root: INFO
     com.kindtail: INFO
     org.hibernate.SQL: WARN
-
-jwt:
-  expiration: ${JWT_EXPIRATION:3600}
-  secretKey: ${JWT_SECRET_KEY:b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550}
-  expirationRt: ${JWT_EXPIRATION_RT:604800}
-  secretKeyRt: ${JWT_SECRET_KEY_RT:c9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550}
-
-oauth2:
-  kakao:
-    client-id: ${KAKAO_CLIENT_ID:16a5cc3c2d930524373be21f6bf96353}
-    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8000/adoptmate/kakao}
-    client-secret: ${KAKAO_CLIENT_SECRET:CryJfVnfMoA1KtUgsJkwzJohjCRMWiYz}
