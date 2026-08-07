@@ -22,11 +22,11 @@ spring:
 
   data:
     redis:
-      url: ${REDIS_URL:rediss://default:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ@skilled-starling-196738.upstash.io:6379}
-      host: ${REDIS_HOST:skilled-starling-196738.upstash.io}
+      # url: 라인은 완전히 삭제했습니다 (host/port와 충돌 방지)
+      host: ${REDIS_HOST:resolved-drake-197654.upstash.io}  # ✅ 수정됨
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:default}
-      password: ${REDIS_PASSWORD:}
+      password: ${REDIS_PASSWORD:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ}  # ✅ 기본값 입력됨
       ssl:
         enabled: ${REDIS_SSL:true}
 
@@ -64,7 +64,7 @@ spring:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:luo199829@gmail.com}
-    password: ${MAIL_PASSWORD:hsgl yoex mhfa ltzm}
+    password: ${MAIL_PASSWORD:hsglyoexmhfaltzm}  # ✅ 공백 제거됨
     properties:
       mail:
         smtp:
@@ -95,9 +95,9 @@ oauth2:
     client-secret: ${KAKAO_CLIENT_SECRET:CryJfVnfMoA1KtUgsJkwzJohjCRMWiYz}
 
 kv:
-  url: ${KV_URL:rediss://default:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ@skilled-starling-196738.upstash.io:6379}
+  url: ${KV_URL:rediss://default:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ@resolved-drake-197654.upstash.io:6379}  # ✅ 수정됨
   rest:
     api:
-      url: ${KV_REST_API_URL:https://skilled-starling-196738.upstash.io}
+      url: ${KV_REST_API_URL:https://resolved-drake-197654.upstash.io}  # ✅ 수정됨
       token: ${KV_REST_API_TOKEN:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ}
       read-only-token: ${KV_REST_API_READ_ONLY_TOKEN:ggAAAAAAAwCCAAIgcDJJIvYwgozDXn0_XwGIweD6h4p8Vlx-ScR_FJRI-zmrYA}
