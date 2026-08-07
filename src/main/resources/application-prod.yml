@@ -16,9 +16,9 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: false
-        show_sql: false
+        show_sql: true
         default_batch_fetch_size: 100
-    open-in-view: false
+    open-in-view: true
 
   data:
     redis:
@@ -44,7 +44,7 @@ spring:
             client-secret: ${KAKAO_CLIENT_SECRET:CryJfVnfMoA1KtUgsJkwzJohjCRMWiYz}
             client-name: Kakao
             authorization-grant-type: authorization_code
-            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8000/adoptmate/kakao}
+            redirect-uri: ${KAKAO_REDIRECT_URI:https://port-0-paw-mate-backend-msiq1pqe2aa00cb9.sel3.cloudtype.app/adoptmate/kakao}
             client-authentication-method: client_secret_post
             scope:
               - profile_nickname
