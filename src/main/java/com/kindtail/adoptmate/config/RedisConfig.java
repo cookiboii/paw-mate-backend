@@ -35,8 +35,7 @@ public class RedisConfig {
         LettuceConnectionFactory lettuceConnectionFactory = new LettuceConnectionFactory(redisStandaloneConfiguration);
         lettuceConnectionFactory.setUseSsl(true);
         lettuceConnectionFactory.setVerifyPeer(false);
-    // Upstash 도메인 검증 우회
-        return new LettuceConnectionFactory(redisStandaloneConfiguration);
+        return lettuceConnectionFactory;
     }
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {

@@ -35,7 +35,7 @@ spring:
       username: ${REDIS_USERNAME:default}
       password: ${REDIS_PASSWORD:gQAAAAAAAwQWAAIgcDFkNmIwZGNmYmQ1NjA0MmUyYjE5ZWExNjkxOWMxOWFkZA}
       ssl:
-        enabled: false
+        enabled: true
 
   security:
     oauth2:
