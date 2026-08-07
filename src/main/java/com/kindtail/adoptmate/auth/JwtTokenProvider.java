@@ -13,16 +13,16 @@ import java.util.Date;
 public class JwtTokenProvider {
 
 
-    @Value("${jwt.secretKey}")
+    @Value("${jwt.secretKey:b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550}")
     private String secretKey;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration:3600}")
     private int expiration;
 
-    @Value("${jwt.secretKeyRt}")
+    @Value("${jwt.secretKeyRt:c9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550}")
     private String secretKeyRt;
 
-    @Value("${jwt.expirationRt}")
+    @Value("${jwt.expirationRt:604800}")
     private int expirationRt;
 
     public String createToken(String email, String role) {
