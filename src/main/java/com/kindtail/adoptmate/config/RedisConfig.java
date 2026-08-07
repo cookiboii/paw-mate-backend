@@ -34,6 +34,7 @@ public class RedisConfig {
         redisStandaloneConfiguration.setPassword(password);
         LettuceConnectionFactory lettuceConnectionFactory = new LettuceConnectionFactory(redisStandaloneConfiguration);
         lettuceConnectionFactory.setUseSsl(true);
+        lettuceConnectionFactory.setVerifyPeer(false);
     // Upstash 도메인 검증 우회
         return new LettuceConnectionFactory(redisStandaloneConfiguration);
     }
