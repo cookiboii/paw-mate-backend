@@ -41,10 +41,12 @@ public class EmailVerificationService {
 
     public String mailCheck(String email) {
         // 차단 상태 확인
-
+        System.out.println("=== [DEBUG] mailCheck 시작 ===");
+        System.out.println("요청 이메일: " + email);
 
         Optional<Member> byEmail = memberRepository.findByEmail(email);
         if (byEmail.isPresent()) {
+            System.out.println("이미 존재하는 이메일: " + email);
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
@@ -52,14 +54,20 @@ public class EmailVerificationService {
         try {
             // 이메일 전송만을 담당하는 객체를 이용해서 이메일 로직 작성.
             authNum = mailSenderService.joinMail(email);
+
+            System.out.println("생성된 인증코드: " + authNum);
         } catch (MessagingException e) {
             throw new RuntimeException("이메일 전송 과정 중 문제 발생!");
         }
 
         // 인증 코드를 Redis 저장
         String key = VERIFICATION_CODE_KEY + email;
+        redisTemplate.opsForValue().set(key, authNum, Duration.ofMinutes(3));
+        System.out.println("Redis 저장 키: " + key);
+        System.out.println("Redis 에 저장할 값: " + authNum);
         redisTemplate.opsForValue().set(key, authNum, Duration.ofMinutes(1));
-
+        System.out.println("Redis 저장 완료.");
+        System.out.println("=== [DEBUG] mailCheck 종료 ===");
         return authNum;
     }
 
@@ -67,9 +75,12 @@ public class EmailVerificationService {
     public Map<String, String> verifyEmail(Map<String, String> map) {
         String email = map.get("email");
         String code = map.get("code");
-
+        System.out.println("입력된 이메일: " + email);
+        System.out.println("입력된 코드: " + code);
         if (email == null || code == null) {
             throw new IllegalArgumentException("이메일과 인증 코드를 입력해주세요.");
+
+
         }
 
         if (isBlocked(email)) {
@@ -77,22 +88,26 @@ public class EmailVerificationService {
         }
 
         String key = VERIFICATION_CODE_KEY + email;
+        System.out.println("Redis 조회 키: " + key);
+
         Object foundCode = redisTemplate.opsForValue().get(key);
+        System.out.println("조회된 값의 타입: " + (foundCode != null ? foundCode.getClass() : "null"));
         if (foundCode == null) {
             throw new IllegalArgumentException("인증 코드가 만료되었습니다. 다시 전송해주세요.");
         }
 
         int attemptCount = incrementAttemptCount(email);
-
+        System.out.println("현재 시도 횟수: " + attemptCount);
         if (!foundCode.toString().equals(code)) {
             if (attemptCount >= 5) {
                 blockUser(email);
+                System.out.println("5회 실패로 차단 처리됨.");
                 throw new IllegalArgumentException("인증 5회 실패로 30분간 차단됩니다.");
             }
             int remainingAttempts = 5 - attemptCount;
             throw new IllegalArgumentException(String.format("인증 코드가 일치하지 않습니다. (남은 횟수: %d회)", remainingAttempts));
         }
-
+        System.out.println("인증 성공! 키 삭제 진행.");
         redisTemplate.delete(key);
         redisTemplate.delete(VERIFICATION_ATTEMPT_KEY + email);
         return map;
