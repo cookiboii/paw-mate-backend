@@ -22,9 +22,13 @@ spring:
 
   data:
     redis:
-      # 딱 여기만 수정했습니다! (Upstash url, 비번 지우고 기본 통신용으로 변경)
-      host: ${REDIS_HOST:localhost}
+      url: ${REDIS_URL:rediss://default:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ@skilled-starling-196738.upstash.io:6379}
+      host: ${REDIS_HOST:skilled-starling-196738.upstash.io}
       port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ}
+      ssl:
+        enabled: ${REDIS_SSL:true}
 
   servlet:
     multipart:
