@@ -33,7 +33,7 @@ spring:
       host: ${REDIS_HOST:resolved-drake-197654.upstash.io}
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:default}
-      password: ${REDIS_PASSWORD:gQAAAAAAAwCCAAIgcDI0YTk1MTk4NWQxNGI0NGI4ODIwZWNmZDUxMmMyNWEwNQ}
+      password: ${REDIS_PASSWORD:gQAAAAAAAwQWAAIgcDFkNmIwZGNmYmQ1NjA0MmUyYjE5ZWExNjkxOWMxOWFkZ}
       ssl:
         enabled: true
 
