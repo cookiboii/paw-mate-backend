@@ -23,7 +23,7 @@ public class KakaoAuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final MemberService memberService;
 
-    @Value("${client.url}")
+    @Value("${client.url:https://paw-mate-frontend.vercel.app}")
     private String clientUrl;
 
     public KakaoAuthController(KakaoOAuthService kakaoOAuthService, JwtTokenProvider jwtTokenProvider, MemberService memberService) {
