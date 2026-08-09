@@ -23,8 +23,7 @@ public class KakaoAuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final MemberService memberService;
 
-    @Value("${client.url:https://paw-mate-frontend.vercel.app}")
-    private String clientUrl;
+
 
     public KakaoAuthController(KakaoOAuthService kakaoOAuthService, JwtTokenProvider jwtTokenProvider, MemberService memberService) {
         this.kakaoOAuthService = kakaoOAuthService;
@@ -65,7 +64,7 @@ public class KakaoAuthController {
                     <p>카카오 로그인 처리 중...</p>
                 </body>
                 </html>
-                """, token, refreshToken, memberResponseDto.id(), memberResponseDto.role(), clientUrl, clientUrl);
+                """, token, refreshToken, memberResponseDto.id(), memberResponseDto.role());
         response.setContentType("text/html;charset=UTF-8");
         response.getWriter().write(html);
     }
