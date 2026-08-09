@@ -23,7 +23,7 @@ public class KakaoAuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final MemberService memberService;
 
-    @Value("${client.url:http://localhost:5173}")
+    @Value("${client.url}")
     private String clientUrl;
 
     public KakaoAuthController(KakaoOAuthService kakaoOAuthService, JwtTokenProvider jwtTokenProvider, MemberService memberService) {
