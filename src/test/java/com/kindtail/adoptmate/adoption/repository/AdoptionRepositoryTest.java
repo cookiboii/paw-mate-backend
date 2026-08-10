@@ -129,8 +129,16 @@ class AdoptionRepositoryTest {
     @DisplayName("회원의 모든 입양 신청을 Fetch Join 으로 조회할 수 있다")
     void findByMember() {
         // given
+        Animal animal2 = Animal.builder()
+                .species("고양이")
+                .status(Status.PROTECTED)
+                .image("cat.jpg")
+                .member(member)
+                .build();
+        entityManager.persist(animal2);
+
         Adoption adoption1 = Adoption.of(member, animal, "인터뷰 1", AdoptionStatus.PENDING);
-        Adoption adoption2 = Adoption.of(member, animal, "인터뷰 2", AdoptionStatus.APPROVED);
+        Adoption adoption2 = Adoption.of(member, animal2, "인터뷰 2", AdoptionStatus.APPROVED);
         adoptionRepository.save(adoption1);
         adoptionRepository.save(adoption2);
         entityManager.flush();
@@ -149,8 +157,16 @@ class AdoptionRepositoryTest {
     @DisplayName("모든 입양 신청을 Fetch Join 으로 조회할 수 있다")
     void findAllWithFetchJoin() {
         // given
+        Animal animal2 = Animal.builder()
+                .species("고양이")
+                .status(Status.PROTECTED)
+                .image("cat.jpg")
+                .member(member)
+                .build();
+        entityManager.persist(animal2);
+
         Adoption adoption1 = Adoption.of(member, animal, "인터뷰 1", AdoptionStatus.PENDING);
-        Adoption adoption2 = Adoption.of(member, animal, "인터뷰 2", AdoptionStatus.APPROVED);
+        Adoption adoption2 = Adoption.of(member, animal2, "인터뷰 2", AdoptionStatus.APPROVED);
         adoptionRepository.save(adoption1);
         adoptionRepository.save(adoption2);
         entityManager.flush();
@@ -168,7 +184,14 @@ class AdoptionRepositoryTest {
     void findAllWithEntityGraph() {
         // given
         for (int i = 0; i < 5; i++) {
-            Adoption adoption = Adoption.of(member, animal, "인터뷰 " + i, AdoptionStatus.PENDING);
+            Animal a = Animal.builder()
+                    .species("동물" + i)
+                    .status(Status.PROTECTED)
+                    .image("animal" + i + ".jpg")
+                    .member(member)
+                    .build();
+            entityManager.persist(a);
+            Adoption adoption = Adoption.of(member, a, "인터뷰 " + i, AdoptionStatus.PENDING);
             adoptionRepository.save(adoption);
         }
         entityManager.flush();
@@ -180,5 +203,22 @@ class AdoptionRepositoryTest {
         // then
         assertThat(page.getTotalElements()).isEqualTo(5);
         assertThat(page.getContent()).hasSize(3);
+    }
+
+    @Test
+    @DisplayName("동일한 회원과 동일한 동물로 중복 입양 신청 시 DB Unique 제약조건 위반 예외가 발생한다")
+    void duplicateAdoptionThrowsDataIntegrityViolationException() {
+        // given
+        Adoption adoption1 = Adoption.of(member, animal, "첫 번째 신청", AdoptionStatus.PENDING);
+        adoptionRepository.save(adoption1);
+        entityManager.flush();
+
+        Adoption adoption2 = Adoption.of(member, animal, "두 번째 중복 신청", AdoptionStatus.PENDING);
+
+        // when & then
+        assertThatThrownBy(() -> {
+            adoptionRepository.save(adoption2);
+            entityManager.flush();
+        }).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 }

@@ -15,7 +15,15 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@Table(name = "adoption")
+@Table(
+        name = "adoption",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_adoption_member_animal",
+                        columnNames = {"member_id", "animal_id"}
+                )
+        }
+)
 public class Adoption {
 
     @Id
