@@ -43,7 +43,7 @@ spring:
         registration:
           kakao:
             client-id: ${KAKAO_CLIENT_ID:16a5cc3c2d930524373be21f6bf96353}
-            client-secret: ${KAKAO_CLIENT_SECRET:QKusibOT6eZblB1r9klNGruBOgkkQoII}
+            client-secret: ${KAKAO_CLIENT_SECRET:da2f30037a9b059ce7e222e04cdcd3fa}
             redirect-uri: ${KAKAO_REDIRECT_URI:https://port-0-paw-mate-backend-msiq1pqe2aa00cb9.sel3.cloudtype.app/adoptmate/kakao}
 
 logging:
