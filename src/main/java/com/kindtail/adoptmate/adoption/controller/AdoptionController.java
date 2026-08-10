@@ -29,7 +29,7 @@ public class AdoptionController {
     /** 입양 신청 */
     @PostMapping("/animals/{animalId}")
     public ResponseEntity<CommonResDto> registerAdoption(
-            @PathVariable Long animalId,
+            @PathVariable("animalId") Long animalId,
             @RequestBody AdoptionRequestDto adoptionRequestDto
     ) {
         TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
