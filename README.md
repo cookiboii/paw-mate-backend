@@ -61,71 +61,151 @@ Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메
 
 ## 📋 REST API 명세서
 
+### 📦 공통 응답 포맷
+
+본 프로젝트의 API는 일관된 응답 구조(`CommonResDto`)를 사용합니다.
+
+```json
+{
+  "statusCode": 200,
+  "statusMessage": "성공 메시지",
+  "result": { ... }
+}
+```
+
+---
+
 ### 👤 1. 회원 & 인증 API (`/adoptmate`)
 
-| 메서드 | URL | 권한 | 설명 |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/adoptmate/register` | Public | 일반 회원가입 |
-| `POST` | `/adoptmate/login` | Public | 로그인 (Access & Refresh Token 발급) |
-| `POST` | `/adoptmate/refresh-token` | Public | Access Token 재발급 |
-| `POST` | `/adoptmate/logout` | User | 로그아웃 (토큰 블랙리스트 및 Redis 파기) |
-| `GET` | `/adoptmate/myInfo` | User | 내 정보 조회 |
-| `GET` | `/adoptmate/all` | Admin | 전체 회원 목록 조회 |
-| `POST` | `/adoptmate/password` | User | 비밀번호 변경 (로그인 상태) |
-| `DELETE` | `/adoptmate/delete` | User | 회원 탈퇴 |
+| 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/adoptmate/register` | Public | 일반 회원가입 | `MemberRegisterRequestDto` | `MemberResponseDto` |
+| `POST` | `/adoptmate/login` | Public | 일반 로그인 | `MemberLoginResponseDto` | `MemberLoginResultDto` |
+| `POST` | `/adoptmate/refresh-token` | Public | Access Token 재발급 | `{"refreshToken": "string"}` | `{"token": "string"}` |
+| `POST` | `/adoptmate/logout` | User | 로그아웃 (토큰 블랙리스트/Redis 파기) | Header: `Authorization: Bearer <token>` | `null` |
+| `GET` | `/adoptmate/myInfo` | User | 내 정보 조회 | Header: `Authorization: Bearer <token>` | `MemberInfoRequestDto` |
+| `GET` | `/adoptmate/all` | Admin | 전체 회원 목록 조회 | - | `List<MemberInfoRequestDto>` |
+| `POST` | `/adoptmate/password` | User | 비밀번호 변경 (로그인 상태) | `PasswordChangeRequestDto` | `PasswordChangeRequestDto` |
+| `DELETE` | `/adoptmate/delete` | User | 회원 탈퇴 | Header: `Authorization: Bearer <token>` | `TokenUserInfo` |
+
+<details>
+<summary><b>📄 회원 관련 DTO 상세</b></summary>
+
+- **MemberRegisterRequestDto** (회원가입 요청): `name` (String), `email` (String), `password` (String), `role` (Role: `USER` \| `ADMIN`)
+- **MemberLoginResponseDto** (로그인 요청 / 비밀번호 변경): `email` (String, 필수/이메일형식), `password` (String, 필수)
+- **MemberLoginResultDto** (로그인 응답): `token` (String), `refreshToken` (String), `email` (String), `role` (Role)
+- **MemberInfoRequestDto** (회원 정보): `id` (Long), `name` (String), `email` (String), `role` (Role)
+- **MemberResponseDto** (회원 응답): `id` (Long), `name` (String), `email` (String), `password` (String), `role` (Role), `profileImage` (String), `socialProvider` (String), `socialId` (String)
+- **PasswordChangeRequestDto** (비밀번호 변경 요청): `currentPassword` (String), `newPassword` (String)
+
+</details>
+
+---
 
 ### ✉️ 2. 이메일 인증 & 비밀번호 재설정 API (`/adoptmate`)
 
-| 메서드 | URL | 권한 | 설명 |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/adoptmate/verify-email` | Public | 회원가입용 이메일 인증 코드 발송 |
-| `POST` | `/adoptmate/verify-code` | Public | 이메일 인증 코드 검증 |
-| `POST` | `/adoptmate/send-reset-code` | Public | 비밀번호 재설정 인증 코드 발송 |
-| `POST` | `/adoptmate/verify-reset-code` | Public | 비밀번호 재설정 인증 코드 검증 |
-| `PATCH` | `/adoptmate/password` | Public | 비밀번호 재설정 (인증 완료 후) |
+| 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/adoptmate/verify-email` | Public | 회원가입용 이메일 인증 코드 발송 | `{"email": "string"}` | `null` |
+| `POST` | `/adoptmate/verify-code` | Public | 이메일 인증 코드 검증 | `{"email": "string", "code": "string"}` | `Map<String, String>` |
+| `POST` | `/adoptmate/send-reset-code` | Public | 비밀번호 재설정 인증 코드 발송 | Query: `?email={email}` | `null` |
+| `POST` | `/adoptmate/verify-reset-code` | Public | 비밀번호 재설정 인증 코드 검증 | Query: `?email={email}&code={code}` | `null` |
+| `PATCH` | `/adoptmate/password` | Public | 비밀번호 재설정 (인증 완료 후) | `MemberLoginResponseDto` | `null` |
+
+---
 
 ### 🔑 3. 카카오 소셜 로그인 API (`/adoptmate`)
 
-| 메서드 | URL | 권한 | 설명 |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/adoptmate/kakao` | Public | 카카오 OAuth2 콜백 리다이렉트 |
+| 메서드 | URL | 권한 | 설명 | Request Params | Response |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/adoptmate/kakao` | Public | 카카오 OAuth2 콜백 | Query: `?code={code}` | HTML (Window postMessage / Redirect) |
+
+---
 
 ### 🐶 4. 보호 동물 관리 API (`/animals`)
 
-| 메서드 | URL | 권한 | 설명 |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/animals/register` | Admin | 보호 동물 등록 |
-| `GET` | `/animals/list` | Public | 보호 동물 목록 조회 (페이징: `page`, `size`) |
-| `GET` | `/animals/{id}` | Public | 보호 동물 상세 조회 |
-| `PUT` | `/animals/{id}/status` | Admin | 보호 동물 상태 변경 (보호중/입양완료 등) |
-| `DELETE` | `/animals/delete/{id}` | Admin | 보호 동물 삭제 |
+| 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/animals/register` | Admin | 보호 동물 등록 | `AnimalCreateRequest` | `Animal` (Entity) |
+| `GET` | `/animals/list` | Public | 보호 동물 목록 조회 (페이징) | Query: `?page=0&size=10` | `Page<AnimalResponse>` |
+| `GET` | `/animals/{id}` | Public | 보호 동물 상세 조회 | Path: `id` | `AnimalResponse` |
+| `PUT` | `/animals/{id}/status` | Admin | 보호 동물 상태 변경 | Path: `id`, Body: `AnimalStatusUpdateRequest` | `AnimalResponse` |
+| `DELETE` | `/animals/delete/{id}` | Admin | 보호 동물 삭제 | Path: `id` | HTTP 204 No Content |
+
+<details>
+<summary><b>📄 보호 동물 관련 DTO & Enum 상세</b></summary>
+
+- **AnimalCreateRequest**: `species` (String), `breed` (String), `color` (String), `image` (String), `age` (Long), `gender` (`Gender`), `status` (`Status`), `member` (Member)
+- **AnimalResponse**: `id` (Long), `species` (String), `breed` (String), `color` (String), `status` (`Status`), `age` (Long), `gender` (`Gender`), `image` (String)
+- **AnimalStatusUpdateRequest**: `status` (`Status`)
+- **Enums**:
+  - `Status`: `WAITING` (대기), `PROTECTED` (보호중), `ADOPTED` (입양완료)
+  - `Gender`: `MALE` (수컷), `FEMALE` (암컷)
+
+</details>
+
+---
 
 ### 🏡 5. 입양 신청 관리 API (`/adoptions`)
 
-| 메서드 | URL | 권한 | 설명 |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/adoptions/animals/{animalId}` | User | 동물 입양 신청 |
-| `GET` | `/adoptions/myAdoption` | User | 내 입양 신청 내역 조회 |
-| `GET` | `/adoptions/all` | Admin/User | 전체 입양 신청 내역 조회 |
-| `PUT` | `/adoptions/{adoptionId}/status` | User | 입양 신청 상태 변경 (승인 / 거절) |
+| 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/adoptions/animals/{animalId}` | User | 동물 입양 신청 | Path: `animalId`, Body: `AdoptionRequestDto` | `AdoptionResponseDto` |
+| `GET` | `/adoptions/myAdoption` | User | 내 입양 신청 내역 조회 | Header: `Authorization: Bearer <token>` | `List<AdoptionResponseDto>` |
+| `GET` | `/adoptions/all` | Admin/User | 전체 입양 신청 내역 조회 | - | `List<AdoptionResponseDto>` |
+| `PUT` | `/adoptions/{adoptionId}/status` | User/Admin | 입양 신청 상태 변경 | Path: `adoptionId`, Body: `AdoptionUpdateRequestDto` | `AdoptionResponseDto` |
+
+<details>
+<summary><b>📄 입양 신청 관련 DTO & Enum 상세</b></summary>
+
+- **AdoptionRequestDto**: `memberId` (Long), `animalId` (Long), `interview` (String - 신청 사유/인터뷰), `status` (`AdoptionStatus`)
+- **AdoptionResponseDto**: `adoptionId` (Long), `memberName` (String), `status` (`AdoptionStatus`), `interviewer` (String), `animalImage` (String), `applyDate` (String)
+- **AdoptionUpdateRequestDto**: `adoptionStatus` (`AdoptionStatus`)
+- **Enum**:
+  - `AdoptionStatus`: `PENDING` (신청대기), `APPROVED` (승인), `REJECTED` (거절)
+
+</details>
+
+---
 
 ### 📝 6. 커뮤니티 게시글 API (`/post`)
 
-| 메서드 | URL | 권한 | 설명 |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/post/create` | User | 게시글 작성 |
-| `GET` | `/post/list` | Public | 게시글 목록 조회 (페이징: `page`, `size`) |
-| `GET` | `/post/{postId}` | Public | 게시글 상세 조회 |
-| `PUT` | `/post/{postId}` | Author/Admin | 게시글 수정 |
-| `DELETE` | `/post/{postId}` | Author/Admin | 게시글 삭제 |
+| 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/post/create` | User | 게시글 작성 | `PostCreateRequestDto` | `Post` (Entity) |
+| `GET` | `/post/list` | Public | 게시글 목록 조회 (페이징) | Query: `?page=0&size=10&sort=id,desc` | `Page<PostResponseDto>` |
+| `GET` | `/post/{postId}` | Public | 게시글 상세 조회 | Path: `postId` | `PostResponseDto` |
+| `PUT` | `/post/{postId}` | Author/Admin | 게시글 수정 | Path: `postId`, Body: `PostUpdateRequestDto` | `PostResponseDto` |
+| `DELETE` | `/post/{postId}` | Author/Admin | 게시글 삭제 | Path: `postId` | `null` |
 
-### 💬 7. 댓글 & 답글 API (`/comment`)
+<details>
+<summary><b>📄 게시글 관련 DTO 상세</b></summary>
 
-| 메서드 | URL | 권한 | 설명 |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/comment/{postId}` | User | 댓글 또는 답글 작성 (`parentId` 지정) |
-| `GET` | `/comment/{postId}` | Public | 특정 게시글 댓글 목록 조회 (계층형 구조) |
-| `PUT` | `/comment/update/{commentId}` | Author/Admin | 댓글 수정 |
-| `DELETE` | `/comment/{commentId}` | Author/Admin | 댓글 삭제 |
+- **PostCreateRequestDto**: `title` (String), `content` (String), `img` (String), `name` (String), `dateTime` (LocalDateTime)
+- **PostResponseDto**: `id` (Long), `title` (String), `content` (String), `email` (String), `name` (String), `createAt` (LocalDateTime), `img` (String)
+- **PostUpdateRequestDto**: `title` (String), `img` (String), `content` (String)
+
+</details>
+
+---
+
+### 💬 7. 댓글 & 계층형 답글 API (`/comment`)
+
+| 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/comment/{postId}` | User | 댓글/답글 작성 | Path: `postId`, Body: `CommentDto` | `CommentResponseDto` |
+| `GET` | `/comment/{postId}` | Public | 특정 게시글 댓글 목록 (계층형) | Path: `postId` | `List<CommentResponseDto>` |
+| `PUT` | `/comment/update/{commentId}` | Author/Admin | 댓글 수정 | Path: `commentId`, Body: `CommentUpdateDto` | `CommentResponseDto` |
+| `DELETE` | `/comment/{commentId}` | Author/Admin | 댓글 삭제 | Path: `commentId` | `null` |
+
+<details>
+<summary><b>📄 댓글 관련 DTO 상세</b></summary>
+
+- **CommentDto** (작성 요청): `parentId` (Long, 최상위 댓글은 `null` / 답글일 경우 부모 댓글 ID), `content` (String)
+- **CommentResponseDto** (응답): `id` (Long), `authorName` (String), `authorId` (Long), `authorEmail` (String), `content` (String), `createdAt` (LocalDateTime), `children` (`List<CommentResponseDto>` - 대댓글 리스트)
+- **CommentUpdateDto** (수정 요청): `commentId` (Long), `content` (String)
+
+</details>
+
 
 
