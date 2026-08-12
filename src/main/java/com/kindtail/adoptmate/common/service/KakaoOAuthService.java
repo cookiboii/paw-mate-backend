@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.common.service;
 
 import com.kindtail.adoptmate.member.domain.Member;
+import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.dto.KakaoUserDto;
 import com.kindtail.adoptmate.member.dto.MemberResponseDto;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
@@ -29,10 +30,10 @@ public class KakaoOAuthService {
     @Value("${oauth2.kakao.client-id}")
     private String kakaoClientId;
 
-    @Value("${oauth2.kakao.redirect-uri}")
+    @Value("${KAKAO_REDIRECT_URI:https://port-0-paw-mate-backend-msiq1pqe2aa00cb9.sel3.cloudtype.app/adoptmate/kakao}")
     private String kakaoRedirectUri;
 
-    @Value("${oauth2.kakao.client-secret}")
+    @Value("${KAKAO_CLIENT_SECRET:QKusibOT6eZblB1r9klNGruBOgkkQoII}")
     private String kakaoClientSecret;
 
     public KakaoOAuthService(MemberRepository memberRepository) {
@@ -87,6 +88,7 @@ public class KakaoOAuthService {
                     .profileImage(kakaoUser.properties().profileImage())
                     .socialId(kakaoUser.id().toString())
                     .socialProvider("KAKAO")
+                    .role(Role.USER)
                     .password(null)
                     .build();
 
