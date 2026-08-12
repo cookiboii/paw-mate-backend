@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.auth;
 
 import com.kindtail.adoptmate.member.domain.Member;
+import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,6 +77,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                             .profileImage(finalProfileImage)
                             .socialId(finalSocialId)
                             .socialProvider(provider)
+                            .role(Role.USER)
                             .build();
                     return memberRepository.save(newMember);
                 });
