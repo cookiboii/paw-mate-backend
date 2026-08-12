@@ -41,6 +41,8 @@ public class KakaoAuthController {
 
         memberService.saveRefreshToken(memberResponseDto.email(), refreshToken);
 
+        String frontendUrl = "https://paw-mate-frontend.vercel.app"; // 실제 프론트엔드 주소로 변경하세요 (또는 @Value로 주입)
+
         String html = String.format("""
                 <!DOCTYPE html>
                 <html>
@@ -64,7 +66,15 @@ public class KakaoAuthController {
                     <p>카카오 로그인 처리 중...</p>
                 </body>
                 </html>
-                """, token, refreshToken, memberResponseDto.id(), memberResponseDto.role());
+                """,
+                token,                        // 1. token
+                refreshToken,                 // 2. refreshToken
+                memberResponseDto.id(),       // 3. id
+                memberResponseDto.role(),     // 4. role
+                frontendUrl,                  // 5. postMessage의 target origin (보안상 '*' 보다는 정확한 URL 권장)
+                frontendUrl                   // 6. window.location.href의 리다이렉트 주소
+        );
+
         response.setContentType("text/html;charset=UTF-8");
         response.getWriter().write(html);
     }
