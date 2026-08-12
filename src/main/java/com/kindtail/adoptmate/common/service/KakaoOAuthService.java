@@ -27,7 +27,7 @@ public class KakaoOAuthService {
     private final MemberRepository memberRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${oauth2.kakao.client-id}")
+    @Value("${spring.security.oauth2.client.registration.kakao.client-id}")
     private String kakaoClientId;
 
     @Value("${KAKAO_REDIRECT_URI:https://port-0-paw-mate-backend-msiq1pqe2aa00cb9.sel3.cloudtype.app/adoptmate/kakao}")
