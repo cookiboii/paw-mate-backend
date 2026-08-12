@@ -42,7 +42,7 @@ spring:
         registration:
           kakao:
             client-id: ${KAKAO_CLIENT_ID:16a5cc3c2d930524373be21f6bf96353}
-            client-secret: ${KAKAO_CLIENT_SECRET:CryJfVnfMoA1KtUgsJkwzJohjCRMWiYz}
+            client-secret: ${KAKAO_CLIENT_SECRET:QKusibOT6eZblB1r9klNGruBOgkkQoII}
             client-name: Kakao
             authorization-grant-type: authorization_code
             redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8000/adoptmate/kakao}

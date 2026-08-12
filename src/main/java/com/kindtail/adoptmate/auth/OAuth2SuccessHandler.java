@@ -22,7 +22,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    @Value("${client.url:http://localhost:5173}")
+    @Value("${client.url:https://paw-mate-frontend.vercel.app}")
     private String clientUrl;
 
     public OAuth2SuccessHandler(JwtTokenProvider jwtTokenProvider, RedisTemplate<String, Object> redisTemplate) {
