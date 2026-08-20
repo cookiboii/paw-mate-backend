@@ -63,7 +63,7 @@ public class AnimalController {
         );
     }
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<CommonResDto> updateAnimal ( @PathVariable Long id,
                                                        @RequestBody AnimalStatusUpdateRequest request){
       AnimalResponse animal = animalService.updateAnimal(id, request);
