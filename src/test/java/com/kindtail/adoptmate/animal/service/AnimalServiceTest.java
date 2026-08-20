@@ -170,6 +170,25 @@ class AnimalServiceTest {
     }
 
     @Test
+    @DisplayName("종별로 페이지네이션된 동물 목록을 조회할 수 있다")
+    void getAnimalsBySpecies_성공 () {
+        // given
+        List<Animal> animals = new ArrayList<>();
+        animals.add(testAnimal);
+        Page<Animal> animalPage = new PageImpl<>(animals, PageRequest.of(0, 10), 1);
+
+        given(animalRepository.findBySpecies("강아지", PageRequest.of(0, 10))).willReturn(animalPage);
+
+        // when
+        Page<AnimalResponse> result = animalService.getAnimalsBySpecies("강아지", PageRequest.of(0, 10));
+
+        // then
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().get(0).species()).isEqualTo("강아지");
+        verify(animalRepository).findBySpecies("강아지", PageRequest.of(0, 10));
+    }
+
+    @Test
     @DisplayName("ID 로 동물을 조회할 수 있다")
     void getAnimal_성공 () {
         // given

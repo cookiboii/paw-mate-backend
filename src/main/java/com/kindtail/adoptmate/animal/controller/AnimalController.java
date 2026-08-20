@@ -55,6 +55,16 @@ public class AnimalController {
         return ResponseEntity.status(HttpStatus.OK).body(animalList);
     }
 
+    @GetMapping("/species")
+    public ResponseEntity<Page<AnimalResponse>> getAnimalsBySpecies(
+            @RequestParam String species,
+            @RequestParam int page,
+            @RequestParam int size
+    ) {
+        Page<AnimalResponse> animalList = animalService.getAnimalsBySpecies(species, PageRequest.of(page, size));
+        return ResponseEntity.status(HttpStatus.OK).body(animalList);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<CommonResDto> getAnimalById(@PathVariable Long id) {
         AnimalResponse animal = animalService.getAnimal(id);

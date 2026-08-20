@@ -62,6 +62,12 @@ public class AnimalService {
         Page<Animal> animals = animalRepository.findAll(pageable);
         return animals.map(AnimalResponse::from);
     }
+
+    @Transactional(readOnly = true)
+    public Page<AnimalResponse> getAnimalsBySpecies(String species, Pageable pageable) {
+        Page<Animal> animals = animalRepository.findBySpecies(species, pageable);
+        return animals.map(AnimalResponse::from);
+    }
     @Transactional(readOnly = true)
     public AnimalResponse getAnimal(Long id) {
         Animal animal = animalRepository.findById(id)

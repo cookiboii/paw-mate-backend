@@ -127,7 +127,8 @@ Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/animals/register` | Admin | 보호 동물 등록 | `AnimalCreateRequest` | `Animal` (Entity) |
-| `GET` | `/animals/list` | Public | 보호 동물 목록 조회 (페이징) | Query: `?page=0&size=10` | `Page<AnimalResponse>` |
+| `GET` | `/animals/list` | Public | 보호 동물 전체 목록 조회 (페이징) | Query: `?page=0&size=10` | `Page<AnimalResponse>` |
+| `GET` | `/animals/species` | Public | 보호 동물 종별 목록 조회 (페이징) | Query: `?species=강아지&page=0&size=10` | `Page<AnimalResponse>` |
 | `GET` | `/animals/{id}` | Public | 보호 동물 상세 조회 | Path: `id` | `AnimalResponse` |
 | `PUT` | `/animals/{id}/status` | Admin | 보호 동물 상태 변경 | Path: `id`, Body: `AnimalStatusUpdateRequest` | `AnimalResponse` |
 | `DELETE` | `/animals/delete/{id}` | Admin | 보호 동물 삭제 | Path: `id` | HTTP 204 No Content |

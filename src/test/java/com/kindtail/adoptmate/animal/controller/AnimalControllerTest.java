@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -121,6 +122,28 @@ class AnimalControllerTest {
 
         // when
         ResultActions resultActions = mockMvc.perform(get("/animals/list")
+                .param("page", "0")
+                .param("size", "10"));
+
+        // then
+        resultActions.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].species").value("강아지"));
+    }
+
+    @Test
+    @DisplayName("종별로 페이지네이션된 동물 목록을 조회할 수 있다")
+    void getAnimalsBySpecies_성공 () throws Exception {
+        // given
+        List<AnimalResponse> animalResponses = new ArrayList<>();
+        animalResponses.add(AnimalResponse.from(testAnimal));
+        Page<AnimalResponse> animalPage = new PageImpl<>(animalResponses, PageRequest.of(0, 10), 1);
+
+        given(animalService.getAnimalsBySpecies(eq("강아지"), any(PageRequest.class))).willReturn(animalPage);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(get("/animals/species")
+                .param("species", "강아지")
                 .param("page", "0")
                 .param("size", "10"));
 

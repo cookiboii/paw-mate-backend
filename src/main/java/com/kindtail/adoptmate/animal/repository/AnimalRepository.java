@@ -17,4 +17,6 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
     @EntityGraph(attributePaths = {"member"})
     Page<Animal> findAll(Pageable pageable);
 
+    @EntityGraph(attributePaths = {"member"})
+    Page<Animal> findBySpecies(String species, Pageable pageable);
 }

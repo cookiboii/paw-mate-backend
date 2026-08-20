@@ -125,6 +125,42 @@ class AnimalRepositoryTest {
     }
 
     @Test
+    @DisplayName("종별로 동물을 페이지네이션 조회할 수 있다")
+    void findBySpecies_페이지네이션_성공 () {
+        // given
+        for (int i = 0; i < 5; i++) {
+            Animal dog = Animal.builder()
+                    .species("강아지")
+                    .breed("진도개")
+                    .color("황색")
+                    .gender(Gender.MALE)
+                    .age((long) i)
+                    .member(testMember)
+                    .build();
+            animalRepository.save(dog);
+        }
+        for (int i = 0; i < 3; i++) {
+            Animal cat = Animal.builder()
+                    .species("고양이")
+                    .breed("페르시안")
+                    .color("흰색")
+                    .gender(Gender.FEMALE)
+                    .age((long) i)
+                    .member(testMember)
+                    .build();
+            animalRepository.save(cat);
+        }
+
+        // when
+        Page<Animal> dogs = animalRepository.findBySpecies("강아지", PageRequest.of(0, 10));
+        Page<Animal> cats = animalRepository.findBySpecies("고양이", PageRequest.of(0, 10));
+
+        // then
+        assertThat(dogs.getTotalElements()).isEqualTo(5);
+        assertThat(cats.getTotalElements()).isEqualTo(3);
+    }
+
+    @Test
     @DisplayName("동물을 삭제할 수 있다")
     void deleteById_성공 () {
         // given
