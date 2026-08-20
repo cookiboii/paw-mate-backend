@@ -1,19 +1,15 @@
 package com.kindtail.adoptmate.adoption.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
-import com.kindtail.adoptmate.adoption.dto.AdoptionRequestDto;
+import com.kindtail.adoptmate.adoption.domain.HousingType;
+import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
 import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.dto.AdoptionUpdateRequestDto;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
-import com.kindtail.adoptmate.animal.domain.Animal;
-import com.kindtail.adoptmate.animal.domain.Status;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
-import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
-import com.kindtail.adoptmate.member.domain.Member;
+import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.service.MemberService;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,14 +18,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -82,11 +79,28 @@ class AdoptionControllerTest {
         // given
         Long animalId = 1L;
         Long memberId = 1L;
-        AdoptionRequestDto requestDto = new AdoptionRequestDto(null, null, "인터뷰 내용", null);
-        AdoptionResponseDto responseDto = new AdoptionResponseDto(1L, "홍길동", AdoptionStatus.PENDING, "인터뷰 내용", "test.jpg", "2024-01-01T00:00:00");
+        AdoptionCreateRequest requestDto = new AdoptionCreateRequest(
+                "010-1234-5678",
+                HousingType.APARTMENT,
+                "없음",
+                "평생 책임지고 사랑으로 보살피겠습니다."
+        );
+        AdoptionResponseDto responseDto = new AdoptionResponseDto(
+                1L,
+                1L,
+                "말티즈",
+                "test.jpg",
+                "홍길동",
+                "010-1234-5678",
+                HousingType.APARTMENT,
+                "없음",
+                "평생 책임지고 사랑으로 보살피겠습니다.",
+                AdoptionStatus.PENDING,
+                LocalDateTime.now()
+        );
 
         given(memberService.getMemberIdByEmail(anyString())).willReturn(memberId);
-        given(adoptionService.applyAdoption(any(AdoptionRequestDto.class), eq(memberId), eq(animalId)))
+        given(adoptionService.applyAdoption(any(AdoptionCreateRequest.class), eq(memberId), eq(animalId)))
                 .willReturn(responseDto);
 
         // when & then
@@ -98,6 +112,7 @@ class AdoptionControllerTest {
                 .andExpect(jsonPath("$.statusCode").value(202))
                 .andExpect(jsonPath("$.statusMessage").value("입양 신청이 완료되었습니다."))
                 .andExpect(jsonPath("$.result.adoptionId").value(1))
+                .andExpect(jsonPath("$.result.phone").value("010-1234-5678"))
                 .andDo(print());
     }
 
@@ -107,8 +122,12 @@ class AdoptionControllerTest {
     void myAdoptionSuccess() throws Exception {
         // given
         Long memberId = 1L;
-        AdoptionResponseDto responseDto1 = new AdoptionResponseDto(1L, "홍길동", AdoptionStatus.PENDING, "인터뷰 1", "test.jpg", "2024-01-01T00:00:00");
-        AdoptionResponseDto responseDto2 = new AdoptionResponseDto(2L, "홍길동", AdoptionStatus.APPROVED, "인터뷰 2", "test2.jpg", "2024-01-02T00:00:00");
+        AdoptionResponseDto responseDto1 = new AdoptionResponseDto(
+                1L, 1L, "말티즈", "test1.jpg", "홍길동", "010-1111-1111", HousingType.APARTMENT, "없음", "이유 1", AdoptionStatus.PENDING, LocalDateTime.now()
+        );
+        AdoptionResponseDto responseDto2 = new AdoptionResponseDto(
+                2L, 2L, "푸들", "test2.jpg", "홍길동", "010-2222-2222", HousingType.VILLA, "개 1마리", "이유 2", AdoptionStatus.APPROVED, LocalDateTime.now()
+        );
 
         given(memberService.getMemberIdByEmail(anyString())).willReturn(memberId);
         given(adoptionService.getAdoptions(memberId)).willReturn(List.of(responseDto1, responseDto2));
@@ -130,8 +149,12 @@ class AdoptionControllerTest {
     @WithMockUser
     void allAdoptionsSuccess() throws Exception {
         // given
-        AdoptionResponseDto responseDto1 = new AdoptionResponseDto(1L, "홍길동", AdoptionStatus.PENDING, "인터뷰 1", "test.jpg", "2024-01-01T00:00:00");
-        AdoptionResponseDto responseDto2 = new AdoptionResponseDto(2L, "김철수", AdoptionStatus.APPROVED, "인터뷰 2", "test2.jpg", "2024-01-02T00:00:00");
+        AdoptionResponseDto responseDto1 = new AdoptionResponseDto(
+                1L, 1L, "말티즈", "test1.jpg", "홍길동", "010-1111-1111", HousingType.APARTMENT, "없음", "이유 1", AdoptionStatus.PENDING, LocalDateTime.now()
+        );
+        AdoptionResponseDto responseDto2 = new AdoptionResponseDto(
+                2L, 2L, "푸들", "test2.jpg", "김철수", "010-2222-2222", HousingType.VILLA, "개 1마리", "이유 2", AdoptionStatus.APPROVED, LocalDateTime.now()
+        );
 
         given(adoptionService.getAllAdoptions()).willReturn(List.of(responseDto1, responseDto2));
 
@@ -154,7 +177,9 @@ class AdoptionControllerTest {
         // given
         Long adoptionId = 1L;
         AdoptionUpdateRequestDto requestDto = new AdoptionUpdateRequestDto(AdoptionStatus.APPROVED);
-        AdoptionResponseDto responseDto = new AdoptionResponseDto(1L, "홍길동", AdoptionStatus.APPROVED, "인터뷰", "test.jpg", "2024-01-01T00:00:00");
+        AdoptionResponseDto responseDto = new AdoptionResponseDto(
+                1L, 1L, "말티즈", "test.jpg", "홍길동", "010-1234-5678", HousingType.APARTMENT, "없음", "이유", AdoptionStatus.APPROVED, LocalDateTime.now()
+        );
 
         given(adoptionService.updateStatus(eq(adoptionId), eq(AdoptionStatus.APPROVED)))
                 .willReturn(responseDto);

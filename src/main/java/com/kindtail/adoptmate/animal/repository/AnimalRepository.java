@@ -16,4 +16,5 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
     @Override
     @EntityGraph(attributePaths = {"member"})
     Page<Animal> findAll(Pageable pageable);
+
 }

@@ -33,6 +33,30 @@ class AdoptionTest {
     }
 
     @Test
+    @DisplayName("Adoption.of 정적 팩토리 메서드로 세분화된 필드를 포함하여 입양 신청을 생성할 수 있다")
+    void createAdoptionWithDetailedFields() {
+        // given
+        String phone = "010-1234-5678";
+        HousingType housingType = HousingType.APARTMENT;
+        String hasPet = "없음";
+        String reason = "끝까지 책임지고 키우겠습니다.";
+
+        // when
+        Adoption adoption = Adoption.of(member, animal, phone, housingType, hasPet, reason, AdoptionStatus.PENDING);
+
+        // then
+        assertThat(adoption).isNotNull();
+        assertThat(adoption.getMember()).isEqualTo(member);
+        assertThat(adoption.getAnimal()).isEqualTo(animal);
+        assertThat(adoption.getPhone()).isEqualTo(phone);
+        assertThat(adoption.getHousingType()).isEqualTo(housingType);
+        assertThat(adoption.getHasPet()).isEqualTo(hasPet);
+        assertThat(adoption.getReason()).isEqualTo(reason);
+        assertThat(adoption.getStatus()).isEqualTo(AdoptionStatus.PENDING);
+        assertThat(adoption.getApplyDate()).isBeforeOrEqualTo(LocalDateTime.now());
+    }
+
+    @Test
     @DisplayName("Adoption.of 정적 팩토리 메서드로 입양 신청을 생성할 수 있다")
     void createAdoptionWithStaticFactoryMethod() {
         // given

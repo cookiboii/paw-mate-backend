@@ -1,12 +1,15 @@
 package com.kindtail.adoptmate.adoption.controller;
 
-import com.kindtail.adoptmate.adoption.dto.AdoptionRequestDto;
+import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
 import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.dto.AdoptionUpdateRequestDto;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
 import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.member.service.MemberService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,14 +33,14 @@ public class AdoptionController {
     @PostMapping("/animals/{animalId}")
     public ResponseEntity<CommonResDto> registerAdoption(
             @PathVariable("animalId") Long animalId,
-            @RequestBody AdoptionRequestDto adoptionRequestDto
+            @Valid @RequestBody AdoptionCreateRequest adoptionCreateRequest
     ) {
         TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
 
         Long memberId = memberService.getMemberIdByEmail(userInfo.getEmail());
 
-        AdoptionResponseDto adoptionResponse = adoptionService.applyAdoption(adoptionRequestDto, memberId, animalId);
+        AdoptionResponseDto adoptionResponse = adoptionService.applyAdoption(adoptionCreateRequest, memberId, animalId);
 
         CommonResDto response = new CommonResDto(
                 HttpStatus.ACCEPTED,
@@ -71,6 +74,13 @@ public class AdoptionController {
         List<AdoptionResponseDto> adoptions = adoptionService.getAllAdoptions();
         CommonResDto response = new CommonResDto(HttpStatus.OK, "전체조회", adoptions);
         return ResponseEntity.ok(response);
+    }
+
+    /** 전체 입양 내역 (페이징) */
+    @GetMapping("/list")
+    public ResponseEntity<Page<AdoptionResponseDto>> getAdoptionList(Pageable pageable) {
+        Page<AdoptionResponseDto> adoptions = adoptionService.getAllAdoptions(pageable);
+        return ResponseEntity.ok(adoptions);
     }
 
     /** 입양 상태 변경 */

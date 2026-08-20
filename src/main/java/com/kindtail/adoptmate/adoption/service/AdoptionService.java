@@ -2,7 +2,7 @@ package com.kindtail.adoptmate.adoption.service;
 
 import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
-import com.kindtail.adoptmate.adoption.dto.AdoptionRequestDto;
+import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
 import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.repository.AdoptionRepository;
 import com.kindtail.adoptmate.animal.domain.Animal;
@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class AdoptionService {
 
     private final AdoptionRepository adoptionRepository;
@@ -35,27 +36,37 @@ public class AdoptionService {
         this.memberRepository = memberRepository;
     }
 
-    @Transactional
-    public AdoptionResponseDto applyAdoption(AdoptionRequestDto dto, Long memberId, Long animalId) {
+    @Transactional // 📌 2. 쓰기 작업에만 개별 @Transactional 부여
+    public AdoptionResponseDto applyAdoption(AdoptionCreateRequest dto, Long memberId, Long animalId) {
         Animal animal = animalRepository.findById(animalId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
-
+        // 입양 가능한 임시보호(PROTECTED) 상태인지 검증
         if (animal.getStatus() != Status.PROTECTED) {
             throw new CustomException(ErrorCode.NOT_PROTECTED_ANIMAL);
         }
-
+        // 중복 신청 방지
         if (adoptionRepository.existsByMemberAndAnimal(member, animal)) {
             throw new CustomException(ErrorCode.ADOPTION_ALREADY_EXISTS);
         }
-
-        Adoption adoption = Adoption.of(member, animal, dto.interview(), AdoptionStatus.PENDING );
-        Adoption saved= adoptionRepository.save(adoption);
-
+        // 📌 3. 세분화된 필드(phone, housingType, hasPet, reason)를 포함하여 엔티티 생성
+        Adoption adoption = Adoption.of(
+                member,
+                animal,
+                dto.phone(),
+                dto.housingType(),
+                dto.hasPet(),
+                dto.reason(),
+                AdoptionStatus.PENDING
+        );
+        Adoption saved = adoptionRepository.save(adoption);
+        // 📌 4. 신청 접수 시 동물 상태를 '입양 대기(WAITING)'로 자동 전환
+        animal.updateStatus(new AnimalStatusUpdateRequest(Status.WAITING));
 
         return AdoptionResponseDto.from(saved);
     }
+
     @Transactional(readOnly = true)
     public List<AdoptionResponseDto> getAdoptions(Long memberId) {
         Member member = memberRepository.findById(memberId)
@@ -68,8 +79,14 @@ public class AdoptionService {
     }
 
     @Transactional(readOnly = true)
+    public Page<AdoptionResponseDto> getAllAdoptions(Pageable pageable) {
+        Page<Adoption> adoptions = adoptionRepository.findAll(pageable);
+        return adoptions.map(AdoptionResponseDto::from);
+    }
+
+    @Transactional(readOnly = true)
     public List<AdoptionResponseDto> getAllAdoptions() {
-        List<Adoption> adoptions = adoptionRepository.findAllWithFetchJoin();
+        List<Adoption> adoptions = adoptionRepository.findAll();
         return adoptions.stream()
                 .map(AdoptionResponseDto::from)
                 .collect(Collectors.toList());
