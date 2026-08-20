@@ -150,19 +150,28 @@ Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메
 
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/adoptions/animals/{animalId}` | User | 동물 입양 신청 | Path: `animalId`, Body: `AdoptionRequestDto` | `AdoptionResponseDto` |
+| `POST` | `/adoptions/animals/{animalId}` | User | 동물 입양 신청 | Path: `animalId`, Body: `AdoptionCreateRequest` | `AdoptionResponseDto` |
 | `GET` | `/adoptions/myAdoption` | User | 내 입양 신청 내역 조회 | Header: `Authorization: Bearer <token>` | `List<AdoptionResponseDto>` |
-| `GET` | `/adoptions/all` | Admin/User | 전체 입양 신청 내역 조회 | - | `List<AdoptionResponseDto>` |
+| `GET` | `/adoptions/all` | Admin/User | 전체 입양 신청 내역 조회 (전체 리스트) | - | `List<AdoptionResponseDto>` |
+| `GET` | `/adoptions/list` | Admin/User | 전체 입양 신청 내역 조회 (페이징) | Query: `?page=0&size=10` | `Page<AdoptionResponseDto>` |
 | `PUT` | `/adoptions/{adoptionId}/status` | User/Admin | 입양 신청 상태 변경 | Path: `adoptionId`, Body: `AdoptionUpdateRequestDto` | `AdoptionResponseDto` |
 
 <details>
 <summary><b>📄 입양 신청 관련 DTO & Enum 상세</b></summary>
 
-- **AdoptionRequestDto**: `memberId` (Long), `animalId` (Long), `interview` (String - 신청 사유/인터뷰), `status` (`AdoptionStatus`)
-- **AdoptionResponseDto**: `adoptionId` (Long), `memberName` (String), `status` (`AdoptionStatus`), `interviewer` (String), `animalImage` (String), `applyDate` (String)
-- **AdoptionUpdateRequestDto**: `adoptionStatus` (`AdoptionStatus`)
+- **AdoptionCreateRequest** (입양 신청 요청):
+  - `phone` (String, 필수): 신청자 연락처 (예: `010-1234-5678`, 정규식 검증)
+  - `housingType` (`HousingType`, 필수): 주거 형태 (`APARTMENT`, `DETACHED_HOUSE`, `VILLA`, `ONE_ROOM`, `ETC`)
+  - `hasPet` (String, 필수): 현재 반려동물 유무 (예: `"없음"`, `"개 1마리"`)
+  - `reason` (String, 필수): 입양 동기 및 각오 (10자 이상)
+- **AdoptionResponseDto** (입양 응답):
+  - `adoptionId` (Long), `animalId` (Long), `animalBreed` (String), `animalImage` (String), `userName` (String)
+  - `phone` (String), `housingType` (`HousingType`), `hasPet` (String), `reason` (String)
+  - `status` (`AdoptionStatus`), `applyDate` (LocalDateTime)
+- **AdoptionUpdateRequestDto** (상태 변경 요청): `adoptionStatus` (`AdoptionStatus`)
 - **Enum**:
   - `AdoptionStatus`: `PENDING` (신청대기), `APPROVED` (승인), `REJECTED` (거절)
+  - `HousingType`: `APARTMENT` (아파트), `DETACHED_HOUSE` (단독주택), `VILLA` (빌라/다세대), `ONE_ROOM` (원룸), `ETC` (기타)
 
 </details>
 
