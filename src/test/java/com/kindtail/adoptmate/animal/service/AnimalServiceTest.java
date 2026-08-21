@@ -2,6 +2,7 @@ package com.kindtail.adoptmate.animal.service;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Gender;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
@@ -70,7 +71,7 @@ class AnimalServiceTest {
         // 테스트용 동물 생성
         testAnimal = Animal.builder()
                 .id(1L)
-                .species("강아지")
+                .species(Species.DOG)
                 .breed("진도개")
                 .color("황색")
                 .gender(Gender.MALE)
@@ -102,7 +103,7 @@ class AnimalServiceTest {
         // given
         setupSecurityContext();
         AnimalCreateRequest request = new AnimalCreateRequest(
-                "강아지",
+                Species.DOG,
                 "진도개",
                 "황색",
                 "http://example.com/image.jpg",
@@ -120,7 +121,7 @@ class AnimalServiceTest {
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getSpecies()).isEqualTo("강아지");
+        assertThat(result.getSpecies()).isEqualTo(Species.DOG);
         assertThat(result.getBreed()).isEqualTo("진도개");
         verify(memberRepository).findByEmail("test@example.com");
         verify(animalRepository).save(any(Animal.class));
@@ -132,7 +133,7 @@ class AnimalServiceTest {
         // given
         setupSecurityContext();
         AnimalCreateRequest request = new AnimalCreateRequest(
-                "강아지",
+                Species.DOG,
                 "진도개",
                 "황색",
                 "http://example.com/image.jpg",
@@ -165,7 +166,7 @@ class AnimalServiceTest {
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
-        assertThat(result.getContent().get(0).species()).isEqualTo("강아지");
+        assertThat(result.getContent().get(0).species()).isEqualTo(Species.DOG);
         verify(animalRepository).findAll(PageRequest.of(0, 10));
     }
 
@@ -177,15 +178,15 @@ class AnimalServiceTest {
         animals.add(testAnimal);
         Page<Animal> animalPage = new PageImpl<>(animals, PageRequest.of(0, 10), 1);
 
-        given(animalRepository.findBySpecies("강아지", PageRequest.of(0, 10))).willReturn(animalPage);
+        given(animalRepository.findBySpecies(Species.DOG, PageRequest.of(0, 10))).willReturn(animalPage);
 
         // when
-        Page<AnimalResponse> result = animalService.getAnimalsBySpecies("강아지", PageRequest.of(0, 10));
+        Page<AnimalResponse> result = animalService.getAnimalsBySpecies(Species.DOG, PageRequest.of(0, 10));
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
-        assertThat(result.getContent().get(0).species()).isEqualTo("강아지");
-        verify(animalRepository).findBySpecies("강아지", PageRequest.of(0, 10));
+        assertThat(result.getContent().get(0).species()).isEqualTo(Species.DOG);
+        verify(animalRepository).findBySpecies(Species.DOG, PageRequest.of(0, 10));
     }
 
     @Test
@@ -201,7 +202,7 @@ class AnimalServiceTest {
         // then
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(animalId);
-        assertThat(result.species()).isEqualTo("강아지");
+        assertThat(result.species()).isEqualTo(Species.DOG);
         verify(animalRepository).findById(animalId);
     }
 

@@ -3,6 +3,7 @@ package com.kindtail.adoptmate.adoption.repository;
 import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
@@ -44,7 +45,7 @@ class AdoptionRepositoryTest {
         entityManager.persist(member);
 
         animal = Animal.builder()
-                .species("강아지")
+                .species(Species.DOG)
                 .status(Status.PROTECTED)
                 .image("test.jpg")
                 .member(member)
@@ -67,7 +68,7 @@ class AdoptionRepositoryTest {
         // then
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getMember().getName()).isEqualTo("홍길동");
-        assertThat(saved.getAnimal().getSpecies()).isEqualTo("강아지");
+        assertThat(saved.getAnimal().getSpecies()).isEqualTo(Species.DOG);
         assertThat(saved.getStatus()).isEqualTo(AdoptionStatus.PENDING);
     }
 
@@ -122,7 +123,7 @@ class AdoptionRepositoryTest {
         // then
         assertThat(found).isPresent();
         assertThat(found.get().getMember().getName()).isEqualTo("홍길동");
-        assertThat(found.get().getAnimal().getSpecies()).isEqualTo("강아지");
+        assertThat(found.get().getAnimal().getSpecies()).isEqualTo(Species.DOG);
     }
 
     @Test
@@ -130,7 +131,7 @@ class AdoptionRepositoryTest {
     void findByMember() {
         // given
         Animal animal2 = Animal.builder()
-                .species("고양이")
+                .species(Species.CAT)
                 .status(Status.PROTECTED)
                 .image("cat.jpg")
                 .member(member)
@@ -158,7 +159,7 @@ class AdoptionRepositoryTest {
     void findAllWithFetchJoin() {
         // given
         Animal animal2 = Animal.builder()
-                .species("고양이")
+                .species(Species.CAT)
                 .status(Status.PROTECTED)
                 .image("cat.jpg")
                 .member(member)
@@ -185,7 +186,7 @@ class AdoptionRepositoryTest {
         // given
         for (int i = 0; i < 5; i++) {
             Animal a = Animal.builder()
-                    .species("동물" + i)
+                    .species(Species.ETC)
                     .status(Status.PROTECTED)
                     .image("animal" + i + ".jpg")
                     .member(member)

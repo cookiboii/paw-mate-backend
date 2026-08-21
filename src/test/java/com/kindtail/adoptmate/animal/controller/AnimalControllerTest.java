@@ -3,6 +3,7 @@ package com.kindtail.adoptmate.animal.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Gender;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
@@ -70,7 +71,7 @@ class AnimalControllerTest {
     void setUp() {
         testAnimal = Animal.builder()
                 .id(1L)
-                .species("강아지")
+                .species(Species.DOG)
                 .breed("진도개")
                 .color("황색")
                 .gender(Gender.MALE)
@@ -85,7 +86,7 @@ class AnimalControllerTest {
     void registerAnimal_성공 () throws Exception {
         // given
         AnimalCreateRequest request = new AnimalCreateRequest(
-                "강아지",
+                Species.DOG,
                 "진도개",
                 "황색",
                 "http://example.com/image.jpg",
@@ -107,7 +108,7 @@ class AnimalControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.statusCode").value(201))
                 .andExpect(jsonPath("$.statusMessage").value("등록 성공"))
-                .andExpect(jsonPath("$.result.species").value("강아지"));
+                .andExpect(jsonPath("$.result.species").value("DOG"));
     }
 
     @Test
@@ -128,7 +129,7 @@ class AnimalControllerTest {
         // then
         resultActions.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].species").value("강아지"));
+                .andExpect(jsonPath("$.content[0].species").value("DOG"));
     }
 
     @Test
@@ -139,18 +140,18 @@ class AnimalControllerTest {
         animalResponses.add(AnimalResponse.from(testAnimal));
         Page<AnimalResponse> animalPage = new PageImpl<>(animalResponses, PageRequest.of(0, 10), 1);
 
-        given(animalService.getAnimalsBySpecies(eq("강아지"), any(PageRequest.class))).willReturn(animalPage);
+        given(animalService.getAnimalsBySpecies(eq(Species.DOG), any(PageRequest.class))).willReturn(animalPage);
 
         // when
         ResultActions resultActions = mockMvc.perform(get("/animals/species")
-                .param("species", "강아지")
+                .param("species", "DOG")
                 .param("page", "0")
                 .param("size", "10"));
 
         // then
         resultActions.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].species").value("강아지"));
+                .andExpect(jsonPath("$.content[0].species").value("DOG"));
     }
 
     @Test
@@ -169,7 +170,7 @@ class AnimalControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.statusCode").value(200))
                 .andExpect(jsonPath("$.statusMessage").value("상세 조회 성공"))
-                .andExpect(jsonPath("$.result.species").value("강아지"));
+                .andExpect(jsonPath("$.result.species").value("DOG"));
     }
 
     @Test

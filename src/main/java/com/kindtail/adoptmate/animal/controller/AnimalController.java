@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.animal.controller;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
@@ -57,7 +58,7 @@ public class AnimalController {
 
     @GetMapping("/species")
     public ResponseEntity<Page<AnimalResponse>> getAnimalsBySpecies(
-            @RequestParam String species,
+            @RequestParam Species species,
             @RequestParam int page,
             @RequestParam int size
     ) {

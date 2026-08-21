@@ -7,6 +7,7 @@ import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
 import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.repository.AdoptionRepository;
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
@@ -62,7 +63,7 @@ class AdoptionServiceTest {
 
         animal = Animal.builder()
                 .id(1L)
-                .species("강아지")
+                .species(Species.DOG)
                 .breed("말티즈")
                 .status(Status.PROTECTED)
                 .image("test.jpg")
@@ -150,7 +151,7 @@ class AdoptionServiceTest {
         // given
         Animal notProtectedAnimal = Animal.builder()
                 .id(1L)
-                .species("강아지")
+                .species(Species.DOG)
                 .status(Status.ADOPTED)
                 .build();
 

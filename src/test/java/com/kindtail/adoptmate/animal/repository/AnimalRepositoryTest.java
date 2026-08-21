@@ -2,6 +2,7 @@ package com.kindtail.adoptmate.animal.repository;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Gender;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
@@ -47,7 +48,7 @@ class AnimalRepositoryTest {
     void save_성공 () {
         // given
         Animal animal = Animal.builder()
-                .species("강아지")
+                .species(Species.DOG)
                 .breed("진도개")
                 .color("황색")
                 .gender(Gender.MALE)
@@ -62,7 +63,7 @@ class AnimalRepositoryTest {
 
         // then
         assertThat(savedAnimal.getId()).isNotNull();
-        assertThat(savedAnimal.getSpecies()).isEqualTo("강아지");
+        assertThat(savedAnimal.getSpecies()).isEqualTo(Species.DOG);
         assertThat(savedAnimal.getMember().getId()).isEqualTo(testMember.getId());
     }
 
@@ -71,7 +72,7 @@ class AnimalRepositoryTest {
     void findById_성공 () {
         // given
         Animal animal = Animal.builder()
-                .species("고양이")
+                .species(Species.CAT)
                 .breed("페르시안")
                 .color("흰색")
                 .gender(Gender.FEMALE)
@@ -85,7 +86,7 @@ class AnimalRepositoryTest {
 
         // then
         assertThat(foundAnimal).isPresent();
-        assertThat(foundAnimal.get().getSpecies()).isEqualTo("고양이");
+        assertThat(foundAnimal.get().getSpecies()).isEqualTo(Species.CAT);
         assertThat(foundAnimal.get().getBreed()).isEqualTo("페르시안");
     }
 
@@ -105,7 +106,7 @@ class AnimalRepositoryTest {
         // given
         for (int i = 0; i < 15; i++) {
             Animal animal = Animal.builder()
-                    .species("강아지" + i)
+                    .species(Species.DOG)
                     .breed("진도개")
                     .color("황색")
                     .gender(Gender.MALE)
@@ -130,7 +131,7 @@ class AnimalRepositoryTest {
         // given
         for (int i = 0; i < 5; i++) {
             Animal dog = Animal.builder()
-                    .species("강아지")
+                    .species(Species.DOG)
                     .breed("진도개")
                     .color("황색")
                     .gender(Gender.MALE)
@@ -141,7 +142,7 @@ class AnimalRepositoryTest {
         }
         for (int i = 0; i < 3; i++) {
             Animal cat = Animal.builder()
-                    .species("고양이")
+                    .species(Species.CAT)
                     .breed("페르시안")
                     .color("흰색")
                     .gender(Gender.FEMALE)
@@ -152,8 +153,8 @@ class AnimalRepositoryTest {
         }
 
         // when
-        Page<Animal> dogs = animalRepository.findBySpecies("강아지", PageRequest.of(0, 10));
-        Page<Animal> cats = animalRepository.findBySpecies("고양이", PageRequest.of(0, 10));
+        Page<Animal> dogs = animalRepository.findBySpecies(Species.DOG, PageRequest.of(0, 10));
+        Page<Animal> cats = animalRepository.findBySpecies(Species.CAT, PageRequest.of(0, 10));
 
         // then
         assertThat(dogs.getTotalElements()).isEqualTo(5);
@@ -165,7 +166,7 @@ class AnimalRepositoryTest {
     void deleteById_성공 () {
         // given
         Animal animal = Animal.builder()
-                .species("강아지")
+                .species(Species.DOG)
                 .breed("푸들")
                 .color("흰색")
                 .gender(Gender.FEMALE)
@@ -187,7 +188,7 @@ class AnimalRepositoryTest {
     void deleteAnimalById_성공 () {
         // given
         Animal animal = Animal.builder()
-                .species("강아지")
+                .species(Species.DOG)
                 .breed("비글")
                 .color("갈색")
                 .gender(Gender.MALE)

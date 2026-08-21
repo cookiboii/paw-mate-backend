@@ -2,22 +2,18 @@ package com.kindtail.adoptmate.animal.dto;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Gender;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 
 public record AnimalResponse(
-
         Long id,
-        String species,
+        Species species,
         String breed,
         String color,
         Status status,
         Long age,
-        Gender gender ,
+        Gender gender,
         String image
-
-
-
-
 ) {
 
     public static AnimalResponse from(Animal animal) {

@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.animal.repository;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.animal.domain.Species;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -18,5 +19,5 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
     Page<Animal> findAll(Pageable pageable);
 
     @EntityGraph(attributePaths = {"member"})
-    Page<Animal> findBySpecies(String species, Pageable pageable);
+    Page<Animal> findBySpecies(Species species, Pageable pageable);
 }

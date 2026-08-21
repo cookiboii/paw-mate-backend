@@ -128,7 +128,7 @@ Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/animals/register` | Admin | 보호 동물 등록 | `AnimalCreateRequest` | `Animal` (Entity) |
 | `GET` | `/animals/list` | Public | 보호 동물 전체 목록 조회 (페이징) | Query: `?page=0&size=10` | `Page<AnimalResponse>` |
-| `GET` | `/animals/species` | Public | 보호 동물 종별 목록 조회 (페이징) | Query: `?species=강아지&page=0&size=10` | `Page<AnimalResponse>` |
+| `GET` | `/animals/species` | Public | 보호 동물 종별 목록 조회 (페이징) | Query: `?species=DOG&page=0&size=10` | `Page<AnimalResponse>` |
 | `GET` | `/animals/{id}` | Public | 보호 동물 상세 조회 | Path: `id` | `AnimalResponse` |
 | `PUT` | `/animals/{id}/status` | Admin | 보호 동물 상태 변경 | Path: `id`, Body: `AnimalStatusUpdateRequest` | `AnimalResponse` |
 | `DELETE` | `/animals/delete/{id}` | Admin | 보호 동물 삭제 | Path: `id` | HTTP 204 No Content |
@@ -136,10 +136,11 @@ Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메
 <details>
 <summary><b>📄 보호 동물 관련 DTO & Enum 상세</b></summary>
 
-- **AnimalCreateRequest**: `species` (String), `breed` (String), `color` (String), `image` (String), `age` (Long), `gender` (`Gender`), `status` (`Status`), `member` (Member)
-- **AnimalResponse**: `id` (Long), `species` (String), `breed` (String), `color` (String), `status` (`Status`), `age` (Long), `gender` (`Gender`), `image` (String)
+- **AnimalCreateRequest**: `species` (`Species`), `breed` (String), `color` (String), `image` (String), `age` (Long), `gender` (`Gender`), `status` (`Status`), `member` (Member)
+- **AnimalResponse**: `id` (Long), `species` (`Species`), `breed` (String), `color` (String), `status` (`Status`), `age` (Long), `gender` (`Gender`), `image` (String)
 - **AnimalStatusUpdateRequest**: `status` (`Status`)
 - **Enums**:
+  - `Species`: `DOG` (강아지), `CAT` (고양이), `ETC` (기타)
   - `Status`: `WAITING` (대기), `PROTECTED` (보호중), `ADOPTED` (입양완료)
   - `Gender`: `MALE` (수컷), `FEMALE` (암컷)
 

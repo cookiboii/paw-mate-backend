@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.adoption.domain;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.member.domain.Member;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +27,7 @@ class AdoptionTest {
 
         animal = Animal.builder()
                 .id(1L)
-                .species("강아지")
+                .species(Species.DOG)
                 .status(Status.PROTECTED)
                 .image("test.jpg")
                 .build();

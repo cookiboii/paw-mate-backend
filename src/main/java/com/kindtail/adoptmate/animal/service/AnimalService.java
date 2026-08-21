@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.animal.service;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
@@ -64,7 +65,7 @@ public class AnimalService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AnimalResponse> getAnimalsBySpecies(String species, Pageable pageable) {
+    public Page<AnimalResponse> getAnimalsBySpecies(Species species, Pageable pageable) {
         Page<Animal> animals = animalRepository.findBySpecies(species, pageable);
         return animals.map(AnimalResponse::from);
     }

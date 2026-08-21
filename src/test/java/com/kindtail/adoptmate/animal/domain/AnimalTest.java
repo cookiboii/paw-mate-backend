@@ -22,7 +22,7 @@ class AnimalTest {
 
         // when
         Animal animal = Animal.builder()
-                .species("강아지")
+                .species(Species.DOG)
                 .breed("진도개")
                 .color("황색")
                 .gender(Gender.MALE)
@@ -33,7 +33,7 @@ class AnimalTest {
                 .build();
 
         // then
-        assertThat(animal.getSpecies()).isEqualTo("강아지");
+        assertThat(animal.getSpecies()).isEqualTo(Species.DOG);
         assertThat(animal.getBreed()).isEqualTo("진도개");
         assertThat(animal.getColor()).isEqualTo("황색");
         assertThat(animal.getGender()).isEqualTo(Gender.MALE);
@@ -55,7 +55,7 @@ class AnimalTest {
 
         // when
         Animal animal = Animal.builder()
-                .species("강아지")
+                .species(Species.DOG)
                 .breed("시바견")
                 .color("갈색")
                 .gender(Gender.FEMALE)
@@ -78,7 +78,7 @@ class AnimalTest {
                 .build();
 
         Animal animal = Animal.builder()
-                .species("강아지")
+                .species(Species.DOG)
                 .breed("푸들")
                 .color("흰색")
                 .gender(Gender.FEMALE)

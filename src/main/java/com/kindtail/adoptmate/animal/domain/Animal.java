@@ -27,7 +27,8 @@ public class Animal {
     @Column(name = "animal_id")
     private Long id;
 
-    private String species;
+    @Enumerated(EnumType.STRING)
+    private Species species;
 
     @Enumerated(EnumType.STRING)
     private Gender gender;
