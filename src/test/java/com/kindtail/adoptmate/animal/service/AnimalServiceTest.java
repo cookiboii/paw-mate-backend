@@ -2,7 +2,6 @@ package com.kindtail.adoptmate.animal.service;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Gender;
-import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
@@ -12,7 +11,6 @@ import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.member.domain.Member;
-import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

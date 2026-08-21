@@ -1,7 +1,7 @@
 package com.kindtail.adoptmate.animal.domain;
 
 import com.kindtail.adoptmate.adoption.domain.Adoption;
-import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
+
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
