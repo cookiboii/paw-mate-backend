@@ -2,6 +2,7 @@ package com.kindtail.adoptmate.animal.dto;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Gender;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 
 public record AnimalResponse(
