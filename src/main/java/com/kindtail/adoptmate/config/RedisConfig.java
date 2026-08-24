@@ -25,16 +25,21 @@ public class RedisConfig {
     @Value("${spring.data.redis.password}")
     private String password;
 
+    @Value("${spring.data.redis.ssl.enabled:false}")
+    private boolean sslEnabled;
+
     @Bean
-    public RedisConnectionFactory redisConnectionFactory (){
+    public RedisConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
         redisStandaloneConfiguration.setHostName(host);
         redisStandaloneConfiguration.setPort(port);
         redisStandaloneConfiguration.setUsername(username);
         redisStandaloneConfiguration.setPassword(password);
         LettuceConnectionFactory lettuceConnectionFactory = new LettuceConnectionFactory(redisStandaloneConfiguration);
-        lettuceConnectionFactory.setUseSsl(true);
-        lettuceConnectionFactory.setVerifyPeer(false);
+        if (sslEnabled) {
+            lettuceConnectionFactory.setUseSsl(true);
+            lettuceConnectionFactory.setVerifyPeer(false);
+        }
         return lettuceConnectionFactory;
     }
     @Bean

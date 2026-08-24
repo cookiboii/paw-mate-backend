@@ -7,6 +7,7 @@ import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
 import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.repository.AdoptionRepository;
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;

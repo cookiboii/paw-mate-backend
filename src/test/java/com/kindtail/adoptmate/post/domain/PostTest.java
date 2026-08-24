@@ -20,8 +20,6 @@ class PostTest {
                 .name("테스트 사용자")
                 .role(Role.USER)
                 .build();
-        LocalDateTime now = LocalDateTime.now();
-
         // when
         Post post = Post.builder()
                 .id(1L)
@@ -29,7 +27,6 @@ class PostTest {
                 .content("테스트 내용")
                 .image("http://example.com/image.jpg")
                 .member(member)
-                .createdAt(now)
                 .build();
 
         // then
@@ -38,7 +35,6 @@ class PostTest {
         assertThat(post.getContent()).isEqualTo("테스트 내용");
         assertThat(post.getImage()).isEqualTo("http://example.com/image.jpg");
         assertThat(post.getMember()).isEqualTo(member);
-        assertThat(post.getCreatedAt()).isEqualTo(now);
     }
 
     @Test

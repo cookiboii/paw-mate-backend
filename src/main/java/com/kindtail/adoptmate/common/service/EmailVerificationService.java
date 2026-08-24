@@ -6,17 +6,21 @@ import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.MemberLoginResponseDto;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import jakarta.mail.MessagingException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class EmailVerificationService {
 
     private final RedisTemplate<String, String> redisTemplate;
@@ -27,47 +31,30 @@ public class EmailVerificationService {
     private static final String VERIFICATION_CODE_KEY = "email_verify:code:";
     private static final String VERIFICATION_ATTEMPT_KEY = "email_verify:attempt:";
     private static final String VERIFICATION_BLOCK_KEY = "email_verify:block:";
-
-    public EmailVerificationService(RedisTemplate<String, String> redisTemplate,
-                                    MailSenderService mailSenderService,
-                                    MemberRepository memberRepository,
-                                    PasswordEncoder passwordEncoder) {
-        this.redisTemplate = redisTemplate;
-        this.mailSenderService = mailSenderService;
-        this.memberRepository = memberRepository;
-        this.passwordEncoder = passwordEncoder;
-    ;
-    }
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public String mailCheck(String email) {
-        // 차단 상태 확인
-        System.out.println("=== [DEBUG] mailCheck 시작 ===");
-        System.out.println("요청 이메일: " + email);
+        log.info("Email verification requested for: {}", email);
 
         Optional<Member> byEmail = memberRepository.findByEmail(email);
         if (byEmail.isPresent()) {
-            System.out.println("이미 존재하는 이메일: " + email);
+            log.warn("Email already exists: {}", email);
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         String authNum;
         try {
-            // 이메일 전송만을 담당하는 객체를 이용해서 이메일 로직 작성.
             authNum = mailSenderService.joinMail(email);
-
-            System.out.println("생성된 인증코드: " + authNum);
+            log.debug("Verification code generated for {}: {}", email, authNum);
         } catch (MessagingException e) {
+            log.error("Failed to send verification email to: {}", email, e);
             throw new RuntimeException("이메일 전송 과정 중 문제 발생!");
         }
 
-        // 인증 코드를 Redis 저장
+        // 인증 코드를 Redis 에 3분간 저장
         String key = VERIFICATION_CODE_KEY + email;
         redisTemplate.opsForValue().set(key, authNum, Duration.ofMinutes(3));
-        System.out.println("Redis 저장 키: " + key);
-        System.out.println("Redis 에 저장할 값: " + authNum);
-        redisTemplate.opsForValue().set(key, authNum, Duration.ofMinutes(1));
-        System.out.println("Redis 저장 완료.");
-        System.out.println("=== [DEBUG] mailCheck 종료 ===");
+        log.info("Verification code saved to Redis for {}", email);
         return authNum;
     }
 
@@ -75,12 +62,10 @@ public class EmailVerificationService {
     public Map<String, String> verifyEmail(Map<String, String> map) {
         String email = map.get("email");
         String code = map.get("code");
-        System.out.println("입력된 이메일: " + email);
-        System.out.println("입력된 코드: " + code);
+        log.debug("Verifying email: {}, code: {}", email, code);
+
         if (email == null || code == null) {
             throw new IllegalArgumentException("이메일과 인증 코드를 입력해주세요.");
-
-
         }
 
         if (isBlocked(email)) {
@@ -88,26 +73,24 @@ public class EmailVerificationService {
         }
 
         String key = VERIFICATION_CODE_KEY + email;
-        System.out.println("Redis 조회 키: " + key);
-
         Object foundCode = redisTemplate.opsForValue().get(key);
-        System.out.println("조회된 값의 타입: " + (foundCode != null ? foundCode.getClass() : "null"));
+
         if (foundCode == null) {
             throw new IllegalArgumentException("인증 코드가 만료되었습니다. 다시 전송해주세요.");
         }
 
         int attemptCount = incrementAttemptCount(email);
-        System.out.println("현재 시도 횟수: " + attemptCount);
         if (!foundCode.toString().equals(code)) {
             if (attemptCount >= 5) {
                 blockUser(email);
-                System.out.println("5회 실패로 차단 처리됨.");
+                log.warn("User blocked due to 5 consecutive failed email verifications: {}", email);
                 throw new IllegalArgumentException("인증 5회 실패로 30분간 차단됩니다.");
             }
             int remainingAttempts = 5 - attemptCount;
             throw new IllegalArgumentException(String.format("인증 코드가 일치하지 않습니다. (남은 횟수: %d회)", remainingAttempts));
         }
-        System.out.println("인증 성공! 키 삭제 진행.");
+
+        log.info("Email verification successful for {}", email);
         redisTemplate.delete(key);
         redisTemplate.delete(VERIFICATION_ATTEMPT_KEY + email);
         return map;
@@ -151,10 +134,11 @@ public class EmailVerificationService {
 
         redisTemplate.delete("reset:" + email);
         redisTemplate.delete("reset_verified:" + email);
+        log.info("Password updated successfully for: {}", email);
     }
 
-    private String generateResetCode(){
-        return String.valueOf((int) (Math.random() * 90000) + 10000);
+    private String generateResetCode() {
+        return String.valueOf(100000 + secureRandom.nextInt(900000));
     }
 
     public void sendPasswordResetEmail(String email) {
@@ -167,7 +151,9 @@ public class EmailVerificationService {
         try {
             authCode = generateResetCode();
             mailSenderService.sendAuthCode(email, authCode);
+            log.info("Password reset email sent to: {}", email);
         } catch (MessagingException e) {
+            log.error("Failed to send password reset email to: {}", email, e);
             throw new RuntimeException("비밀번호 재설정 이메일 발송 중 오류가 발생했습니다.", e);
         }
 
@@ -182,9 +168,7 @@ public class EmailVerificationService {
         }
         redisTemplate.delete(key);
         redisTemplate.opsForValue().set("reset_verified:" + email, "true", Duration.ofMinutes(10));
+        log.info("Password reset verified successfully for: {}", email);
         return true;
     }
-
-
-
 }

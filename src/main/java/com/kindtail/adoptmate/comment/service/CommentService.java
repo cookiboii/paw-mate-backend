@@ -13,26 +13,21 @@ import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.post.domain.Post;
 import com.kindtail.adoptmate.post.repository.PostRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CommentService {
 
     private final CommentRepository commentRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
-
-    public CommentService(CommentRepository commentRepository, MemberRepository memberRepository, PostRepository postRepository) {
-        this.commentRepository = commentRepository;
-        this.memberRepository = memberRepository;
-        this.postRepository = postRepository;
-    }
 
     @Transactional
     public CommentResponseDto addComment(Long id, CommentDto commentDto) {
@@ -56,7 +51,6 @@ public class CommentService {
                 .parent(parent)
                 .post(post)
                 .member(member)
-                .creationDate(LocalDateTime.now())
                 .build();
         commentRepository.save(comment);
         return CommentResponseDto.fromComment(comment);
@@ -104,7 +98,7 @@ public class CommentService {
         boolean isAdmin = userInfo.getRole() == Role.ADMIN || "ADMIN".equals(userInfo.getRole().name());
 
         if (!isAuthor && !isAdmin) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED, "본인 또는 관리자만 댓글을 수정할 수 있습니다.");
+            throw new CustomException(ErrorCode.UNAUTHORIZED_AUTHOR);
         }
 
         comment.updateComment(dto.content());

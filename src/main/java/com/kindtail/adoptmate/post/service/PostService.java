@@ -11,6 +11,7 @@ import com.kindtail.adoptmate.post.dto.PostCreateRequestDto;
 import com.kindtail.adoptmate.post.dto.PostResponseDto;
 import com.kindtail.adoptmate.post.dto.PostUpdateRequestDto;
 import com.kindtail.adoptmate.post.repository.PostRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,15 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class PostService {
 
     private final PostRepository postRepository;
     private final MemberRepository memberRepository;
-
-    public PostService(PostRepository postRepository, MemberRepository memberRepository) {
-        this.postRepository = postRepository;
-        this.memberRepository = memberRepository;
-    }
 
     @Transactional
     public Post createPost(PostCreateRequestDto dto) {
@@ -44,7 +41,6 @@ public class PostService {
                 .content(dto.content())
                 .image(dto.img())
                 .member(member)
-                .createdAt(dto.dateTime())
                 .build();
 
         return postRepository.save(post);

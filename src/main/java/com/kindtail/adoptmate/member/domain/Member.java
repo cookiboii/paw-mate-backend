@@ -3,6 +3,7 @@ package com.kindtail.adoptmate.member.domain;
 import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.comment.domain.Comment;
+import com.kindtail.adoptmate.common.domain.BaseTimeEntity;
 import com.kindtail.adoptmate.member.dto.MemberResponseDto;
 import com.kindtail.adoptmate.post.domain.Post;
 import jakarta.persistence.*;
@@ -17,7 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @Table(name = "member")
 @Builder
-public class  Member {
+public class Member extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,36 +34,26 @@ public class  Member {
     @Column
     private String password;
 
-
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private Role role = Role.USER;
 
+    @Column
+    private String socialId;
 
+    @Column
+    private String profileImage;
 
-
-
-    public Member(String email, String password, String name, Role role) {
-        this.email = email;
-        this.password = password;
-        this.name = name;
-
-        this.role = role;
-    }
+    @Column
+    private String socialProvider;
 
     @Builder.Default
     @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Animal> animals = new ArrayList<>();
 
-    public void updatePassword(String password) {
-        this.password = password;
-    }
-
     @Builder.Default
     @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    //  부모가 삭제되면 자식이 삭제된다 즉 멤버가 회원탈퇴면 글삭제된다
     private List<Post> posts = new ArrayList<>();
 
     @Builder.Default
@@ -70,22 +61,23 @@ public class  Member {
     private List<Adoption> adoptions = new ArrayList<>();
 
     @Builder.Default
-
     @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 
-    @Column
-    private String socialId; // 소셜 로그인 고유 ID
+    public Member(String email, String password, String name, Role role) {
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.role = role;
+    }
 
-    @Column
-    private String profileImage; // 프로필 이미지 url
-
-    @Column
-    private String socialProvider; // GOOGLE, KAKAO, NAVER, null(일반 로그인)
-
+    public void updatePassword(String password) {
+        this.password = password;
+    }
 
     public MemberResponseDto toDto() {
         return MemberResponseDto.builder()
+                .id(this.id)
                 .email(this.email)
                 .name(this.name)
                 .profileImage(this.profileImage)
@@ -93,6 +85,4 @@ public class  Member {
                 .role(this.role)
                 .build();
     }
-
-
 }

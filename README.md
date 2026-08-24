@@ -1,51 +1,71 @@
-# 🐾 PawMate - 입양동물 플랫폼 백엔드
+# 🐾 PawMate - 유기동물 입양 & 커뮤니티 플랫폼 백엔드
 
-유기동물과 입양희망자를 연결하는 풀스택 웹 플랫폼의 백엔드 서비스입니다.  
-Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메일 인증, 카카오 소셜 로그인, JWT/Redis 토큰 관리, 보호 동물의 입양 신청 및 계층형 대댓글 커뮤니티 기능을 제공합니다.
+유기동물과 입양 희망자를 안전하고 투명하게 연결하는 풀스택 웹 플랫폼의 백엔드 서비스입니다.  
+Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메일 인증, 카카오 소셜 로그인, JWT/Redis 토큰 관리, 보호 동물의 입양 신청 및 계층형 대댓글 커뮤니티 기능을 제공합니다.
 
 ---
 
 ## 🌱 프로젝트 개요
 
-> "기술로 유기동물 문제를 해결할 수 없을까?"라는 고민에서 출발한 개인 프로젝트입니다.  
-보호소에서 봉사하며 느꼈던 현실적인 불편함을 바탕으로, 입양 절차를 온라인으로 쉽게 진행하고 소통할 수 있도록 제작하였습니다.
+> **"기술로 유기동물 문제를 해결하고 더 나은 입양 문화를 만든다"**  
+> 보호소에서 봉사하며 느꼈던 현실적인 불편함(복잡한 서류 절차, 입양 후 소통 부재 등)을 해결하기 위해, 입양 신청부터 심사, 후기 공유까지 온라인으로 편리하고 안전하게 진행할 수 있도록 설계된 백엔드 서비스입니다.
 
 ---
 
 ## 🔧 기술 스택
 
-### Backend Framework & Language
+### Framework & Language
 - **Language**: Java 17
 - **Framework**: Spring Boot 3.5.3
-- **Security & Auth**: Spring Security, OAuth2 Client, JWT (jjwt 0.11.5)
-- **Database / ORM**: Spring Data JPA, H2 / MySQL
-- **Cache & Session**: Redis (Spring Data Redis)
-- **Mail Service**: JavaMailSender (SMTP)
-- **Build Tool**: Gradle
+- **Build Tool**: Gradle 8.x
+
+### Security & Authentication
+- **Security**: Spring Security (Method Security `@PreAuthorize` 적용)
+- **OAuth2**: Spring Security OAuth2 Client (Kakao)
+- **Token**: JWT (`jjwt 0.11.5`), Redis 기반 토큰 저장 및 Blacklist 로그아웃
+
+### Database & Persistence
+- **ORM**: Spring Data JPA, Hibernate 6
+- **Database**: MySQL 8.0 (운영/개발), H2 (테스트 인메모리)
+- **Auditing**: `BaseTimeEntity` 공통 상속 (생성일시/수정일시 자동 관리)
+- **성능 최적화**: `@EntityGraph` 및 `Fetch Join`, `default_batch_fetch_size: 100` 적용 (N+1 문제 방지)
+
+### Cache & External Services
+- **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce)
+- **Mail**: JavaMailSender (Gmail SMTP 이메일 인증 및 비밀번호 재설정)
+- **API Documentation**: SpringDoc OpenAPI UI (Swagger 3)
 
 ---
 
 ## 🚀 주요 기능
 
-### 🔐 인증 및 회원 관리
-- 일반 회원가입 및 로그인 (JWT Access Token & Refresh Token 기반)
-- 이메일 인증 코드 발송 및 검증 (Redis 연동)
-- 비밀번호 재설정 기능 (안전한 인증 확인 검증 적용)
-- 카카오 OAuth2 소셜 로그인 지원
-- Redis 기반 토큰 자동 갱신 및 로그아웃 블랙리스트 관리
+### 🔐 1. 인증 및 회원 관리
+- **JWT 기반 무상태(Stateless) 인증**: Access Token(1시간)과 Refresh Token(7일) 기반의 보안 아키텍처
+- **Redis 연동 토큰 관리**:
+  - 사용자별 Refresh Token을 Redis에 보관하여 토큰 갱신 지원
+  - 로그아웃 시 Access Token 잔여 시간만큼 Blacklist에 등록하여 탈취된 토큰 즉시 무효화
+- **이메일 인증 시스템**: 6자리 난수 코드를 Redis에 3분간 캐싱하여 검증 (5회 실패 시 30분 차단)
+- **비밀번호 재설정**: 이메일 인증 확인 토큰 기반의 안전한 2단계 비밀번호 변경
+- **카카오 OAuth2 소셜 로그인**: 표준 OAuth2 Authorization Code Grant 방식으로 사용자 정보 연동
 
-### 🐶 보호 동물 관리
+### 🐶 2. 보호 동물 관리
 - 보호 동물 등록, 상세 조회 및 페이징 목록 조회
-- 보호 동물 상태 수정 (보호중, 입양완료 등) 및 삭제 (관리자 권한)
+- 종별(강아지/고양이/기타) 필터링 조회
+- 보호 상태 변경(`PROTECTED` ➡️ `WAITING` ➡️ `ADOPTED`) 및 삭제 (관리자 권한 `@PreAuthorize("hasRole('ADMIN')")` 제어)
 
-### 🏡 입양 신청 관리
-- 유기동물 입양 신청서 제출 및 중복 신청 방지
-- 사용자별 내 입양 신청 내역 조회
-- 관리자 전체 입양 신청 내역 조회 및 상태 변경 (승인 / 거절)
+### 🏡 3. 입양 신청 관리
+- 입양 신청서 제출 (연락처, 주거 형태, 반려동물 유무, 입양 사유 등 세분화된 정보 수집)
+- 동물-회원 간 중복 입양 신청 방지 (`uniqueConstraints` 및 서비스 레벨 검증)
+- 신청 접수 시 보호 동물 상태가 `WAITING(대기)`으로 자동 전환
+- **권한 기반 입양 관리**:
+  - 일반 사용자: 본인이 신청한 입양 내역 조회 (`/adoptions/myAdoption`)
+  - 관리자: 전체 입양 신청 내역 조회 및 상태 심사/승인/반려 (`/adoptions/all`, `/adoptions/list`, `/adoptions/{id}/status`)
 
-### 💬 커뮤니티 & 계층형 댓글
-- 입양 후기 및 게시글 작성, 조회(페이징), 수정, 삭제
-- 계층형 댓글 및 대댓글(답글) 작성/조회 (EntityGraph 페치 조인 적용으로 N+1 쿼리 최적화)
+### 💬 4. 커뮤니티 & 계층형 대댓글
+- 입양 후기 및 자유 게시글 작성, 페이징 목록 조회, 상세 조회, 수정, 삭제
+- **계층형 대댓글 구조**: 부모-자식 트리 구조로 무제한 뎁스의 답글 지원
+- **N+1 쿼리 최적화**: `@EntityGraph(attributePaths = {"member", "children", "children.member"})` 및 `@BatchSize`를 통한 쿼리 최적화
+- **작성자/관리자 인가 검증**: 게시글 및 댓글 수정·삭제 시 작성자 본인 또는 관리자만 가능하도록 철저한 검증
 
 ---
 
@@ -54,16 +74,11 @@ Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메
 ### DB 설계 (ERD)
 <img width="1280" height="952" alt="DB Diagram" src="https://github.com/user-attachments/assets/250cbc1b-0326-459e-a89d-17a871cc97be" />
 
-### 유스케이스 다이어그램
-<img width="1104" height="930" alt="Use Case Diagram" src="https://github.com/user-attachments/assets/ee9125c5-c1a1-4dbd-a8b3-63ffeee61a5d" />
-
 ---
 
 ## 📋 REST API 명세서
 
-### 📦 공통 응답 포맷
-
-본 프로젝트의 API는 일관된 응답 구조(`CommonResDto`)를 사용합니다.
+### 📦 공통 응답 포맷 (`CommonResDto`)
 
 ```json
 {
@@ -79,26 +94,14 @@ Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메
 
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/adoptmate/register` | Public | 일반 회원가입 | `MemberRegisterRequestDto` | `MemberResponseDto` |
-| `POST` | `/adoptmate/login` | Public | 일반 로그인 | `MemberLoginResponseDto` | `MemberLoginResultDto` |
+| `POST` | `/adoptmate/register` | Public | 일반 회원가입 | `MemberRegisterRequestDto` | `MemberResponseDto` (HTTP 201) |
+| `POST` | `/adoptmate/login` | Public | 일반 로그인 | `MemberLoginResponseDto` | `MemberLoginResultDto` (HTTP 200) |
 | `POST` | `/adoptmate/refresh-token` | Public | Access Token 재발급 | `{"refreshToken": "string"}` | `{"token": "string"}` |
-| `POST` | `/adoptmate/logout` | User | 로그아웃 (토큰 블랙리스트/Redis 파기) | Header: `Authorization: Bearer <token>` | `null` |
-| `GET` | `/adoptmate/myInfo` | User | 내 정보 조회 | Header: `Authorization: Bearer <token>` | `MemberInfoRequestDto` |
+| `POST` | `/adoptmate/logout` | User | 로그아웃 (Redis 토큰 삭제 및 블랙리스트) | Header: `Authorization: Bearer <token>` | `null` |
+| `GET` | `/adoptmate/myInfo` | User | 내 프로필 정보 조회 | Header: `Authorization: Bearer <token>` | `MemberInfoRequestDto` |
 | `GET` | `/adoptmate/all` | Admin | 전체 회원 목록 조회 | - | `List<MemberInfoRequestDto>` |
-| `POST` | `/adoptmate/password` | User | 비밀번호 변경 (로그인 상태) | `PasswordChangeRequestDto` | `PasswordChangeRequestDto` |
+| `POST` | `/adoptmate/password` | User | 로그인 상태에서 비밀번호 변경 | `PasswordChangeRequestDto` | `PasswordChangeRequestDto` |
 | `DELETE` | `/adoptmate/delete` | User | 회원 탈퇴 | Header: `Authorization: Bearer <token>` | `TokenUserInfo` |
-
-<details>
-<summary><b>📄 회원 관련 DTO 상세</b></summary>
-
-- **MemberRegisterRequestDto** (회원가입 요청): `name` (String), `email` (String), `password` (String), `role` (Role: `USER` \| `ADMIN`)
-- **MemberLoginResponseDto** (로그인 요청 / 비밀번호 변경): `email` (String, 필수/이메일형식), `password` (String, 필수)
-- **MemberLoginResultDto** (로그인 응답): `token` (String), `refreshToken` (String), `email` (String), `role` (Role)
-- **MemberInfoRequestDto** (회원 정보): `id` (Long), `name` (String), `email` (String), `role` (Role)
-- **MemberResponseDto** (회원 응답): `id` (Long), `name` (String), `email` (String), `password` (String), `role` (Role), `profileImage` (String), `socialProvider` (String), `socialId` (String)
-- **PasswordChangeRequestDto** (비밀번호 변경 요청): `currentPassword` (String), `newPassword` (String)
-
-</details>
 
 ---
 
@@ -106,19 +109,20 @@ Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메
 
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/adoptmate/verify-email` | Public | 회원가입용 이메일 인증 코드 발송 | `{"email": "string"}` | `null` |
-| `POST` | `/adoptmate/verify-code` | Public | 이메일 인증 코드 검증 | `{"email": "string", "code": "string"}` | `Map<String, String>` |
+| `POST` | `/adoptmate/verify-email` | Public | 회원가입용 인증 코드 이메일 발송 (TTL 3분) | `{"email": "string"}` | `null` |
+| `POST` | `/adoptmate/verify-code` | Public | 이메일 인증 코드 검증 (5회 실패 시 30분 차단) | `{"email": "string", "code": "string"}` | `Map<String, String>` |
 | `POST` | `/adoptmate/send-reset-code` | Public | 비밀번호 재설정 인증 코드 발송 | Query: `?email={email}` | `null` |
 | `POST` | `/adoptmate/verify-reset-code` | Public | 비밀번호 재설정 인증 코드 검증 | Query: `?email={email}&code={code}` | `null` |
-| `PATCH` | `/adoptmate/password` | Public | 비밀번호 재설정 (인증 완료 후) | `MemberLoginResponseDto` | `null` |
+| `PATCH` | `/adoptmate/password` | Public | 비밀번호 재설정 실행 (인증 완료 회원) | `MemberLoginResponseDto` | `null` |
 
 ---
 
-### 🔑 3. 카카오 소셜 로그인 API (`/adoptmate`)
+### 🔑 3. 카카오 소셜 로그인 API (`/adoptmate`, `/oauth2`)
 
 | 메서드 | URL | 권한 | 설명 | Request Params | Response |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/adoptmate/kakao` | Public | 카카오 OAuth2 콜백 | Query: `?code={code}` | HTML (Window postMessage / Redirect) |
+| `GET` | `/oauth2/authorization/kakao` | Public | Spring Security 카카오 로그인 진입 | - | 카카오 인가 페이지 리다이렉트 |
+| `GET` | `/adoptmate/kakao` | Public | 카카오 OAuth2 콜백 엔드포인트 | Query: `?code={code}` | HTML (Window postMessage / Redirect) |
 
 ---
 
@@ -126,25 +130,12 @@ Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메
 
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/animals/register` | Admin | 보호 동물 등록 | `AnimalCreateRequest` | `Animal` (Entity) |
+| `POST` | `/animals/register` | Admin | 보호 동물 등록 | `AnimalCreateRequest` | `AnimalResponse` (HTTP 201) |
 | `GET` | `/animals/list` | Public | 보호 동물 전체 목록 조회 (페이징) | Query: `?page=0&size=10` | `Page<AnimalResponse>` |
 | `GET` | `/animals/species` | Public | 보호 동물 종별 목록 조회 (페이징) | Query: `?species=DOG&page=0&size=10` | `Page<AnimalResponse>` |
 | `GET` | `/animals/{id}` | Public | 보호 동물 상세 조회 | Path: `id` | `AnimalResponse` |
-| `PUT` | `/animals/{id}/status` | Admin | 보호 동물 상태 변경 | Path: `id`, Body: `AnimalStatusUpdateRequest` | `AnimalResponse` |
+| `PUT` | `/animals/{id}/status` | Admin | 보호 동물 상태 변경 (`PROTECTED`/`WAITING`/`ADOPTED`) | Path: `id`, Body: `AnimalStatusUpdateRequest` | `AnimalResponse` |
 | `DELETE` | `/animals/delete/{id}` | Admin | 보호 동물 삭제 | Path: `id` | HTTP 204 No Content |
-
-<details>
-<summary><b>📄 보호 동물 관련 DTO & Enum 상세</b></summary>
-
-- **AnimalCreateRequest**: `species` (`Species`), `breed` (String), `color` (String), `image` (String), `age` (Long), `gender` (`Gender`), `status` (`Status`), `member` (Member)
-- **AnimalResponse**: `id` (Long), `species` (`Species`), `breed` (String), `color` (String), `status` (`Status`), `age` (Long), `gender` (`Gender`), `image` (String)
-- **AnimalStatusUpdateRequest**: `status` (`Status`)
-- **Enums**:
-  - `Species`: `DOG` (강아지), `CAT` (고양이), `ETC` (기타)
-  - `Status`: `WAITING` (대기), `PROTECTED` (보호중), `ADOPTED` (입양완료)
-  - `Gender`: `MALE` (수컷), `FEMALE` (암컷)
-
-</details>
 
 ---
 
@@ -152,36 +143,58 @@ Spring Boot와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메
 
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/adoptions/animals/{animalId}` | User | 동물 입양 신청 | Path: `animalId`, Body: `AdoptionCreateRequest` | `AdoptionResponseDto` |
-| `GET` | `/adoptions/myAdoption` | User | 내 입양 신청 내역 조회 | Header: `Authorization: Bearer <token>` | `List<AdoptionResponseDto>` |
-| `GET` | `/adoptions/all` | Admin/User | 전체 입양 신청 내역 조회 (전체 리스트) | - | `List<AdoptionResponseDto>` |
-| `GET` | `/adoptions/list` | Admin/User | 전체 입양 신청 내역 조회 (페이징) | Query: `?page=0&size=10` | `Page<AdoptionResponseDto>` |
-| `PUT` | `/adoptions/{adoptionId}/status` | User/Admin | 입양 신청 상태 변경 | Path: `adoptionId`, Body: `AdoptionUpdateRequestDto` | `AdoptionResponseDto` |
-
-<details>
-<summary><b>📄 입양 신청 관련 DTO & Enum 상세</b></summary>
-
-- **AdoptionCreateRequest** (입양 신청 요청):
-  - `phone` (String, 필수): 신청자 연락처 (예: `010-1234-5678`, 정규식 검증)
-  - `housingType` (`HousingType`, 필수): 주거 형태 (`APARTMENT`, `DETACHED_HOUSE`, `VILLA`, `ONE_ROOM`, `ETC`)
-  - `hasPet` (String, 필수): 현재 반려동물 유무 (예: `"없음"`, `"개 1마리"`)
-  - `reason` (String, 필수): 입양 동기 및 각오 (10자 이상)
-- **AdoptionResponseDto** (입양 응답):
-  - `adoptionId` (Long), `animalId` (Long), `animalBreed` (String), `animalImage` (String), `userName` (String)
-  - `phone` (String), `housingType` (`HousingType`), `hasPet` (String), `reason` (String)
-  - `status` (`AdoptionStatus`), `applyDate` (LocalDateTime)
-- **AdoptionUpdateRequestDto** (상태 변경 요청): `adoptionStatus` (`AdoptionStatus`)
-- **Enum**:
-  - `AdoptionStatus`: `PENDING` (신청대기), `APPROVED` (승인), `REJECTED` (거절)
-  - `HousingType`: `APARTMENT` (아파트), `DETACHED_HOUSE` (단독주택), `VILLA` (빌라/다세대), `ONE_ROOM` (원룸), `ETC` (기타)
-
-</details>
+| `POST` | `/adoptions/animals/{animalId}` | User | 동물 입양 신청서 제출 | Path: `animalId`, Body: `AdoptionCreateRequest` | `AdoptionResponseDto` (HTTP 201) |
+| `GET` | `/adoptions/myAdoption` | User | 본인 입양 신청 내역 조회 | Header: `Authorization: Bearer <token>` | `List<AdoptionResponseDto>` |
+| `GET` | `/adoptions/all` | Admin | 전체 입양 신청 내역 조회 (리스트) | Header: `Authorization: Bearer <token>` | `List<AdoptionResponseDto>` |
+| `GET` | `/adoptions/list` | Admin | 전체 입양 신청 내역 조회 (페이징) | Header: `Authorization: Bearer <token>`, `?page=0&size=10` | `Page<AdoptionResponseDto>` |
+| `PUT` | `/adoptions/{adoptionId}/status` | Admin | 입양 신청 상태 변경 (`APPROVED` / `REJECTED`) | Path: `adoptionId`, Body: `AdoptionUpdateRequestDto` | `AdoptionResponseDto` |
 
 ---
 
 ### 📝 6. 커뮤니티 게시글 API (`/post`)
 
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/post/create` | User | 게시글 작성 (서버 시간 기반 자동 생성일자) | `PostCreateRequestDto` | `PostResponseDto` (HTTP 201) |
+| `GET` | `/post/list` | Public | 게시글 목록 조회 (페이징) | Query: `?page=0&size=10&sort=id,desc` | `Page<PostResponseDto>` |
+| `GET` | `/post/{postId}` | Public | 게시글 상세 조회 | Path: `postId` | `PostResponseDto` |
+| `PUT` | `/post/{postId}` | Author/Admin | 게시글 수정 (작성자 또는 관리자) | Path: `postId`, Body: `PostUpdateRequestDto` | `PostResponseDto` |
+| `DELETE` | `/post/{postId}` | Author/Admin | 게시글 삭제 (작성자 또는 관리자) | Path: `postId` | `null` |
+
+---
+
+### 💬 7. 댓글 & 계층형 답글 API (`/comment`)
+
+| 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/comment/{postId}` | User | 댓글 또는 답글 작성 | Path: `postId`, Body: `CommentDto` | `CommentResponseDto` (HTTP 201) |
+| `GET` | `/comment/{postId}` | Public | 특정 게시글 댓글 목록 (계층형 대댓글 트리) | Path: `postId` | `List<CommentResponseDto>` |
+| `PUT` | `/comment/update/{commentId}` | Author/Admin | 댓글 수정 (작성자 또는 관리자) | Path: `commentId`, Body: `CommentUpdateDto` | `CommentResponseDto` |
+| `DELETE` | `/comment/{commentId}` | Author/Admin | 댓글 삭제 (작성자 또는 관리자) | Path: `commentId` | `null` |
+
+---
+
+## 🛡️ 주요 리팩토링 및 코드 품질 개선 사항
+
+이번 코드 리뷰 및 리팩토링을 통해 다음 사항들이 대폭 개선되었습니다:
+
+1. **보안 및 인가 강화**:
+   - 민감정보(DB, Redis, Mail, JWT Secret 등) 환경변수화로 소스코드 노출 방지
+   - 입양 전체 목록 조회, 입양 상태 승인/반려, 보호동물 상태 변경 엔드포인트에 `@PreAuthorize("hasRole('ADMIN')")` 적용
+2. **비즈니스 로직 & 버그 수정**:
+   - 이메일 인증 TTL 중복 덮어쓰기 버그 수정 (3분 정상 유지)
+   - `MemberRepository`의 소셜 로그인 쿼리 메서드 매개변수 순서 일치
+   - 게시글 작성 시 클라이언트 타임스탬프 의존성 제거 및 서버 시간 기반 저장
+3. **JPA & 도메인 엔티티 정돈**:
+   - `Member`, `Animal`, `Post`, `Comment` 엔티티가 `BaseTimeEntity`를 상속하도록 일원화
+   - `Member.toDto()`의 ID 누락 수정
+   - 컨트롤러에서 Entity를 직접 반환하던 API들을 Response DTO 반환으로 변경 (Lazy Loading 예외 및 순환참조 방지)
+4. **코드 중복 제거 및 가독성 향상**:
+   - 모든 Controller/Service에 Lombok `@RequiredArgsConstructor`를 적용하여 수동 생성자 보일러플레이트 제거
+   - `System.out.println` 디버그 코드를 SLF4J 로거로 전면 교체
+   - 전체 코드베이스의 불필요한 공백 및 들여쓰기 표준화
+5. **테스트 안정화**:
+   - 누락되었던 Enum Import 복구 및 단위/통합 테스트 컴파일 및 통과 보장ponse Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/post/create` | User | 게시글 작성 | `PostCreateRequestDto` | `Post` (Entity) |
 | `GET` | `/post/list` | Public | 게시글 목록 조회 (페이징) | Query: `?page=0&size=10&sort=id,desc` | `Page<PostResponseDto>` |

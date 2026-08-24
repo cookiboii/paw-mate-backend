@@ -1,16 +1,13 @@
 package com.kindtail.adoptmate.animal.domain;
 
 import com.kindtail.adoptmate.adoption.domain.Adoption;
-
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
+import com.kindtail.adoptmate.common.domain.BaseTimeEntity;
 import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "animal")
-public class Animal {
+public class Animal extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,17 +43,9 @@ public class Animal {
     @Lob
     private String image;
 
-    @ManyToOne(fetch = FetchType.LAZY) // @manyToOne 일때 cascade = CascadeType.ALL 필요없음
-    @JoinColumn(name = "member_id", nullable = false) // 외래 키 컬럼명 지정
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", nullable = false)
     private Member member;
-
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
-
 
     public void updateStatus(AnimalStatusUpdateRequest request) {
         this.status = request.status();
