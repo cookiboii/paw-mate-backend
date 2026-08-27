@@ -3,7 +3,7 @@ package com.kindtail.adoptmate.common.service;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
-import com.kindtail.adoptmate.member.dto.MemberLoginResponseDto;
+import com.kindtail.adoptmate.member.dto.PasswordResetRequestDto;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
@@ -115,7 +115,7 @@ public class EmailVerificationService {
     }
 
     @Transactional
-    public void updatePassword(MemberLoginResponseDto updateDto) {
+    public void updatePassword(PasswordResetRequestDto updateDto) {
         String email = updateDto.email();
         if (email == null || updateDto.password() == null) {
             throw new IllegalArgumentException("이메일과 새 비밀번호를 모두 입력해주세요.");

@@ -86,8 +86,7 @@ class AnimalControllerTest {
                 "http://example.com/image.jpg",
                 3L,
                 Gender.MALE,
-                Status.PROTECTED,
-                null
+                Status.PROTECTED
         );
 
         given(animalService.registerAnimal(any(AnimalCreateRequest.class))).willReturn(testAnimal);
@@ -123,7 +122,7 @@ class AnimalControllerTest {
         // then
         resultActions.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].species").value("DOG"));
+                .andExpect(jsonPath("$.result.content[0].species").value("DOG"));
     }
 
     @Test
@@ -145,7 +144,7 @@ class AnimalControllerTest {
         // then
         resultActions.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].species").value("DOG"));
+                .andExpect(jsonPath("$.result.content[0].species").value("DOG"));
     }
 
     @Test
@@ -217,6 +216,7 @@ class AnimalControllerTest {
 
         // then
         resultActions.andDo(print())
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusMessage").value("삭제 성공"));
     }
 }

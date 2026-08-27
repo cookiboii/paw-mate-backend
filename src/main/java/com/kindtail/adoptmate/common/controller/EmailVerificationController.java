@@ -1,7 +1,8 @@
 package com.kindtail.adoptmate.common.controller;
 
 import com.kindtail.adoptmate.common.service.EmailVerificationService;
-import com.kindtail.adoptmate.member.dto.MemberLoginResponseDto;
+import com.kindtail.adoptmate.member.dto.PasswordResetRequestDto;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -56,7 +57,7 @@ public class EmailVerificationController {
 
     // 5. 비밀번호 재설정 (인증 완료 후)
     @PatchMapping("/password")
-    public ResponseEntity<CommonResDto> updatePassword(@RequestBody MemberLoginResponseDto dto) {
+    public ResponseEntity<CommonResDto> updatePassword(@RequestBody @Valid PasswordResetRequestDto dto) {
         emailVerificationService.updatePassword(dto);
         return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "비밀번호가 성공적으로 변경되었습니다.", null));
     }

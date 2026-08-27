@@ -86,7 +86,7 @@ public class AdoptionService {
 
     @Transactional(readOnly = true)
     public List<AdoptionResponseDto> getAllAdoptions() {
-        List<Adoption> adoptions = adoptionRepository.findAll();
+        List<Adoption> adoptions = adoptionRepository.findAllWithFetchJoin();
         return adoptions.stream()
                 .map(AdoptionResponseDto::from)
                 .collect(Collectors.toList());

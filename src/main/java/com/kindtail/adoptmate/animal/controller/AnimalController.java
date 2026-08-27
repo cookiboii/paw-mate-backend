@@ -7,6 +7,7 @@ import com.kindtail.adoptmate.animal.dto.AnimalResponse;
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.service.AnimalService;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,7 +25,7 @@ public class AnimalController {
 
     @PostMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto> adoptAnimal(@RequestBody AnimalCreateRequest animalCreateRequest) {
+    public ResponseEntity<CommonResDto> adoptAnimal(@Valid @RequestBody AnimalCreateRequest animalCreateRequest) {
         Animal animal = animalService.registerAnimal(animalCreateRequest);
         AnimalResponse responseDto = AnimalResponse.from(animal);
 
@@ -38,19 +39,19 @@ public class AnimalController {
     }
 
     @GetMapping("/list")
-    public ResponseEntity<Page<AnimalResponse>> getAnimalList(@RequestParam int page, @RequestParam int size) {
+    public ResponseEntity<CommonResDto> getAnimalList(@RequestParam int page, @RequestParam int size) {
         Page<AnimalResponse> animalList = animalService.getAllAnimals(PageRequest.of(page, size));
-        return ResponseEntity.status(HttpStatus.OK).body(animalList);
+        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "동물 목록 조회 성공", animalList));
     }
 
     @GetMapping("/species")
-    public ResponseEntity<Page<AnimalResponse>> getAnimalsBySpecies(
+    public ResponseEntity<CommonResDto> getAnimalsBySpecies(
             @RequestParam Species species,
             @RequestParam int page,
             @RequestParam int size
     ) {
         Page<AnimalResponse> animalList = animalService.getAnimalsBySpecies(species, PageRequest.of(page, size));
-        return ResponseEntity.status(HttpStatus.OK).body(animalList);
+        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "종별 동물 목록 조회 성공", animalList));
     }
 
     @GetMapping("/{id}")
@@ -65,7 +66,7 @@ public class AnimalController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> updateAnimal(
             @PathVariable Long id,
-            @RequestBody AnimalStatusUpdateRequest request
+            @Valid @RequestBody AnimalStatusUpdateRequest request
     ) {
         AnimalResponse animal = animalService.updateAnimal(id, request);
         CommonResDto response = new CommonResDto(HttpStatus.OK, "상태가 성공적으로 변경되었습니다.", animal);
@@ -77,6 +78,6 @@ public class AnimalController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> deleteAnimal(@PathVariable Long id) {
         animalService.deleteAnimal(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "삭제 성공", null));
     }
 }

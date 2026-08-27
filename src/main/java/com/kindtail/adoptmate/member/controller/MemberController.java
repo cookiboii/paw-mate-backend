@@ -37,7 +37,7 @@ public class MemberController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<CommonResDto> login(@RequestBody MemberLoginResponseDto dto) {
+    public ResponseEntity<CommonResDto> login(@RequestBody @Valid MemberLoginRequestDto dto) {
         MemberLoginResultDto result = memberService.login(dto);
         return ResponseEntity.ok(new CommonResDto(OK, "Login Success", result));
     }
@@ -64,23 +64,23 @@ public class MemberController {
     }
 
     @GetMapping("/myInfo")
-    public ResponseEntity<MemberInfoRequestDto> getMyInfo() {
+    public ResponseEntity<CommonResDto> getMyInfo() {
         Member member = memberService.getMemberInfo();
-        MemberInfoRequestDto dto = MemberInfoRequestDto.builder()
+        MemberInfoResponseDto dto = MemberInfoResponseDto.builder()
                 .id(member.getId())
                 .name(member.getName())
                 .email(member.getEmail())
                 .role(member.getRole())
                 .build();
-        return ResponseEntity.ok(dto);
+        return ResponseEntity.ok(new CommonResDto(OK, "내 정보 조회 성공", dto));
     }
 
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> getAllMembers() {
         List<Member> members = memberService.getMembers();
-        List<MemberInfoRequestDto> dtoList = members.stream()
-                .map(member -> MemberInfoRequestDto.builder()
+        List<MemberInfoResponseDto> dtoList = members.stream()
+                .map(member -> MemberInfoResponseDto.builder()
                         .id(member.getId())
                         .name(member.getName())
                         .email(member.getEmail())
@@ -91,7 +91,7 @@ public class MemberController {
     }
 
     @PostMapping("/password")
-    public ResponseEntity<CommonResDto> changePassword(@RequestBody PasswordChangeRequestDto dto) {
+    public ResponseEntity<CommonResDto> changePassword(@RequestBody @Valid PasswordChangeRequestDto dto) {
         TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
         memberService.changePassword(userInfo.getEmail(), dto);

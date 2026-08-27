@@ -108,8 +108,7 @@ class AnimalServiceTest {
                 "http://example.com/image.jpg",
                 3L,
                 Gender.MALE,
-                Status.PROTECTED,
-                null
+                Status.PROTECTED
         );
 
         given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.of(testMember));
@@ -138,8 +137,7 @@ class AnimalServiceTest {
                 "http://example.com/image.jpg",
                 3L,
                 Gender.MALE,
-                Status.PROTECTED,
-                null
+                Status.PROTECTED
         );
 
         given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.empty());

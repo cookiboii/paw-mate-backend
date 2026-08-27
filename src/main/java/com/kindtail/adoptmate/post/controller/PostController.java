@@ -6,6 +6,7 @@ import com.kindtail.adoptmate.post.dto.PostCreateRequestDto;
 import com.kindtail.adoptmate.post.dto.PostResponseDto;
 import com.kindtail.adoptmate.post.dto.PostUpdateRequestDto;
 import com.kindtail.adoptmate.post.service.PostService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,7 +22,7 @@ public class PostController {
     private final PostService postService;
 
     @PostMapping("/create")
-    public ResponseEntity<CommonResDto> createPost(@RequestBody PostCreateRequestDto dto) {
+    public ResponseEntity<CommonResDto> createPost(@Valid @RequestBody PostCreateRequestDto dto) {
         Post post = postService.createPost(dto);
         PostResponseDto responseDto = PostResponseDto.from(post);
         CommonResDto commonResDto = new CommonResDto(HttpStatus.CREATED, "글쓰기완료", responseDto);
@@ -50,7 +51,7 @@ public class PostController {
     }
 
     @PutMapping("/{postId}")
-    public ResponseEntity<CommonResDto> updatePost(@PathVariable Long postId, @RequestBody PostUpdateRequestDto dto) {
+    public ResponseEntity<CommonResDto> updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequestDto dto) {
         PostResponseDto post = postService.updatePost(postId, dto);
         CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "글수정완료", post);
         return ResponseEntity.ok(commonResDto);

@@ -110,7 +110,7 @@ class MemberServiceTest {
     @DisplayName("로그인 시 토큰을 발급받을 수 있다")
     void login_성공 () {
         // given
-        MemberLoginResponseDto loginRequest = new MemberLoginResponseDto("test@example.com", "password123");
+        MemberLoginRequestDto loginRequest = new MemberLoginRequestDto("test@example.com", "password123");
         String accessToken = "accessToken123";
         String refreshToken = "refreshToken123";
 
@@ -133,7 +133,7 @@ class MemberServiceTest {
     @DisplayName("잘못된 비밀번호로 로그인하면 예외가 발생한다")
     void login_비밀번호_불일치_예외 () {
         // given
-        MemberLoginResponseDto loginRequest = new MemberLoginResponseDto("test@example.com", "wrongPassword");
+        MemberLoginRequestDto loginRequest = new MemberLoginRequestDto("test@example.com", "wrongPassword");
 
         given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.of(testMember));
         given(passwordEncoder.matches("wrongPassword", "encodedPassword123")).willReturn(false);
@@ -148,7 +148,7 @@ class MemberServiceTest {
     @DisplayName("존재하지 않는 사용자로 로그인하면 예외가 발생한다")
     void login_사용자_없음_예외 () {
         // given
-        MemberLoginResponseDto loginRequest = new MemberLoginResponseDto("notexist@example.com", "password123");
+        MemberLoginRequestDto loginRequest = new MemberLoginRequestDto("notexist@example.com", "password123");
 
         given(memberRepository.findByEmail("notexist@example.com")).willReturn(Optional.empty());
 

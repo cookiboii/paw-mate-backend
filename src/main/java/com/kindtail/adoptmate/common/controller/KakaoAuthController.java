@@ -25,6 +25,9 @@ public class KakaoAuthController {
 
 
 
+    @Value("${client.url:https://paw-mate-frontend.vercel.app}")
+    private String clientUrl;
+
     public KakaoAuthController(KakaoOAuthService kakaoOAuthService, JwtTokenProvider jwtTokenProvider, MemberService memberService) {
         this.kakaoOAuthService = kakaoOAuthService;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -41,7 +44,7 @@ public class KakaoAuthController {
 
         memberService.saveRefreshToken(memberResponseDto.email(), refreshToken);
 
-        String frontendUrl = "https://paw-mate-frontend.vercel.app"; // 실제 프론트엔드 주소로 변경하세요 (또는 @Value로 주입)
+        String frontendUrl = this.clientUrl;
 
         String html = String.format("""
                 <!DOCTYPE html>

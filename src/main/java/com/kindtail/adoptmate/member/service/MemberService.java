@@ -92,8 +92,8 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public MemberLoginResultDto login(MemberLoginResponseDto loginResponseDto) {
-        Member member = authenticateMember(loginResponseDto);
+    public MemberLoginResultDto login(MemberLoginRequestDto loginRequestDto) {
+        Member member = authenticateMember(loginRequestDto);
 
         String token = jwtTokenProvider.createToken(member.getEmail(), member.getRole().toString());
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getEmail());
@@ -103,9 +103,9 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public Member authenticateMember(MemberLoginResponseDto loginResponseDto) {
-        String email = loginResponseDto.email();
-        String password = loginResponseDto.password();
+    public Member authenticateMember(MemberLoginRequestDto loginRequestDto) {
+        String email = loginRequestDto.email();
+        String password = loginRequestDto.password();
 
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));

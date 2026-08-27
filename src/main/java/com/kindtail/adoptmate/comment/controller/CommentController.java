@@ -5,6 +5,7 @@ import com.kindtail.adoptmate.comment.dto.CommentResponseDto;
 import com.kindtail.adoptmate.comment.dto.CommentUpdateDto;
 import com.kindtail.adoptmate.comment.service.CommentService;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class CommentController {
     private final CommentService commentService;
 
     @PostMapping("/{postId}")
-    public ResponseEntity<CommonResDto> addComment(@PathVariable Long postId, @RequestBody CommentDto commentDto) {
+    public ResponseEntity<CommonResDto> addComment(@PathVariable Long postId, @Valid @RequestBody CommentDto commentDto) {
         CommentResponseDto savedComment = commentService.addComment(postId, commentDto);
         CommonResDto commonResDto = new CommonResDto(HttpStatus.CREATED, "댓글등록성공", savedComment);
         return ResponseEntity.status(HttpStatus.CREATED).body(commonResDto);
@@ -39,7 +40,7 @@ public class CommentController {
     }
 
     @PutMapping("/update/{commentId}")
-    public ResponseEntity<CommonResDto> updateComment(@PathVariable Long commentId, @RequestBody CommentUpdateDto dto) {
+    public ResponseEntity<CommonResDto> updateComment(@PathVariable Long commentId, @Valid @RequestBody CommentUpdateDto dto) {
         CommentResponseDto comment = commentService.updateComment(commentId, dto);
         CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "수정성공", comment);
         return ResponseEntity.ok(commonResDto);

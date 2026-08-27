@@ -78,9 +78,9 @@ public class AdoptionController {
     /** 전체 입양 내역 페이징 (관리자 전용) */
     @GetMapping("/list")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Page<AdoptionResponseDto>> getAdoptionList(Pageable pageable) {
+    public ResponseEntity<CommonResDto> getAdoptionList(Pageable pageable) {
         Page<AdoptionResponseDto> adoptions = adoptionService.getAllAdoptions(pageable);
-        return ResponseEntity.ok(adoptions);
+        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "전체 입양 목록 조회 성공", adoptions));
     }
 
     /** 입양 상태 변경 (관리자 전용) */
@@ -88,7 +88,7 @@ public class AdoptionController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> updateStatus(
             @PathVariable Long adoptionId,
-            @RequestBody AdoptionUpdateRequestDto requestDto
+            @Valid @RequestBody AdoptionUpdateRequestDto requestDto
     ) {
         AdoptionResponseDto adoptionResponse = adoptionService.updateStatus(adoptionId, requestDto.adoptionStatus());
 

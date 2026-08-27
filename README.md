@@ -95,11 +95,11 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/adoptmate/register` | Public | 일반 회원가입 | `MemberRegisterRequestDto` | `MemberResponseDto` (HTTP 201) |
-| `POST` | `/adoptmate/login` | Public | 일반 로그인 | `MemberLoginResponseDto` | `MemberLoginResultDto` (HTTP 200) |
+| `POST` | `/adoptmate/login` | Public | 일반 로그인 | `MemberLoginRequestDto` | `MemberLoginResultDto` (HTTP 200) |
 | `POST` | `/adoptmate/refresh-token` | Public | Access Token 재발급 | `{"refreshToken": "string"}` | `{"token": "string"}` |
 | `POST` | `/adoptmate/logout` | User | 로그아웃 (Redis 토큰 삭제 및 블랙리스트) | Header: `Authorization: Bearer <token>` | `null` |
-| `GET` | `/adoptmate/myInfo` | User | 내 프로필 정보 조회 | Header: `Authorization: Bearer <token>` | `MemberInfoRequestDto` |
-| `GET` | `/adoptmate/all` | Admin | 전체 회원 목록 조회 | - | `List<MemberInfoRequestDto>` |
+| `GET` | `/adoptmate/myInfo` | User | 내 프로필 정보 조회 | Header: `Authorization: Bearer <token>` | `MemberInfoResponseDto` |
+| `GET` | `/adoptmate/all` | Admin | 전체 회원 목록 조회 | - | `List<MemberInfoResponseDto>` |
 | `POST` | `/adoptmate/password` | User | 로그인 상태에서 비밀번호 변경 | `PasswordChangeRequestDto` | `PasswordChangeRequestDto` |
 | `DELETE` | `/adoptmate/delete` | User | 회원 탈퇴 | Header: `Authorization: Bearer <token>` | `TokenUserInfo` |
 
@@ -113,7 +113,7 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 | `POST` | `/adoptmate/verify-code` | Public | 이메일 인증 코드 검증 (5회 실패 시 30분 차단) | `{"email": "string", "code": "string"}` | `Map<String, String>` |
 | `POST` | `/adoptmate/send-reset-code` | Public | 비밀번호 재설정 인증 코드 발송 | Query: `?email={email}` | `null` |
 | `POST` | `/adoptmate/verify-reset-code` | Public | 비밀번호 재설정 인증 코드 검증 | Query: `?email={email}&code={code}` | `null` |
-| `PATCH` | `/adoptmate/password` | Public | 비밀번호 재설정 실행 (인증 완료 회원) | `MemberLoginResponseDto` | `null` |
+| `PATCH` | `/adoptmate/password` | Public | 비밀번호 재설정 실행 (인증 완료 회원) | `PasswordResetRequestDto` | `null` |
 
 ---
 
@@ -135,7 +135,7 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 | `GET` | `/animals/species` | Public | 보호 동물 종별 목록 조회 (페이징) | Query: `?species=DOG&page=0&size=10` | `Page<AnimalResponse>` |
 | `GET` | `/animals/{id}` | Public | 보호 동물 상세 조회 | Path: `id` | `AnimalResponse` |
 | `PUT` | `/animals/{id}/status` | Admin | 보호 동물 상태 변경 (`PROTECTED`/`WAITING`/`ADOPTED`) | Path: `id`, Body: `AnimalStatusUpdateRequest` | `AnimalResponse` |
-| `DELETE` | `/animals/delete/{id}` | Admin | 보호 동물 삭제 | Path: `id` | HTTP 204 No Content |
+| `DELETE` | `/animals/delete/{id}` | Admin | 보호 동물 삭제 | Path: `id` | `null` (HTTP 200) |
 
 ---
 
@@ -155,7 +155,7 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/post/create` | User | 게시글 작성 (서버 시간 기반 자동 생성일자) | `PostCreateRequestDto` | `PostResponseDto` (HTTP 201) |
+| `POST` | `/post/create` | User | 게시글 작성 | `PostCreateRequestDto` | `PostResponseDto` (HTTP 201) |
 | `GET` | `/post/list` | Public | 게시글 목록 조회 (페이징) | Query: `?page=0&size=10&sort=id,desc` | `Page<PostResponseDto>` |
 | `GET` | `/post/{postId}` | Public | 게시글 상세 조회 | Path: `postId` | `PostResponseDto` |
 | `PUT` | `/post/{postId}` | Author/Admin | 게시글 수정 (작성자 또는 관리자) | Path: `postId`, Body: `PostUpdateRequestDto` | `PostResponseDto` |
@@ -171,65 +171,6 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 | `GET` | `/comment/{postId}` | Public | 특정 게시글 댓글 목록 (계층형 대댓글 트리) | Path: `postId` | `List<CommentResponseDto>` |
 | `PUT` | `/comment/update/{commentId}` | Author/Admin | 댓글 수정 (작성자 또는 관리자) | Path: `commentId`, Body: `CommentUpdateDto` | `CommentResponseDto` |
 | `DELETE` | `/comment/{commentId}` | Author/Admin | 댓글 삭제 (작성자 또는 관리자) | Path: `commentId` | `null` |
-
----
-
-## 🛡️ 주요 리팩토링 및 코드 품질 개선 사항
-
-이번 코드 리뷰 및 리팩토링을 통해 다음 사항들이 대폭 개선되었습니다:
-
-1. **보안 및 인가 강화**:
-   - 민감정보(DB, Redis, Mail, JWT Secret 등) 환경변수화로 소스코드 노출 방지
-   - 입양 전체 목록 조회, 입양 상태 승인/반려, 보호동물 상태 변경 엔드포인트에 `@PreAuthorize("hasRole('ADMIN')")` 적용
-2. **비즈니스 로직 & 버그 수정**:
-   - 이메일 인증 TTL 중복 덮어쓰기 버그 수정 (3분 정상 유지)
-   - `MemberRepository`의 소셜 로그인 쿼리 메서드 매개변수 순서 일치
-   - 게시글 작성 시 클라이언트 타임스탬프 의존성 제거 및 서버 시간 기반 저장
-3. **JPA & 도메인 엔티티 정돈**:
-   - `Member`, `Animal`, `Post`, `Comment` 엔티티가 `BaseTimeEntity`를 상속하도록 일원화
-   - `Member.toDto()`의 ID 누락 수정
-   - 컨트롤러에서 Entity를 직접 반환하던 API들을 Response DTO 반환으로 변경 (Lazy Loading 예외 및 순환참조 방지)
-4. **코드 중복 제거 및 가독성 향상**:
-   - 모든 Controller/Service에 Lombok `@RequiredArgsConstructor`를 적용하여 수동 생성자 보일러플레이트 제거
-   - `System.out.println` 디버그 코드를 SLF4J 로거로 전면 교체
-   - 전체 코드베이스의 불필요한 공백 및 들여쓰기 표준화
-5. **테스트 안정화**:
-   - 누락되었던 Enum Import 복구 및 단위/통합 테스트 컴파일 및 통과 보장ponse Data |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/post/create` | User | 게시글 작성 | `PostCreateRequestDto` | `Post` (Entity) |
-| `GET` | `/post/list` | Public | 게시글 목록 조회 (페이징) | Query: `?page=0&size=10&sort=id,desc` | `Page<PostResponseDto>` |
-| `GET` | `/post/{postId}` | Public | 게시글 상세 조회 | Path: `postId` | `PostResponseDto` |
-| `PUT` | `/post/{postId}` | Author/Admin | 게시글 수정 | Path: `postId`, Body: `PostUpdateRequestDto` | `PostResponseDto` |
-| `DELETE` | `/post/{postId}` | Author/Admin | 게시글 삭제 | Path: `postId` | `null` |
-
-<details>
-<summary><b>📄 게시글 관련 DTO 상세</b></summary>
-
-- **PostCreateRequestDto**: `title` (String), `content` (String), `img` (String), `name` (String), `dateTime` (LocalDateTime)
-- **PostResponseDto**: `id` (Long), `title` (String), `content` (String), `email` (String), `name` (String), `createAt` (LocalDateTime), `img` (String)
-- **PostUpdateRequestDto**: `title` (String), `img` (String), `content` (String)
-
-</details>
-
----
-
-### 💬 7. 댓글 & 계층형 답글 API (`/comment`)
-
-| 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/comment/{postId}` | User | 댓글/답글 작성 | Path: `postId`, Body: `CommentDto` | `CommentResponseDto` |
-| `GET` | `/comment/{postId}` | Public | 특정 게시글 댓글 목록 (계층형) | Path: `postId` | `List<CommentResponseDto>` |
-| `PUT` | `/comment/update/{commentId}` | Author/Admin | 댓글 수정 | Path: `commentId`, Body: `CommentUpdateDto` | `CommentResponseDto` |
-| `DELETE` | `/comment/{commentId}` | Author/Admin | 댓글 삭제 | Path: `commentId` | `null` |
-
-<details>
-<summary><b>📄 댓글 관련 DTO 상세</b></summary>
-
-- **CommentDto** (작성 요청): `parentId` (Long, 최상위 댓글은 `null` / 답글일 경우 부모 댓글 ID), `content` (String)
-- **CommentResponseDto** (응답): `id` (Long), `authorName` (String), `authorId` (Long), `authorEmail` (String), `content` (String), `createdAt` (LocalDateTime), `children` (`List<CommentResponseDto>` - 대댓글 리스트)
-- **CommentUpdateDto** (수정 요청): `commentId` (Long), `content` (String)
-
-</details>
 
 
 

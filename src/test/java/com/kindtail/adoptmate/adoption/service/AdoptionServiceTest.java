@@ -213,7 +213,7 @@ class AdoptionServiceTest {
         Adoption adoption1 = Adoption.of(member, animal, "010-1111-1111", HousingType.APARTMENT, "없음", "이유 1", AdoptionStatus.PENDING);
         Adoption adoption2 = Adoption.of(member, animal, "010-2222-2222", HousingType.VILLA, "없음", "이유 2", AdoptionStatus.APPROVED);
 
-        given(adoptionRepository.findAll()).willReturn(List.of(adoption1, adoption2));
+        given(adoptionRepository.findAllWithFetchJoin()).willReturn(List.of(adoption1, adoption2));
 
         // when
         List<AdoptionResponseDto> result = adoptionService.getAllAdoptions();

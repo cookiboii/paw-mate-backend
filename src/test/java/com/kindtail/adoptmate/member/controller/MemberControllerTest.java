@@ -119,10 +119,10 @@ class MemberControllerTest {
     @DisplayName("로그인할 수 있다")
     void login_성공 () throws Exception {
         // given
-        MemberLoginResponseDto loginRequest = new MemberLoginResponseDto("test@example.com", "password123");
+        MemberLoginRequestDto loginRequest = new MemberLoginRequestDto("test@example.com", "password123");
         MemberLoginResultDto result = new MemberLoginResultDto("accessToken123", "refreshToken123", "test@example.com", Role.USER);
 
-        given(memberService.login(any(MemberLoginResponseDto.class))).willReturn(result);
+        given(memberService.login(any(MemberLoginRequestDto.class))).willReturn(result);
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/adoptmate/login")
@@ -169,8 +169,8 @@ class MemberControllerTest {
         // then
         resultActions.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("test@example.com"))
-                .andExpect(jsonPath("$.name").value("테스트 사용자"));
+                .andExpect(jsonPath("$.result.email").value("test@example.com"))
+                .andExpect(jsonPath("$.result.name").value("테스트 사용자"));
     }
 
     @Test
