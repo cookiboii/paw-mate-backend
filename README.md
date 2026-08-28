@@ -74,34 +74,38 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 
 ## 🛡️ 동시성 제어 아키텍처 (Concurrency Control)
 
-대규모 트래픽 및 동시 다중 요청 환경에서 **데이터 무결성(Data Integrity)**을 보장하기 위해 **Redisson 분산 락과 JPA 낙관적 락의 이중 방어 전략**을 구축했습니다.
+대규모 트래픽 및 동시 다중 요청 환경에서 **데이터 무결성(Data Integrity)**을 보장하기 위해 **Redisson 분산 락(Facade/Template 패턴)과 JPA 낙관적 락의 이중 방어 전략**을 구축했습니다.
 
 ```mermaid
 flowchart TD
-    Req[클라이언트 동시 요청] --> DLock{"1차 방어: Redisson 분산 락 (@DistributedLock)"}
-    DLock -- 락 획득 실패 (대기 타임아웃) --> Fail[409 CONFLICT: 요청 집중 에러]
-    DLock -- 락 획득 성공 --> Tx[새 트랜잭션 시작 REQUIRES_NEW]
-    Tx --> Logic[비즈니스 로직 실행]
-    Logic --> Commit[트랜잭션 커밋]
+    Req[클라이언트 동시 요청] --> Controller[Controller]
+    Controller --> Facade["Facade 계층 (AdoptionFacade / MemberFacade)"]
+    Facade --> Template["1차 방어: DistributedLockTemplate (Redisson 락 획득)"]
+    Template -- 락 획득 실패 (대기 타임아웃) --> Fail[409 CONFLICT: 요청 집중 에러]
+    Template -- 락 획득 성공 --> Service["Service 계층 (@Transactional 시작 - DB 커넥션 획득)"]
+    Service --> Logic[비즈니스 로직 실행]
+    Logic --> Commit[트랜잭션 커밋 및 커넥션 반납]
     Commit -- @Version 충돌 발생 시 --> OptErr["2차 방어: 낙관적 락 예외 (OptimisticLockingFailure)"]
-    Commit -- 커밋 성공 --> ReleaseLock[분산 락 안전 해제]
+    Commit -- 커밋 성공 --> ReleaseLock[Facade / Template에서 분산 락 안전 해제]
     OptErr --> ReleaseLock
     ReleaseLock --> Done[클라이언트 응답 반환]
 ```
 
-### 1. 트랜잭션과 분산 락의 생명주기 분리 (`AopForTransaction`)
-* **문제 배경**: `@DistributedLock`과 `@Transactional`을 동일 메서드에 적용할 경우, **DB 커밋이 완료되기 전에 락이 먼저 해제**되어 찰나의 순간에 다른 스레드가 과거 데이터를 읽는 Race Condition이 발생합니다.
+### 1. 트랜잭션과 분산 락의 생명주기 및 관심사 분리 (`Facade & DistributedLockTemplate`)
+* **문제 배경**: AOP 기반 락 적용 시 발생할 수 있는 DB 커넥션 점유 낭비, SpEL 파싱 런타임 위험, AOP 프록시 내부 호출 제약을 방지하고 계층별 책임을 명확히 분리합니다.
 * **해결 구조**:
-  1. `DistributedLockAop`가 Redis에서 락을 먼저 획득
-  2. 별도 트랜잭션 컴포넌트인 `AopForTransaction`이 `@Transactional(propagation = Propagation.REQUIRES_NEW)`로 로직 실행 및 **DB 커밋 완료**
-  3. 커밋 완료 후 Aspect의 `finally` 블록에서 **락 안전 해제**
+  1. **Facade 계층**(`AdoptionFacade`, `MemberFacade`)에서 `DistributedLockTemplate`을 통해 Redis 분산 락을 먼저 획득 (DB 커넥션 미사용)
+  2. 락 획득 성공 후 **Service 계층**(`@Transactional`)으로 진입하여 DB 트랜잭션 시작 및 비즈니스 로직 수행
+  3. Service 메서드 종료와 함께 **DB 트랜잭션 커밋 완료 & 커넥션 즉시 반납**
+  4. Template의 `finally` 블록에서 **Redis 분산 락 안전 해제**
+  👉 **락 대기 시간 동안 DB 커넥션 풀을 낭비하지 않으며, 트랜잭션 커밋 후 락 해제를 완벽하게 보장**합니다.
 
 ### 2. 주요 적용 도메인
-| 도메인 | 적용 기술 | 락 키 (SpEL) | 목적 |
+| 도메인 | 적용 기술 / 계층 | 락 키 (Type-safe) | 목적 |
 | :--- | :--- | :--- | :--- |
-| **입양 신청 (`applyAdoption`)** | Redisson 분산 락 | `'animal:' + #animalId` | 단일 보호 동물에 대한 동시 중복 신청 차단 |
-| **입양 승인/반려 (`updateStatus`)** | Redisson 분산 락 | `'adoption:' + #adoptionId` | 관리자 동시 상태 변경 시 동물 상태 갱신 손실(Lost Update) 방지 |
-| **회원 가입 (`registerMember`)** | Redisson 분산 락 | `'register:' + #dto.email()` | 동일 이메일 동시 가입 요청 시 중복 생성 및 500 에러 차단 |
+| **입양 신청 (`applyAdoption`)** | `AdoptionFacade` + Redisson 락 | `'animal:' + animalId` | 단일 보호 동물에 대한 동시 중복 신청 차단 |
+| **입양 승인/반려 (`updateStatus`)** | `AdoptionFacade` + Redisson 락 | `'adoption:' + adoptionId` | 관리자 동시 상태 변경 시 동물 상태 갱신 손실(Lost Update) 방지 |
+| **회원 가입 (`registerMember`)** | `MemberFacade` + Redisson 락 | `'register:' + email` | 동일 이메일 동시 가입 요청 시 중복 생성 및 500 에러 차단 |
 | **보호 동물/신청/게시글** | JPA 낙관적 락 (`@Version`) | `version` 컬럼 | 동시 수정 충돌 시 `409 Conflict` 감지 및 데이터 무결성 보장 |
 | **이메일 인증 시도** | Redis 원자 연산 (`INCR`) | `email_verify:attempt:{email}` | Read-Modify-Write 결함 제거로 5회 실패 차단(Brute-Force 방어) 완벽 보장 |
 

@@ -6,6 +6,7 @@ import com.kindtail.adoptmate.adoption.domain.HousingType;
 import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
 import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.dto.AdoptionUpdateRequestDto;
+import com.kindtail.adoptmate.adoption.facade.AdoptionFacade;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
@@ -42,6 +43,9 @@ class AdoptionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private AdoptionFacade adoptionFacade;
 
     @MockitoBean
     private AdoptionService adoptionService;
@@ -100,7 +104,7 @@ class AdoptionControllerTest {
         );
 
         given(memberService.getMemberIdByEmail(anyString())).willReturn(memberId);
-        given(adoptionService.applyAdoption(any(AdoptionCreateRequest.class), eq(memberId), eq(animalId)))
+        given(adoptionFacade.applyAdoption(any(AdoptionCreateRequest.class), eq(memberId), eq(animalId)))
                 .willReturn(responseDto);
 
         // when & then
@@ -181,7 +185,7 @@ class AdoptionControllerTest {
                 1L, 1L, "말티즈", "test.jpg", "홍길동", "010-1234-5678", HousingType.APARTMENT, "없음", "이유", AdoptionStatus.APPROVED, LocalDateTime.now()
         );
 
-        given(adoptionService.updateStatus(eq(adoptionId), eq(AdoptionStatus.APPROVED)))
+        given(adoptionFacade.updateStatus(eq(adoptionId), eq(AdoptionStatus.APPROVED)))
                 .willReturn(responseDto);
 
         // when & then

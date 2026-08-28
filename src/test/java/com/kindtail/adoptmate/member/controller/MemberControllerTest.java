@@ -10,6 +10,7 @@ import com.kindtail.adoptmate.config.SecurityConfig;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.dto.*;
+import com.kindtail.adoptmate.member.facade.MemberFacade;
 import com.kindtail.adoptmate.member.service.MemberService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -54,6 +55,9 @@ class MemberControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private MemberFacade memberFacade;
 
     @MockitoBean
     private MemberService memberService;
@@ -101,7 +105,7 @@ class MemberControllerTest {
         );
 
         MemberResponseDto responseDto = MemberResponseDto.from(testMember);
-        given(memberService.registerMember(any(MemberRegisterRequestDto.class))).willReturn(testMember);
+        given(memberFacade.registerMember(any(MemberRegisterRequestDto.class))).willReturn(testMember);
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/adoptmate/register")

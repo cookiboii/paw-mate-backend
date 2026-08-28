@@ -3,6 +3,7 @@ package com.kindtail.adoptmate.adoption.controller;
 import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
 import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.dto.AdoptionUpdateRequestDto;
+import com.kindtail.adoptmate.adoption.facade.AdoptionFacade;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
 import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
@@ -24,6 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdoptionController {
 
+    private final AdoptionFacade adoptionFacade;
     private final AdoptionService adoptionService;
     private final MemberService memberService;
 
@@ -38,7 +40,7 @@ public class AdoptionController {
 
         Long memberId = memberService.getMemberIdByEmail(userInfo.getEmail());
 
-        AdoptionResponseDto adoptionResponse = adoptionService.applyAdoption(adoptionCreateRequest, memberId, animalId);
+        AdoptionResponseDto adoptionResponse = adoptionFacade.applyAdoption(adoptionCreateRequest, memberId, animalId);
 
         CommonResDto response = new CommonResDto(
                 HttpStatus.CREATED,
@@ -90,7 +92,7 @@ public class AdoptionController {
             @PathVariable Long adoptionId,
             @Valid @RequestBody AdoptionUpdateRequestDto requestDto
     ) {
-        AdoptionResponseDto adoptionResponse = adoptionService.updateStatus(adoptionId, requestDto.adoptionStatus());
+        AdoptionResponseDto adoptionResponse = adoptionFacade.updateStatus(adoptionId, requestDto.adoptionStatus());
 
         return ResponseEntity.ok(
                 new CommonResDto(HttpStatus.OK, "상태변경완료", adoptionResponse)

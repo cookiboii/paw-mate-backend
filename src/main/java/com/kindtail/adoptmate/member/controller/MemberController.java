@@ -4,6 +4,7 @@ import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.*;
+import com.kindtail.adoptmate.member.facade.MemberFacade;
 import com.kindtail.adoptmate.member.service.MemberService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,11 +28,12 @@ import static org.springframework.http.HttpStatus.*;
 @RequiredArgsConstructor
 public class MemberController {
 
+    private final MemberFacade memberFacade;
     private final MemberService memberService;
 
     @PostMapping("/register")
     public ResponseEntity<CommonResDto> registerMember(@RequestBody @Valid MemberRegisterRequestDto requestDto) {
-        Member member = memberService.registerMember(requestDto);
+        Member member = memberFacade.registerMember(requestDto);
         MemberResponseDto responseDto = MemberResponseDto.from(member);
         return ResponseEntity.status(CREATED).body(new CommonResDto(CREATED, "회원가입 성공", responseDto));
     }

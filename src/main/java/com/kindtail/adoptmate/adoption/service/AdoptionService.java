@@ -13,7 +13,6 @@ import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
-import com.kindtail.adoptmate.common.lock.DistributedLock;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,7 +36,7 @@ public class AdoptionService {
         this.memberRepository = memberRepository;
     }
 
-    @DistributedLock(key = "'animal:' + #animalId")
+    @Transactional
     public AdoptionResponseDto applyAdoption(AdoptionCreateRequest dto, Long memberId, Long animalId) {
         Animal animal = animalRepository.findById(animalId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
@@ -93,7 +92,7 @@ public class AdoptionService {
                 .collect(Collectors.toList());
     }
 
-    @DistributedLock(key = "'adoption:' + #adoptionId")
+    @Transactional
     public AdoptionResponseDto updateStatus(Long adoptionId, AdoptionStatus status) {
         Adoption adoption = adoptionRepository.findByIdWithFetchJoin(adoptionId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ADOPTION_NOT_FOUND));
@@ -107,7 +106,6 @@ public class AdoptionService {
         }
         return AdoptionResponseDto.from(adoption);
     }
-
-
 }
+
 
