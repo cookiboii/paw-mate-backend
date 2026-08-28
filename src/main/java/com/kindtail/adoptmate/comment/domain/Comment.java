@@ -6,6 +6,8 @@ import com.kindtail.adoptmate.post.domain.Post;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,6 +19,8 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Table(name = "comment")
+@SQLDelete(sql = "UPDATE comment SET is_deleted = true WHERE comment_id = ?")
+@SQLRestriction("is_deleted = false")
 public class Comment extends BaseTimeEntity {
 
     @Id

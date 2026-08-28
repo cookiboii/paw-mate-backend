@@ -27,13 +27,16 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 ### Database & Persistence
 - **ORM**: Spring Data JPA, Hibernate 6
 - **Database**: MySQL 8.0 (운영/개발), H2 (테스트 인메모리)
-- **Auditing**: `BaseTimeEntity` 공통 상속 (생성일시/수정일시 자동 관리)
+- **Auditing & Soft Delete**: 
+  - `BaseTimeEntity` 공통 상속 (생성일시/수정일시 및 `is_deleted` 자동 관리)
+  - Hibernate 6 `@SQLDelete` & `@SQLRestriction("is_deleted = false")` 적용 (데이터 이력 보존 및 FK 무결성 보장)
 - **성능 최적화**: `@EntityGraph` 및 `Fetch Join`, `default_batch_fetch_size: 100` 적용 (N+1 문제 방지)
 
 ### Cache & Concurrency Control
 - **Distributed Lock**: Redisson (`RLock`, Pub/Sub 기반 분산 락)
+- **Lock Architecture**: `Facade` 및 `DistributedLockTemplate` 패턴 (락 라이프사이클과 DB 트랜잭션의 관심사 완전 분리)
 - **Optimistic Lock**: JPA `@Version` (엔티티 동시 수정 및 Lost Update 방지)
-- **AOP Transaction Decoupling**: 락 획득 후 트랜잭션 커밋을 보장하는 `AopForTransaction` 아키텍처
+- **State Machine**: 입양 상태 전이 유효성 검증 및 다중 신청 연쇄 처리 (승인 시 타 신청 자동 반려)
 - **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce, SSL 지원)
 - **Mail**: JavaMailSender (Gmail SMTP 이메일 인증 및 비밀번호 재설정)
 - **API Documentation**: SpringDoc OpenAPI UI (Swagger 3)
@@ -50,16 +53,21 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 - **이메일 인증 시스템**: 6자리 난수 코드를 Redis에 3분간 캐싱하여 검증 (5회 실패 시 30분 차단)
 - **비밀번호 재설정**: 이메일 인증 확인 토큰 기반의 안전한 2단계 비밀번호 변경
 - **카카오 OAuth2 소셜 로그인**: 표준 OAuth2 Authorization Code Grant 방식으로 사용자 정보 연동
+- **안전한 논리 삭제(Soft Delete)**: 회원 탈퇴 시 기존 작성 글/입양 이력 보존 및 이메일 유니크 인덱스 충돌 방지 (`email = CONCAT('deleted_', id, '_', email)`)
 
 ### 🐶 2. 보호 동물 관리
 - 보호 동물 등록, 상세 조회 및 페이징 목록 조회
 - 종별(강아지/고양이/기타) 필터링 조회
-- 보호 상태 변경(`PROTECTED` ➡️ `WAITING` ➡️ `ADOPTED`) 및 삭제 (관리자 권한 `@PreAuthorize("hasRole('ADMIN')")` 제어)
+- 보호 상태 변경(`PROTECTED` ➡️ `WAITING` ➡️ `ADOPTED`) 및 안전한 논리 삭제 (관리자 권한 `@PreAuthorize("hasRole('ADMIN')")` 제어)
 
-### 🏡 3. 입양 신청 관리
+### 🏡 3. 입양 신청 & 상태 머신 관리
 - 입양 신청서 제출 (연락처, 주거 형태, 반려동물 유무, 입양 사유 등 세분화된 정보 수집)
 - 동물-회원 간 중복 입양 신청 방지 (`uniqueConstraints`, 분산 락 및 서비스 레벨 검증)
 - 신청 접수 시 보호 동물 상태가 `WAITING(대기)`으로 자동 전환
+- **입양 상태 머신(State Machine) 및 연쇄 처리**:
+  - **상태 전이 검증**: `PENDING`(대기) 상태인 신청만 심사 가능하며, 이미 완료된 신청의 중복/역방향 변경 원천 차단
+  - **승인(`APPROVED`) 시 연쇄 처리**: 동물 상태를 `ADOPTED`로 갱신하고, 동일 동물에 대한 타 신청건들을 자동으로 `REJECTED`(반려) 처리
+  - **반려(`REJECTED`) 시 스마트 복구**: 잔여 대기자 유무를 파악하여 대기자가 없으면 `PROTECTED`(입양 가능)로 복귀, 대기자가 남아있으면 `WAITING` 유지
 - **권한 기반 입양 관리**:
   - 일반 사용자: 본인이 신청한 입양 내역 조회 (`/adoptions/myAdoption`)
   - 관리자: 전체 입양 신청 내역 조회 및 상태 심사/승인/반려 (`/adoptions/all`, `/adoptions/list`, `/adoptions/{id}/status`)
@@ -72,9 +80,9 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 
 ---
 
-## 🛡️ 동시성 제어 아키텍처 (Concurrency Control)
+## 🛡️ 동시성 제어 & 데이터 무결성 아키텍처 (Concurrency & Integrity)
 
-대규모 트래픽 및 동시 다중 요청 환경에서 **데이터 무결성(Data Integrity)**을 보장하기 위해 **Redisson 분산 락(Facade/Template 패턴)과 JPA 낙관적 락의 이중 방어 전략**을 구축했습니다.
+대규모 트래픽 및 동시 다중 요청 환경에서 **데이터 무결성(Data Integrity)**을 보장하기 위해 **Redisson 분산 락(Facade/Template), JPA 낙관적 락, Soft Delete의 다계층 방어 전략**을 구축했습니다.
 
 ```mermaid
 flowchart TD
@@ -83,7 +91,7 @@ flowchart TD
     Facade --> Template["1차 방어: DistributedLockTemplate (Redisson 락 획득)"]
     Template -- 락 획득 실패 (대기 타임아웃) --> Fail[409 CONFLICT: 요청 집중 에러]
     Template -- 락 획득 성공 --> Service["Service 계층 (@Transactional 시작 - DB 커넥션 획득)"]
-    Service --> Logic[비즈니스 로직 실행]
+    Service --> Logic[상태 머신 검증 및 비즈니스 로직 실행]
     Logic --> Commit[트랜잭션 커밋 및 커넥션 반납]
     Commit -- @Version 충돌 발생 시 --> OptErr["2차 방어: 낙관적 락 예외 (OptimisticLockingFailure)"]
     Commit -- 커밋 성공 --> ReleaseLock[Facade / Template에서 분산 락 안전 해제]
@@ -100,13 +108,19 @@ flowchart TD
   4. Template의 `finally` 블록에서 **Redis 분산 락 안전 해제**
   👉 **락 대기 시간 동안 DB 커넥션 풀을 낭비하지 않으며, 트랜잭션 커밋 후 락 해제를 완벽하게 보장**합니다.
 
-### 2. 주요 적용 도메인
-| 도메인 | 적용 기술 / 계층 | 락 키 (Type-safe) | 목적 |
+### 2. 데이터 무결성을 위한 논리 삭제 (Soft Delete) 전략
+* **외래키 제약조건 보호**: 회원 탈퇴나 동물/게시글 삭제 시 물리 행을 삭제하지 않고 `@SQLDelete`로 `is_deleted = true` 처리하여 기존 입양 이력과의 외래키(FK) 무결성 유지
+* **자동 필터링**: Hibernate 6 `@SQLRestriction("is_deleted = false")`를 적용하여 모든 서비스 쿼리에서 삭제된 데이터 자동 제외
+* **유니크 인덱스 충돌 방지**: 회원 탈퇴 시 `email`에 `deleted_{id}_` prefix를 부여하여 탈퇴 회원의 이메일로 재가입 허용
+
+### 3. 주요 적용 도메인
+| 도메인 | 적용 기술 / 계층 | 락 키 (Type-safe) / 정책 | 목적 |
 | :--- | :--- | :--- | :--- |
 | **입양 신청 (`applyAdoption`)** | `AdoptionFacade` + Redisson 락 | `'animal:' + animalId` | 단일 보호 동물에 대한 동시 중복 신청 차단 |
-| **입양 승인/반려 (`updateStatus`)** | `AdoptionFacade` + Redisson 락 | `'adoption:' + adoptionId` | 관리자 동시 상태 변경 시 동물 상태 갱신 손실(Lost Update) 방지 |
+| **입양 승인/반려 (`updateStatus`)** | `AdoptionFacade` + 상태 머신 | `'adoption:' + adoptionId` | 상태 전이 유효성 보장 및 1건 승인 시 타 신청건 자동 반려 |
 | **회원 가입 (`registerMember`)** | `MemberFacade` + Redisson 락 | `'register:' + email` | 동일 이메일 동시 가입 요청 시 중복 생성 및 500 에러 차단 |
 | **보호 동물/신청/게시글** | JPA 낙관적 락 (`@Version`) | `version` 컬럼 | 동시 수정 충돌 시 `409 Conflict` 감지 및 데이터 무결성 보장 |
+| **전체 엔티티 삭제** | Hibernate Soft Delete | `is_deleted` + `@SQLRestriction` | 데이터 이력 영구 보존 및 연관 관계 외래키 충돌 방지 |
 | **이메일 인증 시도** | Redis 원자 연산 (`INCR`) | `email_verify:attempt:{email}` | Read-Modify-Write 결함 제거로 5회 실패 차단(Brute-Force 방어) 완벽 보장 |
 
 ---

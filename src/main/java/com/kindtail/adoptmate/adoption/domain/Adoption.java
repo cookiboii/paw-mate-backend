@@ -1,10 +1,13 @@
 package com.kindtail.adoptmate.adoption.domain;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
+import com.kindtail.adoptmate.common.domain.BaseTimeEntity;
 import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -22,7 +25,9 @@ import java.time.LocalDateTime;
                 )
         }
 )
-public class Adoption {
+@SQLDelete(sql = "UPDATE adoption SET is_deleted = true WHERE adoption_id = ? AND version = ?")
+@SQLRestriction("is_deleted = false")
+public class Adoption extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

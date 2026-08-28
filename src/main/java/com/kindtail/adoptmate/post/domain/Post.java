@@ -4,12 +4,16 @@ import com.kindtail.adoptmate.common.domain.BaseTimeEntity;
 import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Getter
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor
 @Table(name = "post")
+@SQLDelete(sql = "UPDATE post SET is_deleted = true WHERE post_id = ? AND version = ?")
+@SQLRestriction("is_deleted = false")
 @Builder
 public class Post extends BaseTimeEntity {
 

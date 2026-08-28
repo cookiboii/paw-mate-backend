@@ -29,6 +29,7 @@ public enum ErrorCode {
     ADOPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "AD001", "존재하지 않는 입양 신청입니다."),
     ADOPTION_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "AD002", "이미 입양 신청한 동물입니다."),
     NOT_PROTECTED_ANIMAL(HttpStatus.BAD_REQUEST, "AD003", "보호 중인 동물만 입양 신청이 가능합니다."),
+    INVALID_ADOPTION_STATUS_TRANSITION(HttpStatus.BAD_REQUEST, "AD004", "대기 중(PENDING)인 신청만 승인 또는 반려 처리가 가능합니다."),
 
     // Post & Comment
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "존재하지 않는 게시글입니다."),

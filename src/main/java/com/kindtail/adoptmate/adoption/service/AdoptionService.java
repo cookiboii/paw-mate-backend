@@ -96,14 +96,37 @@ public class AdoptionService {
     public AdoptionResponseDto updateStatus(Long adoptionId, AdoptionStatus status) {
         Adoption adoption = adoptionRepository.findByIdWithFetchJoin(adoptionId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ADOPTION_NOT_FOUND));
-        Animal animal = adoption.getAnimal();
-        if (status == AdoptionStatus.REJECTED) {
-            adoption.updateAdoption(status);
-            animal.updateStatus(new AnimalStatusUpdateRequest(Status.PROTECTED));
-        } else if (status == AdoptionStatus.APPROVED) {
-            adoption.updateAdoption(status);
-            animal.updateStatus(new AnimalStatusUpdateRequest(Status.ADOPTED));
+
+        // 📌 상태 머신 검증: PENDING 상태일 때만 APPROVED 또는 REJECTED 로 전이 가능
+        if (adoption.getStatus() != AdoptionStatus.PENDING) {
+            throw new CustomException(ErrorCode.INVALID_ADOPTION_STATUS_TRANSITION);
         }
+
+        Animal animal = adoption.getAnimal();
+
+        if (status == AdoptionStatus.APPROVED) {
+            adoption.updateAdoption(AdoptionStatus.APPROVED);
+            animal.updateStatus(new AnimalStatusUpdateRequest(Status.ADOPTED));
+
+            // 📌 연쇄 처리: 한 신청이 최종 승인되면 동일 동물에 대한 다른 대기(PENDING) 신청 건들은 자동 반려
+            List<Adoption> otherPendingAdoptions = adoptionRepository.findByAnimalAndStatusAndIdNot(
+                    animal, AdoptionStatus.PENDING, adoptionId
+            );
+            for (Adoption other : otherPendingAdoptions) {
+                other.updateAdoption(AdoptionStatus.REJECTED);
+            }
+        } else if (status == AdoptionStatus.REJECTED) {
+            adoption.updateAdoption(AdoptionStatus.REJECTED);
+
+            // 📌 다른 PENDING 신청이 더 이상 없을 때만 동물을 PROTECTED(입양 가능) 상태로 복귀
+            boolean hasOtherPending = adoptionRepository.existsByAnimalAndStatusAndIdNot(
+                    animal, AdoptionStatus.PENDING, adoptionId
+            );
+            if (!hasOtherPending) {
+                animal.updateStatus(new AnimalStatusUpdateRequest(Status.PROTECTED));
+            }
+        }
+
         return AdoptionResponseDto.from(adoption);
     }
 }

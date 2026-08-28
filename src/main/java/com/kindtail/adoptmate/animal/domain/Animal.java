@@ -7,6 +7,8 @@ import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +19,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "animal")
+@SQLDelete(sql = "UPDATE animal SET is_deleted = true WHERE animal_id = ? AND version = ?")
+@SQLRestriction("is_deleted = false")
 public class Animal extends BaseTimeEntity {
 
     @Id

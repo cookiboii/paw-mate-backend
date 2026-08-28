@@ -8,6 +8,8 @@ import com.kindtail.adoptmate.member.dto.MemberResponseDto;
 import com.kindtail.adoptmate.post.domain.Post;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +19,8 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Table(name = "member")
+@SQLDelete(sql = "UPDATE member SET is_deleted = true, email = CONCAT('deleted_', member_id, '_', email) WHERE member_id = ?")
+@SQLRestriction("is_deleted = false")
 @Builder
 public class Member extends BaseTimeEntity {
 

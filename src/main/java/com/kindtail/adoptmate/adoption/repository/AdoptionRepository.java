@@ -30,6 +30,10 @@ public interface AdoptionRepository extends JpaRepository<Adoption, Long> {
 
      boolean existsByAnimalIdAndMemberIdAndStatus(Long animalId, Long memberId, AdoptionStatus status);
 
+     List<Adoption> findByAnimalAndStatusAndIdNot(Animal animal, AdoptionStatus status, Long id);
+
+     boolean existsByAnimalAndStatusAndIdNot(Animal animal, AdoptionStatus status, Long id);
+
      @Override
      @EntityGraph(attributePaths = {"member", "animal"})
      Page<Adoption> findAll(Pageable pageable);

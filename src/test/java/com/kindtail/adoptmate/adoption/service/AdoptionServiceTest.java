@@ -9,6 +9,7 @@ import com.kindtail.adoptmate.adoption.repository.AdoptionRepository;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
+import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
@@ -241,13 +242,18 @@ class AdoptionServiceTest {
     }
 
     @Test
-    @DisplayName("입양 상태를 APPROVED 로 변경하면 동물 상태도 ADOPTED 로 변경된다")
+    @DisplayName("입양 상태를 APPROVED 로 변경하면 동물 상태가 ADOPTED 로 변경되고 다른 대기 신청은 자동 REJECTED 된다")
     void updateStatusToApproved() {
         // given
         Long adoptionId = 1L;
         Adoption adoption = Adoption.of(member, animal, "010-1234-5678", HousingType.APARTMENT, "없음", "신청 이유", AdoptionStatus.PENDING);
 
+        Member otherMember = Member.builder().id(2L).email("other@example.com").name("다른신청자").build();
+        Adoption otherPendingAdoption = Adoption.of(otherMember, animal, "010-9999-9999", HousingType.VILLA, "없음", "다른이유", AdoptionStatus.PENDING);
+
         given(adoptionRepository.findByIdWithFetchJoin(adoptionId)).willReturn(Optional.of(adoption));
+        given(adoptionRepository.findByAnimalAndStatusAndIdNot(animal, AdoptionStatus.PENDING, adoptionId))
+                .willReturn(List.of(otherPendingAdoption));
 
         // when
         AdoptionResponseDto response = adoptionService.updateStatus(adoptionId, AdoptionStatus.APPROVED);
@@ -255,16 +261,18 @@ class AdoptionServiceTest {
         // then
         assertThat(response.status()).isEqualTo(AdoptionStatus.APPROVED);
         assertThat(animal.getStatus()).isEqualTo(Status.ADOPTED);
+        assertThat(otherPendingAdoption.getStatus()).isEqualTo(AdoptionStatus.REJECTED);
     }
 
     @Test
-    @DisplayName("입양 상태를 REJECTED 로 변경하면 동물 상태는 PROTECTED 로 유지된다")
-    void updateStatusToRejected() {
+    @DisplayName("입양 상태를 REJECTED 로 변경 시 다른 대기 신청이 없으면 동물 상태는 PROTECTED 로 복귀한다")
+    void updateStatusToRejected_NoOtherPending() {
         // given
         Long adoptionId = 1L;
         Adoption adoption = Adoption.of(member, animal, "010-1234-5678", HousingType.APARTMENT, "없음", "신청 이유", AdoptionStatus.PENDING);
 
         given(adoptionRepository.findByIdWithFetchJoin(adoptionId)).willReturn(Optional.of(adoption));
+        given(adoptionRepository.existsByAnimalAndStatusAndIdNot(animal, AdoptionStatus.PENDING, adoptionId)).willReturn(false);
 
         // when
         AdoptionResponseDto response = adoptionService.updateStatus(adoptionId, AdoptionStatus.REJECTED);
@@ -272,6 +280,40 @@ class AdoptionServiceTest {
         // then
         assertThat(response.status()).isEqualTo(AdoptionStatus.REJECTED);
         assertThat(animal.getStatus()).isEqualTo(Status.PROTECTED);
+    }
+
+    @Test
+    @DisplayName("입양 상태를 REJECTED 로 변경 시 다른 대기 신청이 남아있으면 동물 상태는 WAITING 으로 유지된다")
+    void updateStatusToRejected_WithOtherPending() {
+        // given
+        Long adoptionId = 1L;
+        animal.updateStatus(new AnimalStatusUpdateRequest(Status.WAITING));
+        Adoption adoption = Adoption.of(member, animal, "010-1234-5678", HousingType.APARTMENT, "없음", "신청 이유", AdoptionStatus.PENDING);
+
+        given(adoptionRepository.findByIdWithFetchJoin(adoptionId)).willReturn(Optional.of(adoption));
+        given(adoptionRepository.existsByAnimalAndStatusAndIdNot(animal, AdoptionStatus.PENDING, adoptionId)).willReturn(true);
+
+        // when
+        AdoptionResponseDto response = adoptionService.updateStatus(adoptionId, AdoptionStatus.REJECTED);
+
+        // then
+        assertThat(response.status()).isEqualTo(AdoptionStatus.REJECTED);
+        assertThat(animal.getStatus()).isEqualTo(Status.WAITING);
+    }
+
+    @Test
+    @DisplayName("이미 APPROVED 또는 REJECTED 처리된 신청의 상태를 변경하려 하면 INVALID_ADOPTION_STATUS_TRANSITION 예외가 발생한다")
+    void updateStatus_AlreadyProcessed_ThrowsException() {
+        // given
+        Long adoptionId = 1L;
+        Adoption alreadyApproved = Adoption.of(member, animal, "010-1234-5678", HousingType.APARTMENT, "없음", "신청 이유", AdoptionStatus.APPROVED);
+
+        given(adoptionRepository.findByIdWithFetchJoin(adoptionId)).willReturn(Optional.of(alreadyApproved));
+
+        // when & then
+        assertThatThrownBy(() -> adoptionService.updateStatus(adoptionId, AdoptionStatus.REJECTED))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ADOPTION_STATUS_TRANSITION);
     }
 
     @Test
