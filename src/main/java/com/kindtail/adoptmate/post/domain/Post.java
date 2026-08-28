@@ -30,6 +30,9 @@ public class Post extends BaseTimeEntity {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    @Version
+    private Long version;
+
     public void updatePost(String title, String content, String image) {
         this.title = title;
         this.content = content;

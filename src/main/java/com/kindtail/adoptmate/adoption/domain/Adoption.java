@@ -61,6 +61,9 @@ public class Adoption {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String reason;           // 입양 동기 및 돌봄 계획 (각오)
 
+    @Version
+    private Long version;
+
     public static Adoption of(
             Member member,
             Animal animal,

@@ -47,6 +47,9 @@ public class Animal extends BaseTimeEntity {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    @Version
+    private Long version;
+
     public void updateStatus(AnimalStatusUpdateRequest request) {
         this.status = request.status();
     }

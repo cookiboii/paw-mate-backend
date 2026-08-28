@@ -3,7 +3,9 @@ package com.kindtail.adoptmate.member.service;
 import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
+import com.kindtail.adoptmate.common.lock.DistributedLock;
 import com.kindtail.adoptmate.member.domain.Member;
+import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.dto.*;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
@@ -71,7 +73,7 @@ public class MemberService {
         return jwtTokenProvider.createToken(member.getEmail(), member.getRole().toString());
     }
 
-    @Transactional
+    @DistributedLock(key = "'register:' + #memberRegisterRequestDto.email()")
     public Member registerMember(MemberRegisterRequestDto memberRegisterRequestDto) {
         String email = memberRegisterRequestDto.email();
         String password = memberRegisterRequestDto.password();
@@ -83,10 +85,12 @@ public class MemberService {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
+        Role role = memberRegisterRequestDto.role() != null ? memberRegisterRequestDto.role() : Role.USER;
         Member member = Member.builder()
                 .email(email)
                 .name(username)
                 .password(password)
+                .role(role)
                 .build();
         return memberRepository.save(member);
     }

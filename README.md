@@ -30,8 +30,11 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 - **Auditing**: `BaseTimeEntity` 공통 상속 (생성일시/수정일시 자동 관리)
 - **성능 최적화**: `@EntityGraph` 및 `Fetch Join`, `default_batch_fetch_size: 100` 적용 (N+1 문제 방지)
 
-### Cache & External Services
-- **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce)
+### Cache & Concurrency Control
+- **Distributed Lock**: Redisson (`RLock`, Pub/Sub 기반 분산 락)
+- **Optimistic Lock**: JPA `@Version` (엔티티 동시 수정 및 Lost Update 방지)
+- **AOP Transaction Decoupling**: 락 획득 후 트랜잭션 커밋을 보장하는 `AopForTransaction` 아키텍처
+- **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce, SSL 지원)
 - **Mail**: JavaMailSender (Gmail SMTP 이메일 인증 및 비밀번호 재설정)
 - **API Documentation**: SpringDoc OpenAPI UI (Swagger 3)
 
@@ -55,7 +58,7 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 
 ### 🏡 3. 입양 신청 관리
 - 입양 신청서 제출 (연락처, 주거 형태, 반려동물 유무, 입양 사유 등 세분화된 정보 수집)
-- 동물-회원 간 중복 입양 신청 방지 (`uniqueConstraints` 및 서비스 레벨 검증)
+- 동물-회원 간 중복 입양 신청 방지 (`uniqueConstraints`, 분산 락 및 서비스 레벨 검증)
 - 신청 접수 시 보호 동물 상태가 `WAITING(대기)`으로 자동 전환
 - **권한 기반 입양 관리**:
   - 일반 사용자: 본인이 신청한 입양 내역 조회 (`/adoptions/myAdoption`)
@@ -66,6 +69,41 @@ Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, �
 - **계층형 대댓글 구조**: 부모-자식 트리 구조로 무제한 뎁스의 답글 지원
 - **N+1 쿼리 최적화**: `@EntityGraph(attributePaths = {"member", "children", "children.member"})` 및 `@BatchSize`를 통한 쿼리 최적화
 - **작성자/관리자 인가 검증**: 게시글 및 댓글 수정·삭제 시 작성자 본인 또는 관리자만 가능하도록 철저한 검증
+
+---
+
+## 🛡️ 동시성 제어 아키텍처 (Concurrency Control)
+
+대규모 트래픽 및 동시 다중 요청 환경에서 **데이터 무결성(Data Integrity)**을 보장하기 위해 **Redisson 분산 락과 JPA 낙관적 락의 이중 방어 전략**을 구축했습니다.
+
+```mermaid
+flowchart TD
+    Req[클라이언트 동시 요청] --> DLock{"1차 방어: Redisson 분산 락 (@DistributedLock)"}
+    DLock -- 락 획득 실패 (대기 타임아웃) --> Fail[409 CONFLICT: 요청 집중 에러]
+    DLock -- 락 획득 성공 --> Tx[새 트랜잭션 시작 REQUIRES_NEW]
+    Tx --> Logic[비즈니스 로직 실행]
+    Logic --> Commit[트랜잭션 커밋]
+    Commit -- @Version 충돌 발생 시 --> OptErr["2차 방어: 낙관적 락 예외 (OptimisticLockingFailure)"]
+    Commit -- 커밋 성공 --> ReleaseLock[분산 락 안전 해제]
+    OptErr --> ReleaseLock
+    ReleaseLock --> Done[클라이언트 응답 반환]
+```
+
+### 1. 트랜잭션과 분산 락의 생명주기 분리 (`AopForTransaction`)
+* **문제 배경**: `@DistributedLock`과 `@Transactional`을 동일 메서드에 적용할 경우, **DB 커밋이 완료되기 전에 락이 먼저 해제**되어 찰나의 순간에 다른 스레드가 과거 데이터를 읽는 Race Condition이 발생합니다.
+* **해결 구조**:
+  1. `DistributedLockAop`가 Redis에서 락을 먼저 획득
+  2. 별도 트랜잭션 컴포넌트인 `AopForTransaction`이 `@Transactional(propagation = Propagation.REQUIRES_NEW)`로 로직 실행 및 **DB 커밋 완료**
+  3. 커밋 완료 후 Aspect의 `finally` 블록에서 **락 안전 해제**
+
+### 2. 주요 적용 도메인
+| 도메인 | 적용 기술 | 락 키 (SpEL) | 목적 |
+| :--- | :--- | :--- | :--- |
+| **입양 신청 (`applyAdoption`)** | Redisson 분산 락 | `'animal:' + #animalId` | 단일 보호 동물에 대한 동시 중복 신청 차단 |
+| **입양 승인/반려 (`updateStatus`)** | Redisson 분산 락 | `'adoption:' + #adoptionId` | 관리자 동시 상태 변경 시 동물 상태 갱신 손실(Lost Update) 방지 |
+| **회원 가입 (`registerMember`)** | Redisson 분산 락 | `'register:' + #dto.email()` | 동일 이메일 동시 가입 요청 시 중복 생성 및 500 에러 차단 |
+| **보호 동물/신청/게시글** | JPA 낙관적 락 (`@Version`) | `version` 컬럼 | 동시 수정 충돌 시 `409 Conflict` 감지 및 데이터 무결성 보장 |
+| **이메일 인증 시도** | Redis 원자 연산 (`INCR`) | `email_verify:attempt:{email}` | Read-Modify-Write 결함 제거로 5회 실패 차단(Brute-Force 방어) 완벽 보장 |
 
 ---
 

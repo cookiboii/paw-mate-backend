@@ -108,10 +108,11 @@ public class EmailVerificationService {
 
     private int incrementAttemptCount(String email) {
         String key = VERIFICATION_ATTEMPT_KEY + email;
-        Object obj = redisTemplate.opsForValue().get(key);
-        int count = (obj != null) ? Integer.parseInt(obj.toString()) + 1 : 1;
-        redisTemplate.opsForValue().set(key, String.valueOf(count), Duration.ofMinutes(5));
-        return count;
+        Long count = redisTemplate.opsForValue().increment(key);
+        if (count != null && count == 1L) {
+            redisTemplate.expire(key, Duration.ofMinutes(5));
+        }
+        return count != null ? count.intValue() : 1;
     }
 
     @Transactional

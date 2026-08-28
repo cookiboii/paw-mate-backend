@@ -68,6 +68,29 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 낙관적 락 충돌 예외 처리 (OptimisticLockingFailureException)
+     */
+    @ExceptionHandler({
+            org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            jakarta.persistence.OptimisticLockException.class
+    })
+    public ResponseEntity<CommonErrorDto> handleOptimisticLockException(Exception e) {
+        log.warn("OptimisticLockException occurred: {}", e.getMessage());
+        CommonErrorDto response = CommonErrorDto.of(ErrorCode.CONCURRENT_UPDATE_CONFLICT);
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * DB 데이터 무결성 위반 (Unique Constraint 등) 예외 처리
+     */
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<CommonErrorDto> handleDataIntegrityViolationException(org.springframework.dao.DataIntegrityViolationException e) {
+        log.warn("DataIntegrityViolationException occurred: {}", e.getMessage());
+        CommonErrorDto response = CommonErrorDto.of(ErrorCode.INVALID_INPUT_VALUE, "중복된 데이터가 존재하거나 제약조건을 위반했습니다.");
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
+    /**
      * 최상위 기타 예외 처리 (500 Internal Server Error)
      */
     @ExceptionHandler(Exception.class)

@@ -32,7 +32,11 @@ public enum ErrorCode {
 
     // Post & Comment
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "존재하지 않는 게시글입니다."),
-    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "CM001", "존재하지 않는 댓글입니다.");
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "CM001", "존재하지 않는 댓글입니다."),
+
+    // Lock
+    LOCK_ACQUISITION_FAILED(HttpStatus.CONFLICT, "L001", "요청이 집중되어 처리에 실패했습니다. 잠시 후 다시 시도해주세요."),
+    CONCURRENT_UPDATE_CONFLICT(HttpStatus.CONFLICT, "L002", "다른 요청에 의해 데이터가 이미 변경되었습니다. 최신 정보를 확인 후 다시 시도해주세요.");
 
     private final HttpStatus httpStatus;
     private final String code;
