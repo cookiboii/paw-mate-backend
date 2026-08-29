@@ -19,10 +19,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/animals")
 @RequiredArgsConstructor
-public class AnimalController {
+public class AnimalController implements AnimalControllerDocs {
 
     private final AnimalService animalService;
 
+    @Override
     @PostMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> adoptAnimal(@Valid @RequestBody AnimalCreateRequest animalCreateRequest) {
@@ -38,6 +39,7 @@ public class AnimalController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Override
     @GetMapping("/list")
     public ResponseEntity<CommonResDto> getAnimalList(
             @RequestParam(defaultValue = "0") int page,
@@ -47,6 +49,7 @@ public class AnimalController {
         return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "동물 목록 조회 성공", animalList));
     }
 
+    @Override
     @GetMapping("/species")
     public ResponseEntity<CommonResDto> getAnimalsBySpecies(
             @RequestParam Species species,
@@ -57,6 +60,7 @@ public class AnimalController {
         return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "종별 동물 목록 조회 성공", animalList));
     }
 
+    @Override
     @GetMapping("/{id}")
     public ResponseEntity<CommonResDto> getAnimalById(@PathVariable Long id) {
         AnimalResponse animal = animalService.getAnimal(id);
@@ -65,6 +69,7 @@ public class AnimalController {
         );
     }
 
+    @Override
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> updateAnimal(
@@ -77,6 +82,7 @@ public class AnimalController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @DeleteMapping(value = {"/{id}", "/delete/{id}"})
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> deleteAnimal(@PathVariable Long id) {

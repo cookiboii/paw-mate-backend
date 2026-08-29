@@ -17,10 +17,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/post")
 @RequiredArgsConstructor
-public class PostController {
+public class PostController implements PostControllerDocs {
 
     private final PostService postService;
 
+    @Override
     @PostMapping("/create")
     public ResponseEntity<CommonResDto> createPost(@Valid @RequestBody PostCreateRequestDto dto) {
         Post post = postService.createPost(dto);
@@ -29,6 +30,7 @@ public class PostController {
         return ResponseEntity.status(HttpStatus.CREATED).body(commonResDto);
     }
 
+    @Override
     @GetMapping("/list")
     public ResponseEntity<CommonResDto> getPostList(Pageable pageable) {
         Page<PostResponseDto> postPage = postService.getAllPosts(pageable);
@@ -36,6 +38,7 @@ public class PostController {
         return ResponseEntity.ok(commonResDto);
     }
 
+    @Override
     @GetMapping("/{postId}")
     public ResponseEntity<CommonResDto> getPostById(@PathVariable Long postId) {
         PostResponseDto post = postService.getPost(postId);
@@ -43,6 +46,7 @@ public class PostController {
         return ResponseEntity.ok(commonResDto);
     }
 
+    @Override
     @DeleteMapping("/{postId}")
     public ResponseEntity<CommonResDto> deletePostById(@PathVariable Long postId) {
         postService.deletePost(postId);
@@ -50,6 +54,7 @@ public class PostController {
         return ResponseEntity.ok(commonResDto);
     }
 
+    @Override
     @PutMapping("/{postId}")
     public ResponseEntity<CommonResDto> updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequestDto dto) {
         PostResponseDto post = postService.updatePost(postId, dto);

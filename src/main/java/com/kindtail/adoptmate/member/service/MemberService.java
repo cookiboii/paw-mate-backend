@@ -8,9 +8,9 @@ import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.dto.*;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
+import com.kindtail.adoptmate.auth.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -122,9 +122,8 @@ public class MemberService {
 
     @Transactional(readOnly = true)
     public Member getMemberInfo() {
-        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        return memberRepository.findByEmail(userInfo.getEmail())
+        String email = SecurityUtil.getCurrentUserEmail();
+        return memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
     }
 

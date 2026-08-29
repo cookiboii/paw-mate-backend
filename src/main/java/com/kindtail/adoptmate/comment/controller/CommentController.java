@@ -16,10 +16,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/comment")
 @RequiredArgsConstructor
-public class CommentController {
+public class CommentController implements CommentControllerDocs {
 
     private final CommentService commentService;
 
+    @Override
     @PostMapping("/{postId}")
     public ResponseEntity<CommonResDto> addComment(@PathVariable Long postId, @Valid @RequestBody CommentDto commentDto) {
         CommentResponseDto savedComment = commentService.addComment(postId, commentDto);
@@ -27,18 +28,21 @@ public class CommentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(commonResDto);
     }
 
+    @Override
     @GetMapping("/{postId}")
     public ResponseEntity<CommonResDto> getComments(@PathVariable Long postId) {
         List<CommentResponseDto> comments = commentService.getComments(postId);
         return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "보기성공", comments));
     }
 
+    @Override
     @DeleteMapping("/{commentId}")
     public ResponseEntity<CommonResDto> deleteComment(@PathVariable Long commentId) {
         commentService.deleteComment(commentId);
         return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "댓글삭제성공", null));
     }
 
+    @Override
     @PutMapping(value = {"/{commentId}", "/update/{commentId}"})
     public ResponseEntity<CommonResDto> updateComment(@PathVariable Long commentId, @Valid @RequestBody CommentUpdateDto dto) {
         CommentResponseDto comment = commentService.updateComment(commentId, dto);

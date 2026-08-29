@@ -13,4 +13,8 @@ public class TokenUserInfo {
 
     private String email;
     private Role role;
+
+    public boolean isAdmin() {
+        return this.role == Role.ADMIN;
+    }
 }

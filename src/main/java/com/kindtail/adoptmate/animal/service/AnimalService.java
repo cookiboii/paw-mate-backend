@@ -12,10 +12,10 @@ import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
+import com.kindtail.adoptmate.auth.SecurityUtil;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,13 +32,9 @@ public class AnimalService {
 
     @Transactional
     public Animal registerAnimal(AnimalCreateRequest animalCreateRequest) {
-        // 현재 인증된 사용자 정보 꺼내기
-        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
-
-        // 사용자 이메일로 Member 조회
-        Member member = memberRepository.findByEmail(userInfo.getEmail())
+        // 현재 인증된 사용자 이메일로 Member 조회
+        String email = SecurityUtil.getCurrentUserEmail();
+        Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         // 동물 엔티티 생성

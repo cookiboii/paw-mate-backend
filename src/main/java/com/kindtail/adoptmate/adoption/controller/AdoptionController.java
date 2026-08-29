@@ -16,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,24 +23,20 @@ import java.util.List;
 @RestController
 @RequestMapping("/adoptions")
 @RequiredArgsConstructor
-public class AdoptionController {
+public class AdoptionController implements AdoptionControllerDocs {
 
     private final AdoptionFacade adoptionFacade;
     private final AdoptionService adoptionService;
     private final MemberService memberService;
 
-    /** 입양 신청 */
+    @Override
     @PostMapping("/animals/{animalId}")
     public ResponseEntity<CommonResDto> registerAdoption(
             @PathVariable("animalId") Long animalId,
             @Valid @RequestBody AdoptionCreateRequest adoptionCreateRequest,
             @AuthenticationPrincipal TokenUserInfo userInfo
     ) {
-        String email = userInfo != null ? userInfo.getEmail() :
-                ((TokenUserInfo) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getEmail();
-
-        Long memberId = memberService.getMemberIdByEmail(email);
-
+        Long memberId = memberService.getMemberIdByEmail(userInfo.getEmail());
         AdoptionResponseDto adoptionResponse = adoptionFacade.applyAdoption(adoptionCreateRequest, memberId, animalId);
 
         CommonResDto response = new CommonResDto(
@@ -53,15 +48,10 @@ public class AdoptionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /** 내 입양 내역 */
+    @Override
     @GetMapping("/myAdoption")
-    public ResponseEntity<CommonResDto> myAdoption(
-            @AuthenticationPrincipal TokenUserInfo userInfo
-    ) {
-        String email = userInfo != null ? userInfo.getEmail() :
-                ((TokenUserInfo) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getEmail();
-        Long memberId = memberService.getMemberIdByEmail(email);
-
+    public ResponseEntity<CommonResDto> myAdoption(@AuthenticationPrincipal TokenUserInfo userInfo) {
+        Long memberId = memberService.getMemberIdByEmail(userInfo.getEmail());
         List<AdoptionResponseDto> adoptions = adoptionService.getAdoptions(memberId);
 
         CommonResDto response = new CommonResDto(
@@ -73,7 +63,7 @@ public class AdoptionController {
         return ResponseEntity.ok(response);
     }
 
-    /** 전체 입양 내역 (관리자 전용) */
+    @Override
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> allAdoptions() {
@@ -82,7 +72,7 @@ public class AdoptionController {
         return ResponseEntity.ok(response);
     }
 
-    /** 전체 입양 내역 페이징 (관리자 전용) */
+    @Override
     @GetMapping("/list")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> getAdoptionList(Pageable pageable) {
@@ -90,7 +80,7 @@ public class AdoptionController {
         return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "전체 입양 목록 조회 성공", adoptions));
     }
 
-    /** 입양 상태 변경 (관리자 전용) */
+    @Override
     @PutMapping("/{adoptionId}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> updateStatus(

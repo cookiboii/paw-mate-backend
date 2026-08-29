@@ -1,5 +1,6 @@
 package com.kindtail.adoptmate.comment.service;
 
+import com.kindtail.adoptmate.auth.SecurityUtil;
 import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.comment.domain.Comment;
 import com.kindtail.adoptmate.comment.dto.CommentDto;
@@ -9,12 +10,10 @@ import com.kindtail.adoptmate.comment.repository.CommentRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
-import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.post.domain.Post;
 import com.kindtail.adoptmate.post.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,10 +30,7 @@ public class CommentService {
 
     @Transactional
     public CommentResponseDto addComment(Long id, CommentDto commentDto) {
-        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
-        String email = userInfo.getEmail();
+        String email = SecurityUtil.getCurrentUserEmail();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
         Post post = postRepository.findById(id)
@@ -68,39 +64,23 @@ public class CommentService {
 
     @Transactional
     public void deleteComment(Long id) {
-        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
+        TokenUserInfo userInfo = SecurityUtil.getCurrentUserInfo();
 
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
 
-        boolean isAuthor = comment.getMember().getEmail().equals(userInfo.getEmail());
-        boolean isAdmin = userInfo.getRole() == Role.ADMIN || "ADMIN".equals(userInfo.getRole().name());
-
-        if (!isAuthor && !isAdmin) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED_AUTHOR);
-        }
-
+        comment.validateAuthorOrAdmin(userInfo);
         commentRepository.delete(comment);
     }
 
     @Transactional
     public CommentResponseDto updateComment(Long commentId, CommentUpdateDto dto) {
-        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
+        TokenUserInfo userInfo = SecurityUtil.getCurrentUserInfo();
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
 
-        boolean isAuthor = comment.getMember().getEmail().equals(userInfo.getEmail());
-        boolean isAdmin = userInfo.getRole() == Role.ADMIN || "ADMIN".equals(userInfo.getRole().name());
-
-        if (!isAuthor && !isAdmin) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED_AUTHOR);
-        }
-
+        comment.validateAuthorOrAdmin(userInfo);
         comment.updateComment(dto.content());
         return CommentResponseDto.fromComment(comment);
     }

@@ -15,8 +15,10 @@
 - **Config Management**: Dotenv (`io.github.cdimascio:dotenv-java 3.0.0`) 기반 `.env` 환경변수 자동 로드
 
 ### Security & Authentication
-- **Security**: Spring Security (Method Security `@PreAuthorize`, `@AuthenticationPrincipal` 적용)
-- **OAuth2**: Spring Security OAuth2 Client (Kakao) & 카카오 소셜 계정 자동 연동 (Link Account)
+- **Security**: Spring Security 6+ (Method Security `@PreAuthorize`, `@AuthenticationPrincipal` 적용)
+- **CORS**: Spring Security 필터 체인 레벨 `CorsConfigurationSource` 표준 빈 등록 (Preflight & 에러 응답 헤더 보장)
+- **Security Utilities**: `SecurityUtil` (NPE 및 ClassCastException 방어, `resolveToken` 토큰 추출 공통화)
+- **OAuth2**: Spring Security OAuth2 Client (Kakao) & `OAuthResponseUtil` 팝업 연동 템플릿 통합
 - **Token**: JWT (`jjwt 0.11.5` HMAC-SHA512), Redis 기반 Refresh Token 관리 및 Blacklist 로그아웃 / 탈퇴 무효화
 - **Password**: BCryptPasswordEncoder
 
@@ -27,15 +29,16 @@
   - `BaseTimeEntity` 공통 상속 (생성일시/수정일시 및 `is_deleted` 자동 관리)
   - Hibernate 6 `@SQLDelete` & `@SQLRestriction("is_deleted = false")` 적용 (데이터 이력 영구 보존 및 FK 무결성 보장)
 - **쿼리 성능 최적화**: `@EntityGraph` 및 `Fetch Join`, `default_batch_fetch_size: 100` 적용 (N+1 문제 원천 차단)
+- **객체지향 설계**: **Tell, Don't Ask** 원칙에 따른 `Post`/`Comment` 도메인 엔티티 내 `validateAuthorOrAdmin(userInfo)` 권한 캡슐화
 
 ### Cache & Concurrency Control
 - **Distributed Lock**: Redisson (`RLock`, Pub/Sub 기반 분산 락)
 - **Lock Architecture**: `Facade` 및 `DistributedLockTemplate` 패턴 (락 라이프사이클과 DB 트랜잭션의 관심사 완전 분리)
 - **Optimistic Lock**: JPA `@Version` (엔티티 동시 수정 및 Lost Update 방지)
 - **State Machine**: 입양 상태 전이 유효성 검증 및 다중 신청 연쇄 처리 (승인 시 타 신청 자동 반려)
-- **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce, SSL 지원)
+- **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce 최신 클라이언트 구성, JSON/Hash 직렬화, SSL 지원)
 - **Mail**: JavaMailSender (Gmail SMTP 이메일 인증 및 비밀번호 재설정)
-- **API Documentation**: SpringDoc OpenAPI UI (Swagger 3)
+- **API Documentation**: SpringDoc OpenAPI UI (Swagger 3) + **Swagger Docs Interface 분리 패턴** (`*Docs.java`)
 
 ---
 
@@ -44,40 +47,66 @@
 ```
 com.kindtail.adoptmate
 ├── 📂 adoption         # 입양 신청, 상태 머신, 승인/반려 (Facade & 분산 락)
+│   ├── controller      # AdoptionController & AdoptionControllerDocs (인터페이스 분리)
+│   ├── domain          # Adoption, AdoptionStatus (상태 머신), HousingType
+│   ├── dto             # 입양 신청/응답 DTO
+│   ├── facade          # AdoptionFacade (Redisson 분산 락 & 트랜잭션 분리)
+│   ├── repository      # AdoptionRepository
+│   └── service         # AdoptionService (입양 심사 및 연쇄 상태 전이 비즈니스 로직)
 ├── 📂 animal           # 보호 동물 등록, 조회, 종별 필터링
-├── 📂 auth             # JWT 토큰 생성/검증, OAuth2 소셜 로그인, 시큐리티 필터
+│   ├── controller      # AnimalController & AnimalControllerDocs
+│   ├── domain          # Animal, Species, Status, Gender
+│   └── service         # AnimalService (SecurityUtil 기반 안전한 인증 정보 조회)
+├── 📂 auth             # JWT 토큰 생성/검증, OAuth2 소셜 로그인, 시큐리티 필터 & 유틸리티
+│   ├── JwtAuthFilter   # Bearer 토큰 추출 및 SecurityContext 인증 주입
+│   ├── JwtTokenProvider# Access/Refresh Token 발급 및 검증 (HMAC-SHA512)
+│   ├── SecurityUtil    # [신규] Null-Safe 사용자 정보 조회 및 resolveToken 토큰 파싱
+│   ├── OAuthResponseUtil # [신규] 소셜 로그인 팝업 postMessage HTML 생성 공통 유틸
+│   └── OAuth2SuccessHandler # 카카오/OAuth2 로그인 성공 시 Redis 토큰 보관 및 팝업 응답
 ├── 📂 comment          # 계층형 대댓글 (부모-자식 트리 구조)
-├── 📂 common           # 공통 응답 DTO, 예외 처리, 분산 락 템플릿, BaseTimeEntity
-├── 📂 config           # Security, Redis, Swagger, Email, WebConfig
+│   ├── controller      # CommentController & CommentControllerDocs
+│   ├── domain          # Comment (validateAuthorOrAdmin 도메인 메서드 캡슐화)
+│   └── service         # CommentService
+├── 📂 common           # 공통 응답 DTO, 글로벌 예외 처리기, 분산 락 템플릿, BaseTimeEntity
+│   ├── controller      # EmailVerificationController, KakaoAuthController & Docs
+│   ├── exception       # GlobalExceptionHandler (401, 403, @Valid 필드 상세화, 409, 413)
+│   └── lock            # DistributedLockTemplate (Redisson 분산 락 실행기)
+├── 📂 config           # SecurityConfig, RedisConfig, SwaggerConfig, CorsConfig
 ├── 📂 member           # 회원가입, 로그인, 정보 조회, 이메일 인증, 회원 탈퇴
-└── 📂 post             # 커뮤니티 게시글 CRUD 및 페이징
+└── 📂 post             # 커뮤니티 게시글 CRUD 및 페이징 (validateAuthorOrAdmin 적용)
 ```
 
 ---
 
-## 🚀 주요 기능 및 핵심 비즈니스 로직
+## 🚀 주요 기능 및 핵심 아키텍처
 
-### 🔐 1. 인증 및 회원 관리
-- **JWT 기반 무상태(Stateless) 인증**: Access Token(1시간)과 Refresh Token(7일) 기반의 보안 아키텍처
+### 🔐 1. 인증 & 보안 아키텍처 (Spring Security & JWT)
+- **JWT 무상태(Stateless) 인증**: Access Token(1시간)과 Refresh Token(7일) 기반의 보안 아키텍처
 - **Redis 연동 토큰 관리 & 철저한 무효화**:
   - 사용자별 Refresh Token을 Redis에 보관하여 토큰 갱신 지원
   - 로그아웃 및 **회원 탈퇴 시** Access Token 잔여 시간만큼 Blacklist에 등록하여 탈취된 토큰 즉시 무효화
+- **`SecurityUtil`을 통한 Null-Safe 보안 컨텍스트 접근**:
+  - `SecurityUtil.getCurrentUserInfo()`, `SecurityUtil.getCurrentUserEmail()`로 서비스단에서 `NPE`나 `ClassCastException` 없이 안전하게 인증 정보 획득
+  - `SecurityUtil.resolveToken(request)`으로 컨트롤러와 필터에 흩어져 있던 `Bearer ` 헤더 추출 로직 일원화
 - **이메일 인증 시스템**: 6자리 난수 코드를 Redis에 3분간 캐싱하여 검증 (5회 실패 시 30분 차단)
-- **비밀번호 재설정 & 변경**:
-  - 미로그인 회원: 이메일 인증 확인 토큰 기반의 안전한 2단계 비밀번호 변경 (`PATCH /adoptmate/password`)
-  - 로그인 회원: 현재 비밀번호 검증 기반 안전 변경 (`POST /adoptmate/password`, 응답에 평문 비밀번호 노출 원천 차단)
 - **카카오 OAuth2 소셜 로그인 & 계정 자동 연동**:
   - 표준 OAuth2 Authorization Code Grant 방식으로 사용자 정보 연동
   - 기존 일반 이메일 가입 유저가 카카오 로그인 시 `socialProvider` 및 `socialId` 자동 연동 (중복 키 에러 방지)
+  - `OAuthResponseUtil`을 통한 팝업 postMessage 응답 템플릿 통합
 - **안전한 논리 삭제(Soft Delete)**: 회원 탈퇴 시 기존 작성 글/입양 이력 보존 및 이메일 유니크 인덱스 충돌 방지 (`email = CONCAT('deleted_', id, '_', email)`)
-- **`@AuthenticationPrincipal` 표준 주입**: 컨트롤러에서 인증 객체를 안전하고 Type-safe하게 주입받아 비즈니스 계층에 전달
+- **`@AuthenticationPrincipal` 표준 주입**: 컨트롤러에서 `TokenUserInfo`를 Type-safe하게 주입받아 사용
 
-### 🐶 2. 보호 동물 관리
+### 📖 2. Swagger Docs Interface 분리 패턴 (관심사 분리)
+- 컨트롤러 코드에서 방대한 Swagger/OpenAPI 어노테이션(`@Tag`, `@Operation`, `@ApiResponses`, `@Parameter`)을 전용 인터페이스(`*Docs.java`)로 완전히 분리
+- 실제 `Controller`는 인터페이스를 `implements`하여 **순수 비즈니스 라우팅 로직만 30~50줄 내외로 유지**
+- **Swagger UI JWT Bearer 인증 연동 (`SwaggerConfig.java`)**: `http://localhost:8000/swagger-ui/index.html` 상단에 `Authorize 🔒` 버튼을 제공하여 토큰 입력 후 모든 보안 API를 UI에서 바로 테스트 가능
+
+### 🐶 3. 보호 동물 관리
 - 보호 동물 등록, 상세 조회 및 페이징 목록 조회 (기본 `page=0, size=10` 안전 폴백)
 - 종별(강아지/고양이/기타) 필터링 조회
 - 보호 상태 변경(`PROTECTED` ➡️ `WAITING` ➡️ `ADOPTED`) 및 안전한 논리 삭제 (관리자 권한 `@PreAuthorize("hasRole('ADMIN')")` 제어)
 
-### 🏡 3. 입양 신청 & 상태 머신 관리
+### 🏡 4. 입양 신청 & 상태 머신 관리
 - 입양 신청서 제출 (연락처, 주거 형태, 반려동물 유무, 입양 사유 등 세분화된 정보 수집)
 - 동물-회원 간 중복 입양 신청 방지 (`uniqueConstraints`, 분산 락 및 서비스 레벨 검증)
 - 신청 접수 시 보호 동물 상태가 `WAITING(대기)`으로 자동 전환
@@ -86,15 +115,18 @@ com.kindtail.adoptmate
   - **승인(`APPROVED`) 시 연쇄 처리**: 동물 상태를 `ADOPTED`로 갱신하고, 동일 동물에 대한 타 신청건들을 자동으로 `REJECTED`(반려) 처리
   - **반려(`REJECTED`) 시 스마트 복구**: 잔여 대기자 유무를 파악하여 대기자가 없으면 `PROTECTED`(입양 가능)로 복귀, 대기자가 남아있으면 `WAITING` 유지
 - **동물 단위 락 동기화 (`animal:{id}`)**: 신청 접수뿐만 아니라 심사 승인/반려 시에도 동일 동물 기준 분산 락을 획득하여 연쇄 반려의 데이터 무결성 보장
-- **권한 기반 입양 관리**:
-  - 일반 사용자: 본인이 신청한 입양 내역 조회 (`/adoptions/myAdoption`)
-  - 관리자: 전체 입양 신청 내역 조회 및 상태 심사/승인/반려 (`/adoptions/all`, `/adoptions/list`, `/adoptions/{id}/status`)
 
-### 💬 4. 커뮤니티 & 계층형 대댓글
+### 💬 5. 커뮤니티 & 계층형 대댓글
 - 입양 후기 및 자유 게시글 작성, 페이징 목록 조회, 상세 조회, 수정, 삭제
 - **계층형 대댓글 구조**: 부모-자식 트리 구조로 무제한 뎁스의 답글 지원
 - **N+1 쿼리 최적화**: `@EntityGraph(attributePaths = {"member", "children", "children.member"})` 및 `@BatchSize`를 통한 쿼리 최적화
-- **작성자/관리자 인가 검증**: 게시글 및 댓글 수정·삭제 시 작성자 본인 또는 관리자만 가능하도록 철저한 검증
+- **Tell, Don't Ask 객체지향 권한 검증**: `post.validateAuthorOrAdmin(userInfo)`, `comment.validateAuthorOrAdmin(userInfo)` 도메인 메서드를 통해 작성자 본인 또는 관리자만 수정/삭제 가능하도록 캡슐화
+
+### 🚨 6. 전역 예외 처리 고도화 (`GlobalExceptionHandler`)
+- `AccessDeniedException (403)` / `AuthenticationException (401)`: 보안 인가 실패 시 일관된 표준 JSON 에러 반환
+- `MethodArgumentNotValidException (400)`: `@Valid` 실패 시 `[email] 이메일 형식이 올바르지 않습니다.` 형태로 구체적 필드명 명시
+- `MaxUploadSizeExceededException (413)`: 파일 업로드 10MB 초과 시 친절한 안내 메시지 반환
+- `OptimisticLockingFailureException (409)`: 데이터 동시 수정 충돌 시 안전한 안내 반환
 
 ---
 
@@ -118,21 +150,13 @@ flowchart TD
 ```
 
 ### 1. 트랜잭션과 분산 락의 생명주기 및 관심사 분리 (`Facade & DistributedLockTemplate`)
-* **문제 배경**: AOP 기반 락 적용 시 발생할 수 있는 DB 커넥션 점유 낭비, SpEL 파싱 런타임 위험, AOP 프록시 내부 호출 제약을 방지하고 계층별 책임을 명확히 분리합니다.
-* **해결 구조**:
-  1. **Facade 계층**(`AdoptionFacade`, `MemberFacade`)에서 `DistributedLockTemplate`을 통해 Redis 분산 락을 먼저 획득 (DB 커넥션 미사용)
-  2. 락 획득 성공 후 **Service 계층**(`@Transactional`)으로 진입하여 DB 트랜잭션 시작 및 비즈니스 로직 수행
-  3. Service 메서드 종료와 함께 **DB 트랜잭션 커밋 완료 & 커넥션 즉시 반납**
-  4. Template의 `finally` 블록에서 **Redis 분산 락 안전 해제**
-  👉 **락 대기 시간 동안 DB 커넥션 풀을 낭비하지 않으며, 트랜잭션 커밋 후 락 해제를 완벽하게 보장**합니다.
+1. **Facade 계층**(`AdoptionFacade`, `MemberFacade`)에서 `DistributedLockTemplate`을 통해 Redis 분산 락을 먼저 획득 (DB 커넥션 미사용)
+2. 락 획득 성공 후 **Service 계층**(`@Transactional`)으로 진입하여 DB 트랜잭션 시작 및 비즈니스 로직 수행
+3. Service 메서드 종료와 함께 **DB 트랜잭션 커밋 완료 & 커넥션 즉시 반납**
+4. Template의 `finally` 블록에서 **Redis 분산 락 안전 해제**
+👉 **락 대기 시간 동안 DB 커넥션 풀을 낭비하지 않으며, 트랜잭션 커밋 후 락 해제를 완벽하게 보장**합니다.
 
-### 2. 데이터 무결성을 위한 논리 삭제 (Soft Delete) 전략
-* **외래키 제약조건 보호**: 회원 탈퇴나 동물/게시글 삭제 시 물리 행을 삭제하지 않고 `@SQLDelete`로 `is_deleted = true` 처리하여 기존 입양 이력과의 외래키(FK) 무결성 유지
-* **연쇄 삭제 충돌 방지**: 부모 엔티티 삭제 시 불필요한 `CascadeType.REMOVE` 연쇄 쿼리를 제거하여 데이터 이력 보존
-* **자동 필터링**: Hibernate 6 `@SQLRestriction("is_deleted = false")`를 적용하여 모든 서비스 쿼리에서 삭제된 데이터 자동 제외
-* **유니크 인덱스 충돌 방지**: 회원 탈퇴 시 `email`에 `deleted_{id}_` prefix를 부여하여 탈퇴 회원의 이메일로 재가입 허용
-
-### 3. 주요 적용 도메인
+### 2. 주요 적용 도메인
 | 도메인 | 적용 기술 / 계층 | 락 키 (Type-safe) / 정책 | 목적 |
 | :--- | :--- | :--- | :--- |
 | **입양 신청 (`applyAdoption`)** | `AdoptionFacade` + Redisson 락 | `'animal:' + animalId` | 단일 보호 동물에 대한 동시 중복 신청 차단 |
@@ -194,13 +218,17 @@ CLIENT_URL=http://localhost:5173
 ./gradlew bootRun
 ```
 
-### 3. Docker Compose 실행
+### 3. Swagger UI 접속
+서버 실행 후 브라우저에서 아래 주소로 접속하여 API를 실시간으로 테스트할 수 있습니다:
+- **Swagger UI**: `http://localhost:8000/swagger-ui/index.html` (상단 `Authorize 🔒` 버튼에 JWT 토큰 입력 지원)
+
+### 4. Docker Compose 실행
 ```bash
 # 전체 컨테이너(MySQL, Redis, Backend) 빌드 및 실행
 docker compose up -d --build
 ```
 
-### 4. 전체 테스트 실행 (142 Tests)
+### 5. 전체 테스트 실행 (142 Tests 100% 통과)
 ```bash
 ./gradlew test
 ```
@@ -216,12 +244,20 @@ docker compose up -d --build
 ## 📋 REST API 명세서
 
 ### 📦 공통 응답 포맷 (`CommonResDto`)
-
 ```json
 {
   "statusCode": 200,
   "statusMessage": "성공 메시지",
   "result": { ... }
+}
+```
+
+### 🚨 공통 에러 포맷 (`CommonErrorDto`)
+```json
+{
+  "statusCode": 400,
+  "code": "C001",
+  "statusMessage": "[email] 유효하지 않은 이메일 형식입니다."
 }
 ```
 

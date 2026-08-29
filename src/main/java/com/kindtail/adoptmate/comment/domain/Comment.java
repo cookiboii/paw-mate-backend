@@ -1,6 +1,9 @@
 package com.kindtail.adoptmate.comment.domain;
 
+import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.domain.BaseTimeEntity;
+import com.kindtail.adoptmate.common.exception.CustomException;
+import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.post.domain.Post;
 import jakarta.persistence.*;
@@ -54,5 +57,20 @@ public class Comment extends BaseTimeEntity {
 
     public LocalDateTime getCreationDate() {
         return getCreatedAt();
+    }
+
+    /**
+     * 작성자 본인 또는 관리자 권한 검증 (Tell, Don't Ask)
+     */
+    public void validateAuthorOrAdmin(TokenUserInfo userInfo) {
+        if (userInfo == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        boolean isAuthor = this.member != null && this.member.getEmail().equals(userInfo.getEmail());
+        boolean isAdmin = userInfo.isAdmin();
+
+        if (!isAuthor && !isAdmin) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED_AUTHOR);
+        }
     }
 }
