@@ -10,11 +10,18 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // url 경로설정
-                .allowedOrigins("http://localhost:5173", "https://paw-mate-frontend.vercel.app") // localhost:5173 및 Github Pages 허용
-                .allowedMethods("*") // 요청방식 허용 여부 (GET, POST...)
-                .allowedHeaders("*") // 헤더 정보 허용 여부
-                .allowCredentials(true); // 인증 정보(JWT)를 포함한 요청을 허용할 것인가
+        registry.addMapping("/**")
+                .allowedOriginPatterns(
+                        "http://localhost:*",
+                        "https://localhost:*",
+                        "https://*.vercel.app",
+                        "https://paw-mate-frontend.vercel.app"
+                )
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD")
+                .allowedHeaders("*")
+                .exposedHeaders("Authorization", "Set-Cookie")
+                .allowCredentials(true)
+                .maxAge(3600);
     }
 
 
