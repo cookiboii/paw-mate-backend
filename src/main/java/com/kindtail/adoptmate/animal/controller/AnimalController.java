@@ -39,7 +39,10 @@ public class AnimalController {
     }
 
     @GetMapping("/list")
-    public ResponseEntity<CommonResDto> getAnimalList(@RequestParam int page, @RequestParam int size) {
+    public ResponseEntity<CommonResDto> getAnimalList(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
         Page<AnimalResponse> animalList = animalService.getAllAnimals(PageRequest.of(page, size));
         return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "동물 목록 조회 성공", animalList));
     }
@@ -47,8 +50,8 @@ public class AnimalController {
     @GetMapping("/species")
     public ResponseEntity<CommonResDto> getAnimalsBySpecies(
             @RequestParam Species species,
-            @RequestParam int page,
-            @RequestParam int size
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
         Page<AnimalResponse> animalList = animalService.getAnimalsBySpecies(species, PageRequest.of(page, size));
         return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "종별 동물 목록 조회 성공", animalList));
@@ -74,7 +77,7 @@ public class AnimalController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping(value = {"/{id}", "/delete/{id}"})
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> deleteAnimal(@PathVariable Long id) {
         animalService.deleteAnimal(id);

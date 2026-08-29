@@ -43,18 +43,9 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_HOST: svc.sel3.cloudtype.app
-      DB_PORT: 31603
-      DB_NAME: adoptpet_db
-      DB_USERNAME: adoptmate
-      DB_PASSWORD: adoptmate
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+    env_file:
+      - .env
     depends_on:
-      mysql:
-        condition: service_healthy
       redis:
         condition: service_healthy
 

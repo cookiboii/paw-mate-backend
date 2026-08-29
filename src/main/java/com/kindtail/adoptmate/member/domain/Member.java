@@ -53,19 +53,19 @@ public class Member extends BaseTimeEntity {
     private String socialProvider;
 
     @Builder.Default
-    @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "member")
     private List<Animal> animals = new ArrayList<>();
 
     @Builder.Default
-    @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "member")
     private List<Post> posts = new ArrayList<>();
 
     @Builder.Default
-    @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "member")
     private List<Adoption> adoptions = new ArrayList<>();
 
     @Builder.Default
-    @OneToMany(mappedBy = "member", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "member")
     private List<Comment> comments = new ArrayList<>();
 
     public Member(String email, String password, String name, Role role) {
@@ -77,6 +77,14 @@ public class Member extends BaseTimeEntity {
 
     public void updatePassword(String password) {
         this.password = password;
+    }
+
+    public void updateSocialInfo(String socialProvider, String socialId, String profileImage) {
+        this.socialProvider = socialProvider;
+        this.socialId = socialId;
+        if (profileImage != null && !profileImage.isBlank()) {
+            this.profileImage = profileImage;
+        }
     }
 
     public MemberResponseDto toDto() {

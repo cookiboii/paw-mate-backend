@@ -112,8 +112,7 @@ class AdoptionRepositoryTest {
     @DisplayName("Fetch Join 으로 입양 신청과 회원, 동물 정보를 함께 조회할 수 있다")
     void findByIdWithFetchJoin() {
         // given
-        Adoption adoption = Adoption.of(member, animal, "인터뷰", AdoptionStatus.PENDING);
-        adoptionRepository.save(adoption);
+        Adoption adoption = adoptionRepository.save(Adoption.of(member, animal, "인터뷰", AdoptionStatus.PENDING));
         entityManager.flush();
         entityManager.clear();
 

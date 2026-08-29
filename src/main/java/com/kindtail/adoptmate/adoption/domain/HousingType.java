@@ -5,5 +5,5 @@ public enum HousingType {
     DETACHED_HOUSE,
     VILLA,
     ONE_ROOM,
-    ETC;
+    ETC
 }

@@ -39,7 +39,7 @@ public class CommentController {
         return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "댓글삭제성공", null));
     }
 
-    @PutMapping("/update/{commentId}")
+    @PutMapping(value = {"/{commentId}", "/update/{commentId}"})
     public ResponseEntity<CommonResDto> updateComment(@PathVariable Long commentId, @Valid @RequestBody CommentUpdateDto dto) {
         CommentResponseDto comment = commentService.updateComment(commentId, dto);
         CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "수정성공", comment);

@@ -135,9 +135,22 @@ public class MemberService {
 
     @Transactional
     public void deleteUser(String email) {
+        deleteUser(email, null);
+    }
+
+    @Transactional
+    public void deleteUser(String email, String accessToken) {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
         memberRepository.delete(member);
+
+        // Redis RefreshToken 삭제
+        redisTemplate.delete("refreshToken:" + email);
+
+        // AccessToken Blacklist 등록
+        if (accessToken != null && !accessToken.isBlank()) {
+            logout(accessToken);
+        }
     }
 
     @Transactional

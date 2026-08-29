@@ -78,21 +78,37 @@ public class KakaoOAuthService {
 
     @Transactional
     public MemberResponseDto findOrCreateKakaoUser(KakaoUserDto kakaoUser) {
-        Optional<Member> existingUser = memberRepository.findBySocialProviderAndSocialId("KAKAO", kakaoUser.id().toString());
+        String socialId = kakaoUser.id().toString();
+        String email = (kakaoUser.kakaoAccount() != null && kakaoUser.kakaoAccount().email() != null)
+                ? kakaoUser.kakaoAccount().email()
+                : "kakao_" + socialId + "@social.com";
+        String nickname = (kakaoUser.properties() != null && kakaoUser.properties().nickname() != null)
+                ? kakaoUser.properties().nickname()
+                : "카카오사용자_" + socialId;
+        String profileImage = kakaoUser.properties() != null ? kakaoUser.properties().profileImage() : null;
+
+        Optional<Member> existingUser = memberRepository.findBySocialProviderAndSocialId("KAKAO", socialId);
         if (existingUser.isPresent()) {
             return existingUser.get().toDto();
-        } else {
-            Member member = Member.builder()
-                    .name(kakaoUser.properties().nickname())
-                    .email(kakaoUser.kakaoAccount().email())
-                    .profileImage(kakaoUser.properties().profileImage())
-                    .socialId(kakaoUser.id().toString())
-                    .socialProvider("KAKAO")
-                    .role(Role.USER)
-                    .password(null)
-                    .build();
-
-            return memberRepository.save(member).toDto();
         }
+
+        Optional<Member> emailUser = memberRepository.findByEmail(email);
+        if (emailUser.isPresent()) {
+            Member member = emailUser.get();
+            member.updateSocialInfo("KAKAO", socialId, profileImage);
+            return member.toDto();
+        }
+
+        Member member = Member.builder()
+                .name(nickname)
+                .email(email)
+                .profileImage(profileImage)
+                .socialId(socialId)
+                .socialProvider("KAKAO")
+                .role(Role.USER)
+                .password(null)
+                .build();
+
+        return memberRepository.save(member).toDto();
     }
 }

@@ -144,8 +144,8 @@ class AnimalServiceTest {
 
         // when & then
         assertThatThrownBy(() -> animalService.registerAnimal(request))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("User not found!");
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
     }
 
     @Test

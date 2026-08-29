@@ -35,8 +35,9 @@ public class Post extends BaseTimeEntity {
     private Member member;
 
     @Version
+    @Builder.Default
     @Column(columnDefinition = "BIGINT DEFAULT 0")
-    private Long version= 0L;
+    private Long version = 0L;
 
     public void updatePost(String title, String content, String image) {
         this.title = title;

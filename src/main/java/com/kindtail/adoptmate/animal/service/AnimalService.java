@@ -39,7 +39,7 @@ public class AnimalService {
 
         // 사용자 이메일로 Member 조회
         Member member = memberRepository.findByEmail(userInfo.getEmail())
-                .orElseThrow(() -> new EntityNotFoundException("User not found!"));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         // 동물 엔티티 생성
         Animal animal = Animal.builder()

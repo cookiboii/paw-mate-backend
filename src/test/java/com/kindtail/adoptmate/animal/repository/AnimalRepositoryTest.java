@@ -40,7 +40,7 @@ class AnimalRepositoryTest {
                 .name("테스트 사용자")
                 .role(Role.USER)
                 .build();
-        memberRepository.save(testMember);
+        testMember = memberRepository.save(testMember);
     }
 
     @Test
@@ -79,10 +79,10 @@ class AnimalRepositoryTest {
                 .age(2L)
                 .member(testMember)
                 .build();
-        animalRepository.save(animal);
+        Animal savedAnimal = animalRepository.save(animal);
 
         // when
-        Optional<Animal> foundAnimal = animalRepository.findById(animal.getId());
+        Optional<Animal> foundAnimal = animalRepository.findById(savedAnimal.getId());
 
         // then
         assertThat(foundAnimal).isPresent();

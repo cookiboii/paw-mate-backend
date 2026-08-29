@@ -4,6 +4,7 @@ import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
 import com.kindtail.adoptmate.adoption.domain.HousingType;
 import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
 import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
+import com.kindtail.adoptmate.adoption.repository.AdoptionRepository;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
 import com.kindtail.adoptmate.common.lock.DistributedLockTemplate;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +31,9 @@ class AdoptionFacadeTest {
 
     @Mock
     private AdoptionService adoptionService;
+
+    @Mock
+    private AdoptionRepository adoptionRepository;
 
     @InjectMocks
     private AdoptionFacade adoptionFacade;
@@ -67,18 +71,28 @@ class AdoptionFacadeTest {
     }
 
     @Test
-    @DisplayName("입양 상태 변경 시 adoptionId 기반으로 분산 락 템플릿을 호출한다")
+    @DisplayName("입양 상태 변경 시 animalId 기반으로 분산 락 템플릿을 호출한다")
     @SuppressWarnings("unchecked")
     void updateStatus_CallsLockTemplate() {
         // given
         Long adoptionId = 5L;
+        Long animalId = 10L;
         AdoptionResponseDto expectedResponse = new AdoptionResponseDto(
-                adoptionId, 1L, "말티즈", "image.jpg", "신청자",
+                adoptionId, animalId, "말티즈", "image.jpg", "신청자",
                 "010-1234-5678", HousingType.APARTMENT, "없음", "이유",
                 AdoptionStatus.APPROVED, LocalDateTime.now()
         );
 
-        given(distributedLockTemplate.execute(eq("adoption:5"), any(Supplier.class)))
+        com.kindtail.adoptmate.animal.domain.Animal animal = com.kindtail.adoptmate.animal.domain.Animal.builder()
+                .id(animalId)
+                .build();
+        com.kindtail.adoptmate.adoption.domain.Adoption adoption = com.kindtail.adoptmate.adoption.domain.Adoption.builder()
+                .id(adoptionId)
+                .animal(animal)
+                .build();
+
+        given(adoptionRepository.findById(adoptionId)).willReturn(java.util.Optional.of(adoption));
+        given(distributedLockTemplate.execute(eq("animal:10"), any(Supplier.class)))
                 .willAnswer(invocation -> {
                     Supplier<AdoptionResponseDto> supplier = invocation.getArgument(1);
                     return supplier.get();
@@ -90,7 +104,7 @@ class AdoptionFacadeTest {
 
         // then
         assertThat(result).isEqualTo(expectedResponse);
-        verify(distributedLockTemplate).execute(eq("adoption:5"), any(Supplier.class));
+        verify(distributedLockTemplate).execute(eq("animal:10"), any(Supplier.class));
         verify(adoptionService).updateStatus(adoptionId, AdoptionStatus.APPROVED);
     }
 }

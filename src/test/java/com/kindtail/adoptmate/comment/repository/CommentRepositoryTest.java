@@ -40,14 +40,14 @@ class CommentRepositoryTest {
                 .name("사용자")
                 .role(Role.USER)
                 .build();
-        memberRepository.save(member);
+        member = memberRepository.save(member);
 
         post = Post.builder()
                 .title("게시글 제목")
                 .content("게시글 내용")
                 .member(member)
                 .build();
-        postRepository.save(post);
+        post = postRepository.save(post);
     }
 
     @Test

@@ -216,7 +216,7 @@ class MemberControllerTest {
     @DisplayName("회원을 탈퇴할 수 있다")
     void deleteMember_성공 () throws Exception {
         // given
-        doNothing().when(memberService).deleteUser(any(String.class));
+        doNothing().when(memberService).deleteUser(any(String.class), ArgumentMatchers.nullable(String.class));
 
         // when
         ResultActions resultActions = mockMvc.perform(delete("/adoptmate/delete"));

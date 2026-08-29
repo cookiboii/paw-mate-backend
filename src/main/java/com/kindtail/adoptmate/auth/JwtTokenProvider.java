@@ -2,31 +2,42 @@ package com.kindtail.adoptmate.auth;
 
 import com.kindtail.adoptmate.member.domain.Role;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
 
-
     @Value("${jwt.secretKey}")
-    private String secretKey;
+    private String secretKeyString;
 
     @Value("${jwt.expiration}")
     private int expiration;
 
     @Value("${jwt.secretKeyRt}")
-    private String secretKeyRt;
+    private String secretKeyRtString;
 
     @Value("${jwt.expirationRt}")
     private int expirationRt;
 
-    public String createToken(String email, String role) {
+    private SecretKey secretKey;
+    private SecretKey secretKeyRt;
 
+    @PostConstruct
+    public void init() {
+        this.secretKey = Keys.hmacShaKeyFor(secretKeyString.getBytes(StandardCharsets.UTF_8));
+        this.secretKeyRt = Keys.hmacShaKeyFor(secretKeyRtString.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String createToken(String email, String role) {
         Claims claims = Jwts.claims().setSubject(email);
         claims.put("role", role);
         Date now = new Date();
@@ -35,12 +46,11 @@ public class JwtTokenProvider {
                 .setClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + expiration * 1000L))
-                .signWith(SignatureAlgorithm.HS512, secretKey)
+                .signWith(secretKey)
                 .compact();
-
     }
 
-    public TokenUserInfo validateAndTokenUserInfo(String token)  {
+    public TokenUserInfo validateAndTokenUserInfo(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
@@ -60,7 +70,7 @@ public class JwtTokenProvider {
                 .setClaims(claims)
                 .setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + expirationRt * 1000L))
-                .signWith(SignatureAlgorithm.HS512, secretKeyRt)
+                .signWith(secretKeyRt)
                 .compact();
     }
 
@@ -74,14 +84,20 @@ public class JwtTokenProvider {
     }
 
     public long getRemainingExpirationMillis(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        Date expiration = claims.getExpiration();
-        long now = new Date().getTime();
-        return Math.max(0, expiration.getTime() - now);
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            Date exp = claims.getExpiration();
+            long now = System.currentTimeMillis();
+            return Math.max(0, exp.getTime() - now);
+        } catch (ExpiredJwtException e) {
+            return 0L;
+        } catch (Exception e) {
+            return 0L;
+        }
     }
 
     public int getExpirationRt() {

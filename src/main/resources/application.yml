@@ -1,11 +1,11 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:prod}
+    active: ${SPRING_PROFILES_ACTIVE:local}
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://${DB_HOST:svc.sel3.cloudtype.app}:${DB_PORT:31603}/${DB_NAME:adoptpet_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&connectTimeout=30000&socketTimeout=60000&maxAllowedPacket=134217728}
-    username: ${DB_USERNAME:adoptmate}
-    password: ${DB_PASSWORD:adoptmate}
+    url: ${DB_URL:jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:adoptpet_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&connectTimeout=30000&socketTimeout=60000&maxAllowedPacket=134217728}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -21,11 +21,12 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:resolved-drake-197654.upstash.io}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:gQAAAAAAAwQWAAIgcDFkNmIwZGNmYmQ1NjA0MmUyYjE5ZWExNjkxOWMxOWFkZA}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD:}
       ssl:
-        enabled: true
+        enabled: ${REDIS_SSL_ENABLED:false}
 
   servlet:
     multipart:
@@ -41,8 +42,8 @@ spring:
       client:
         registration:
           kakao:
-            client-id: ${KAKAO_CLIENT_ID:16a5cc3c2d930524373be21f6bf96353}
-            client-secret: ${KAKAO_CLIENT_SECRET:QKusibOT6eZblB1r9klNGruBOgkkQoII}
+            client-id: ${KAKAO_CLIENT_ID:kakao-client-id}
+            client-secret: ${KAKAO_CLIENT_SECRET:kakao-client-secret}
             client-name: Kakao
             authorization-grant-type: authorization_code
             redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8000/adoptmate/kakao}
@@ -60,8 +61,8 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:luo199829@gmail.com}
-    password: ${MAIL_PASSWORD:hsglyoexmhfaltzm}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -72,6 +73,9 @@ spring:
 
 server:
   port: ${SERVER_PORT:8000}
+
+client:
+  url: ${CLIENT_URL:https://paw-mate-frontend.vercel.app}
 
 logging:
   level:
@@ -84,9 +88,3 @@ jwt:
   secretKey: ${JWT_SECRET_KEY:b9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550}
   expirationRt: ${JWT_EXPIRATION_RT:604800}
   secretKeyRt: ${JWT_SECRET_KEY_RT:c9a26eb960aa4b5269c7101d7c142fdc18ca5987b1697f477ed8fded5e7935aa51d7b563a477a352d079c14f031962056a5bcd4b12f3371ad2fcecfeb5f62550}
-
-oauth2:
-  kakao:
-    client-id: ${KAKAO_CLIENT_ID:16a5cc3c2d930524373be21f6bf96353}
-    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8000/adoptmate/kakao}
-    client-secret: ${KAKAO_CLIENT_SECRET:CryJfVnfMoA1KtUgsJkwzJohjCRMWiYz}

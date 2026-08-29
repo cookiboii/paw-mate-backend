@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,12 +34,13 @@ public class AdoptionController {
     @PostMapping("/animals/{animalId}")
     public ResponseEntity<CommonResDto> registerAdoption(
             @PathVariable("animalId") Long animalId,
-            @Valid @RequestBody AdoptionCreateRequest adoptionCreateRequest
+            @Valid @RequestBody AdoptionCreateRequest adoptionCreateRequest,
+            @AuthenticationPrincipal TokenUserInfo userInfo
     ) {
-        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
+        String email = userInfo != null ? userInfo.getEmail() :
+                ((TokenUserInfo) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getEmail();
 
-        Long memberId = memberService.getMemberIdByEmail(userInfo.getEmail());
+        Long memberId = memberService.getMemberIdByEmail(email);
 
         AdoptionResponseDto adoptionResponse = adoptionFacade.applyAdoption(adoptionCreateRequest, memberId, animalId);
 
@@ -53,9 +55,12 @@ public class AdoptionController {
 
     /** 내 입양 내역 */
     @GetMapping("/myAdoption")
-    public ResponseEntity<CommonResDto> myAdoption() {
-        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Long memberId = memberService.getMemberIdByEmail(userInfo.getEmail());
+    public ResponseEntity<CommonResDto> myAdoption(
+            @AuthenticationPrincipal TokenUserInfo userInfo
+    ) {
+        String email = userInfo != null ? userInfo.getEmail() :
+                ((TokenUserInfo) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getEmail();
+        Long memberId = memberService.getMemberIdByEmail(email);
 
         List<AdoptionResponseDto> adoptions = adoptionService.getAdoptions(memberId);
 

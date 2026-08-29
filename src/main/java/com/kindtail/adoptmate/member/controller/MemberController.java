@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -93,19 +94,30 @@ public class MemberController {
     }
 
     @PostMapping("/password")
-    public ResponseEntity<CommonResDto> changePassword(@RequestBody @Valid PasswordChangeRequestDto dto) {
-        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        memberService.changePassword(userInfo.getEmail(), dto);
-        return ResponseEntity.ok(new CommonResDto(OK, "비밀번호 변경 완료", dto));
+    public ResponseEntity<CommonResDto> changePassword(
+            @AuthenticationPrincipal TokenUserInfo userInfo,
+            @RequestBody @Valid PasswordChangeRequestDto dto
+    ) {
+        String email = userInfo != null ? userInfo.getEmail() :
+                ((TokenUserInfo) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getEmail();
+        memberService.changePassword(email, dto);
+        return ResponseEntity.ok(new CommonResDto(OK, "비밀번호 변경 완료", null));
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<CommonResDto> deleteMember() {
-        TokenUserInfo userInfo = (TokenUserInfo) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        memberService.deleteUser(userInfo.getEmail());
-        return ResponseEntity.ok(new CommonResDto(OK, "회원 탈퇴 완료", userInfo));
+    public ResponseEntity<CommonResDto> deleteMember(
+            @AuthenticationPrincipal TokenUserInfo userInfo,
+            HttpServletRequest request
+    ) {
+        String email = userInfo != null ? userInfo.getEmail() :
+                ((TokenUserInfo) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getEmail();
+        String accessToken = null;
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            accessToken = bearerToken.substring(7);
+        }
+        memberService.deleteUser(email, accessToken);
+        return ResponseEntity.ok(new CommonResDto(OK, "회원 탈퇴 완료", null));
     }
 
 

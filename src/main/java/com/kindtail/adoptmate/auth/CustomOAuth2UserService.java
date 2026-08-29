@@ -65,10 +65,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         Member member = memberRepository.findBySocialProviderAndSocialId(provider, socialId)
                 .orElseGet(() -> {
-                    // 이메일로 기존 회원 검색
                     Optional<Member> existingMember = memberRepository.findByEmail(finalEmail);
                     if (existingMember.isPresent()) {
-                        return existingMember.get();
+                        Member found = existingMember.get();
+                        found.updateSocialInfo(provider, finalSocialId, finalProfileImage);
+                        return found;
                     }
                     // 신규 회원 등록
                     Member newMember = Member.builder()

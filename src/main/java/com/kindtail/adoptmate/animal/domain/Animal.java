@@ -52,8 +52,9 @@ public class Animal extends BaseTimeEntity {
     private Member member;
 
     @Version
+    @Builder.Default
     @Column(columnDefinition = "BIGINT DEFAULT 0")
-    private Long version =0L;
+    private Long version = 0L;
 
     public void updateStatus(AnimalStatusUpdateRequest request) {
         this.status = request.status();
