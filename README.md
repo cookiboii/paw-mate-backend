@@ -1,8 +1,30 @@
 # 🐾 PawMate - 유기동물 입양 & 커뮤니티 플랫폼 백엔드
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Spring_Boot-3.5.3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" />
+  <img src="https://img.shields.io/badge/Java-17-007396?style=for-the-badge&logo=openjdk&logoColor=white" />
+  <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Redis-Redisson-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
+  <img src="https://img.shields.io/badge/JWT-0.11.5-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" />
+  <img src="https://img.shields.io/badge/Swagger-OpenAPI_3-85EA2D?style=for-the-badge&logo=swagger&logoColor=black" />
+  <img src="https://img.shields.io/badge/Gradle-8.x-02303A?style=for-the-badge&logo=gradle&logoColor=white" />
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
+</p>
+
 > **"기술로 유기동물 문제를 해결하고 더 나은 입양 문화를 만든다"**  
 > 유기동물과 입양 희망자를 안전하고 투명하게 연결하는 풀스택 웹 플랫폼의 백엔드 서비스입니다.  
 > Spring Boot 3.5와 Java 17을 기반으로 구축되었으며, 회원 관리, 이메일 인증, 카카오 소셜 로그인, JWT/Redis 토큰 관리, Redisson 분산 락 기반 동시성 제어, 보호 동물의 입양 상태 머신 및 계층형 대댓글 커뮤니티 기능을 제공합니다.
+
+---
+
+## 📑 목차 (Table of Contents)
+- [🔧 기술 스택 (Tech Stack)](#-기술-스택-tech-stack)
+- [📁 프로젝트 구조 (Package Structure)](#-프로젝트-구조-package-structure)
+- [🚀 주요 기능 및 핵심 아키텍처](#-주요-기능-및-핵심-아키텍처)
+- [🛡️ 동시성 제어 & 데이터 무결성 아키텍처](#️-동시성-제어--데이터-무결성-아키텍처-concurrency--integrity)
+- [⚙️ 환경 설정 및 실행 가이드 (Getting Started)](#️-환경-설정-및-실행-가이드-getting-started)
+- [📊 데이터베이스 설계 및 ERD (Database Modeling & ERD)](#-데이터베이스-설계-및-erd-database-modeling--erd)
+- [📋 REST API 명세서](#-rest-api-명세서)
 
 ---
 
@@ -235,9 +257,218 @@ docker compose up -d --build
 
 ---
 
-## 📊 데이터베이스 다이어그램 (ERD)
+## 📊 데이터베이스 설계 및 ERD (Database Modeling & ERD)
+
+### 📌 1. ER 다이어그램 (Entity Relationship Diagram)
+
+```mermaid
+erDiagram
+    MEMBER ||--o{ ANIMAL : "registers (1:N)"
+    MEMBER ||--o{ POST : "writes (1:N)"
+    MEMBER ||--o{ ADOPTION : "applies (1:N)"
+    MEMBER ||--o{ COMMENT : "writes (1:N)"
+    ANIMAL ||--o{ ADOPTION : "targeted_by (1:N)"
+    POST ||--o{ COMMENT : "has (1:N)"
+    COMMENT ||--o{ COMMENT : "replies_to (1:N parent-child)"
+
+    MEMBER {
+        bigint member_id PK "회원 고유 식별자"
+        varchar email UK "로그인 이메일 (탈퇴 시 식별 접두사 부여)"
+        varchar password "BCrypt 암호화 비밀번호 (소셜 회원은 NULL)"
+        varchar name "회원 이름 / 닉네임"
+        varchar role "권한 (USER, ADMIN)"
+        varchar profile_image "프로필 이미지 URL"
+        varchar social_provider "소셜 로그인 제공자 (kakao)"
+        varchar social_id "소셜 고유 식별자"
+        datetime created_at "생성 일시"
+        datetime updated_at "수정 일시"
+        boolean is_deleted "논리 삭제 플래그"
+    }
+
+    ANIMAL {
+        bigint animal_id PK "보호 동물 고유 식별자"
+        bigint member_id FK "등록 회원 ID"
+        varchar species "축종 (DOG, CAT, ETC)"
+        varchar gender "성별 (MALE, FEMALE)"
+        varchar breed "품종"
+        varchar color "색상"
+        varchar status "보호 상태 (WAITING, PROTECTED, ADOPTED)"
+        bigint age "추정 나이 / 월령"
+        text image "보호 동물 사진"
+        bigint version "JPA 낙관적 락 버전 (@Version)"
+        datetime created_at "생성 일시"
+        datetime updated_at "수정 일시"
+        boolean is_deleted "논리 삭제 플래그"
+    }
+
+    ADOPTION {
+        bigint adoption_id PK "입양 신청 고유 식별자"
+        bigint member_id FK "신청 회원 ID (UK_member_animal)"
+        bigint animal_id FK "대상 동물 ID (UK_member_animal)"
+        varchar phone "신청자 연락처"
+        varchar housing_type "주거 환경 (APARTMENT, VILLA 등)"
+        varchar has_pet "현재 반려동물 유무"
+        text reason "입양 동기 및 돌봄 계획"
+        text interview "심사/면담 메모"
+        varchar status "신청 상태 (PENDING, APPROVED, REJECTED)"
+        datetime apply_date "신청 일시"
+        bigint version "JPA 낙관적 락 버전 (@Version)"
+        datetime created_at "생성 일시"
+        datetime updated_at "수정 일시"
+        boolean is_deleted "논리 삭제 플래그"
+    }
+
+    POST {
+        bigint post_id PK "게시글 고유 식별자"
+        bigint member_id FK "작성 회원 ID"
+        varchar title "게시글 제목"
+        text content "게시글 본문"
+        text image "첨부 이미지 URL"
+        bigint version "JPA 낙관적 락 버전 (@Version)"
+        datetime created_at "생성 일시"
+        datetime updated_at "수정 일시"
+        boolean is_deleted "논리 삭제 플래그"
+    }
+
+    COMMENT {
+        bigint comment_id PK "댓글 고유 식별자"
+        bigint post_id FK "게시글 ID"
+        bigint member_id FK "작성 회원 ID"
+        bigint parent_id FK "부모 댓글 ID (Self-Reference 계층 구조)"
+        text content "댓글 본문"
+        datetime created_at "생성 일시"
+        datetime updated_at "수정 일시"
+        boolean is_deleted "논리 삭제 플래그"
+    }
+```
+
+<details>
+<summary><b>🖼️ 원본 ERD 다이어그램 이미지 보기 (클릭하여 펼치기)</b></summary>
+
+<br />
 
 <img width="1280" height="952" alt="DB Diagram" src="https://github.com/user-attachments/assets/250cbc1b-0326-459e-a89d-17a871cc97be" />
+
+</details>
+
+---
+
+### 📋 2. 테이블 상세 명세서 (Table Specifications)
+
+#### 👤 `member` (회원 테이블)
+> 유기동물 보호자, 입양 희망자 및 관리자 계정 정보를 관리합니다.
+
+| 컬럼명 | 데이터 타입 | Nullable | Key / Default | 설명 |
+| :--- | :--- | :---: | :---: | :--- |
+| `member_id` | `BIGINT` | NO | **PK** (AI) | 회원 고유 식별자 |
+| `email` | `VARCHAR(255)` | NO | **UK** | 로그인 이메일 (탈퇴 시 `deleted_{id}_{email}`로 가명화) |
+| `password` | `VARCHAR(255)` | YES | - | BCrypt 암호화 비밀번호 (소셜 가입 회원은 NULL) |
+| `name` | `VARCHAR(255)` | NO | - | 회원 이름 / 닉네임 |
+| `role` | `VARCHAR(20)` | NO | `'USER'` | 권한 (`USER`, `ADMIN`) |
+| `profile_image` | `VARCHAR(255)` | YES | - | 프로필 이미지 URL |
+| `social_provider` | `VARCHAR(50)` | YES | - | 소셜 로그인 제공자 (`kakao` 등) |
+| `social_id` | `VARCHAR(255)` | YES | - | 소셜 고유 식별자 |
+| `created_at` | `DATETIME` | NO | `BaseTime` | 계정 생성 일시 |
+| `updated_at` | `DATETIME` | NO | `BaseTime` | 최근 수정 일시 |
+| `is_deleted` | `BOOLEAN` | NO | `false` | 논리 삭제 플래그 |
+
+<br />
+
+#### 🐶 `animal` (보호 동물 테이블)
+> 입양 대상 유기동물의 정보, 신체적 특징 및 입양 상태를 관리합니다.
+
+| 컬럼명 | 데이터 타입 | Nullable | Key / Default | 설명 |
+| :--- | :--- | :---: | :---: | :--- |
+| `animal_id` | `BIGINT` | NO | **PK** (AI) | 보호 동물 고유 식별자 |
+| `member_id` | `BIGINT` | NO | **FK** | 등록자/보호자 (`member.member_id`) |
+| `species` | `VARCHAR(20)` | YES | - | 축종 (`DOG`, `CAT`, `ETC`) |
+| `gender` | `VARCHAR(10)` | YES | - | 성별 (`MALE`, `FEMALE`) |
+| `breed` | `VARCHAR(255)` | YES | - | 품종 (예: 말티즈, 코숏 등) |
+| `color` | `VARCHAR(255)` | YES | - | 털색 |
+| `status` | `VARCHAR(20)` | YES | `'PROTECTED'` | 보호 상태 (`PROTECTED`, `WAITING`, `ADOPTED`) |
+| `age` | `BIGINT` | YES | - | 추정 나이 / 월령 |
+| `image` | `LONGTEXT` | YES | - | 보호 동물 사진 (URL 또는 Base64) |
+| `version` | `BIGINT` | NO | `0` | JPA 낙관적 락 버전 (`@Version`) |
+| `created_at` | `DATETIME` | NO | `BaseTime` | 등록 일시 |
+| `updated_at` | `DATETIME` | NO | `BaseTime` | 최근 수정 일시 |
+| `is_deleted` | `BOOLEAN` | NO | `false` | 논리 삭제 플래그 |
+
+<br />
+
+#### 🏡 `adoption` (입양 신청 테이블)
+> 입양 희망자의 신청서, 주거 환경, 반려동물 양육 경험 및 심사 상태를 관리합니다.
+
+| 컬럼명 | 데이터 타입 | Nullable | Key / Default | 설명 |
+| :--- | :--- | :---: | :---: | :--- |
+| `adoption_id` | `BIGINT` | NO | **PK** (AI) | 입양 신청 고유 식별자 |
+| `member_id` | `BIGINT` | YES | **FK, UK** | 신청 회원 (`member.member_id`) |
+| `animal_id` | `BIGINT` | YES | **FK, UK** | 대상 동물 (`animal.animal_id`) |
+| `phone` | `VARCHAR(20)` | NO | - | 신청자 연락처 |
+| `housing_type` | `VARCHAR(30)` | NO | - | 주거 형태 (`APARTMENT`, `DETACHED_HOUSE`, `VILLA`, `ONE_ROOM`, `ETC`) |
+| `has_pet` | `VARCHAR(50)` | NO | - | 현재 반려동물 유무 (예: "없음", "고양이 1마리") |
+| `reason` | `TEXT` | NO | - | 입양 동기 및 돌봄 계획 |
+| `interview` | `LONGTEXT` | YES | - | 심사/면담 메모 |
+| `status` | `VARCHAR(20)` | NO | - | 신청 상태 (`PENDING`, `APPROVED`, `REJECTED`) |
+| `apply_date` | `DATETIME` | YES | - | 신청 접수 일시 |
+| `version` | `BIGINT` | NO | `0` | JPA 낙관적 락 버전 (`@Version`) |
+| `created_at` | `DATETIME` | NO | `BaseTime` | 생성 일시 |
+| `updated_at` | `DATETIME` | NO | `BaseTime` | 최근 수정 일시 |
+| `is_deleted` | `BOOLEAN` | NO | `false` | 논리 삭제 플래그 |
+
+> 🔑 **복합 유니크 제약조건 (Unique Constraint)**:  
+> `uk_adoption_member_animal` (`member_id`, `animal_id`)  
+> ➡️ 동일 회원이 동일 보호 동물에게 중복으로 입양 신청서를 제출하는 것을 DB 레벨에서 원천 차단
+
+<br />
+
+#### 📝 `post` (커뮤니티 게시글 테이블)
+> 입양 후기 및 자유 게시판 글을 관리합니다.
+
+| 컬럼명 | 데이터 타입 | Nullable | Key / Default | 설명 |
+| :--- | :--- | :---: | :---: | :--- |
+| `post_id` | `BIGINT` | NO | **PK** (AI) | 게시글 고유 식별자 |
+| `member_id` | `BIGINT` | NO | **FK** | 작성자 (`member.member_id`) |
+| `title` | `VARCHAR(255)` | YES | - | 게시글 제목 |
+| `content` | `LONGTEXT` | YES | - | 게시글 본문 내용 |
+| `image` | `LONGTEXT` | YES | - | 본문 첨부 이미지 URL |
+| `version` | `BIGINT` | NO | `0` | JPA 낙관적 락 버전 (`@Version`) |
+| `created_at` | `DATETIME` | NO | `BaseTime` | 작성 일시 |
+| `updated_at` | `DATETIME` | NO | `BaseTime` | 최근 수정 일시 |
+| `is_deleted` | `BOOLEAN` | NO | `false` | 논리 삭제 플래그 |
+
+<br />
+
+#### 💬 `comment` (댓글 & 계층형 대댓글 테이블)
+> 게시글 댓글 및 부모-자식 자가 참조(Self-Join) 기반 계층형 답글을 관리합니다.
+
+| 컬럼명 | 데이터 타입 | Nullable | Key / Default | 설명 |
+| :--- | :--- | :---: | :---: | :--- |
+| `comment_id` | `BIGINT` | NO | **PK** (AI) | 댓글 고유 식별자 |
+| `post_id` | `BIGINT` | YES | **FK** | 대상 게시글 (`post.post_id`) |
+| `member_id` | `BIGINT` | YES | **FK** | 작성 회원 (`member.member_id`) |
+| `parent_id` | `BIGINT` | YES | **FK** | 부모 댓글 식별자 (`comment.comment_id` Self-Reference) |
+| `content` | `LONGTEXT` | YES | - | 댓글 본문 |
+| `created_at` | `DATETIME` | NO | `BaseTime` | 작성 일시 |
+| `updated_at` | `DATETIME` | NO | `BaseTime` | 최근 수정 일시 |
+| `is_deleted` | `BOOLEAN` | NO | `false` | 논리 삭제 플래그 |
+
+---
+
+### 💡 3. 데이터베이스 설계 핵심 전략 및 무결성 메커니즘
+
+1. **안전한 논리 삭제(Soft Delete) & 유니크 제약 충돌 방지**:
+   - 회원 탈퇴 시 기존 작성 글 및 입양 이력의 외래키 무결성을 영구 보존합니다.
+   - 탈퇴한 회원의 이메일 유니크 인덱스 충돌을 방지하여 **동일 이메일로의 재가입을 허용**하기 위해 `@SQLDelete(sql = "UPDATE member SET is_deleted = true, email = CONCAT('deleted_', member_id, '_', email) WHERE member_id = ?")`를 적용했습니다.
+   - 조회 시 Hibernate 6 `@SQLRestriction("is_deleted = false")`를 통해 별도의 쿼리 조건문 추가 없이 삭제된 데이터를 투명하게 필터링합니다.
+
+2. **동시성 제어 및 Lost Update 방지 (Optimistic Lock `@Version`)**:
+   - `Animal`, `Adoption`, `Post` 테이블에 `version` 컬럼을 도입하여 다중 트랜잭션 동시 수정 시 충돌을 감지(`409 Conflict`)하고 데이터 덮어쓰기(Lost Update)를 방지합니다.
+
+3. **복합 유니크 제약조건 (Composite Unique Constraint)**:
+   - `Adoption` 테이블에 `uk_adoption_member_animal (member_id, animal_id)` 유니크 제약을 설정하여 애플리케이션 레벨의 분산 락과 함께 DB 레벨 2중으로 중복 신청을 방어합니다.
+
+4. **계층형 대댓글 자가 참조 (Self-Referencing FK) & N+1 최적화**:
+   - `parent_id`를 통한 1:N 트리 구조 설계 및 `@BatchSize(size = 100)`를 적용하여 무제한 뎁스의 답글을 성능 저하 없이 일괄 페치(Batch Fetch)합니다.
 
 ---
 
