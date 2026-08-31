@@ -21,6 +21,8 @@
 - [🔧 기술 스택 (Tech Stack)](#-기술-스택-tech-stack)
 - [📁 프로젝트 구조 (Package Structure)](#-프로젝트-구조-package-structure)
 - [🚀 주요 기능 및 핵심 아키텍처](#-주요-기능-및-핵심-아키텍처)
+- [⚡ Spring Batch 대용량 데이터 최적화 & 라이프사이클 자동화](#-spring-batch-대용량-데이터-최적화--도메인-자동화)
+- [📊 인증 아키텍처 실측 벤치마크 및 Trade-off 분석 (JWT vs Session)](#-인증-아키텍처-실측-벤치마크-및-trade-off-분석-jwt-vs-session)
 - [🛡️ 동시성 제어 & 데이터 무결성 아키텍처](#️-동시성-제어--데이터-무결성-아키텍처-concurrency--integrity)
 - [⚙️ 환경 설정 및 실행 가이드 (Getting Started)](#️-환경-설정-및-실행-가이드-getting-started)
 - [📊 데이터베이스 설계 및 ERD (Database Modeling & ERD)](#-데이터베이스-설계-및-erd-database-modeling--erd)
@@ -33,6 +35,7 @@
 ### Backend Framework & Language
 - **Language**: Java 17 (OpenJDK 17)
 - **Framework**: Spring Boot 3.5.3
+- **Batch Processing**: **Spring Batch 5.x** (Chunk-oriented Processing, Keyset Pagination, Job/Step Scope)
 - **Build Tool**: Gradle 8.x
 - **Config Management**: Dotenv (`io.github.cdimascio:dotenv-java 3.0.0`) 기반 `.env` 환경변수 자동 로드
 
@@ -60,6 +63,7 @@
 - **State Machine**: 입양 상태 전이 유효성 검증 및 다중 신청 연쇄 처리 (승인 시 타 신청 자동 반려)
 - **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce 최신 클라이언트 구성, JSON/Hash 직렬화, SSL 지원)
 - **Mail**: JavaMailSender (Gmail SMTP 이메일 인증 및 비밀번호 재설정)
+- **Testing & Benchmark**: JUnit 5, `@SpringBatchTest`, AssertJ, Mockito (33개 테스트 스위트 100% 통과)
 - **API Documentation**: SpringDoc OpenAPI UI (Swagger 3) + **Swagger Docs Interface 분리 패턴** (`*Docs.java`)
 
 ---
@@ -152,6 +156,91 @@ com.kindtail.adoptmate
 
 ---
 
+## ⚡ Spring Batch 대용량 데이터 최적화 & 도메인 자동화
+
+Spring Batch 5.x를 도입하여 **대용량 입양 데이터 처리의 $O(N)$ I/O 병목을 해결**하고, **방치된 입양 신청 건의 도메인 라이프사이클을 자동화**했습니다.
+
+### 1. No-Offset(Zero-Offset) 커서 페이징을 통한 9.9배 I/O 성능 개선
+
+#### 📌 문제 정의 (Why No-Offset?)
+* **Limit-Offset 방식의 $O(N)$ 디스크 I/O 병목**:
+  - 기본 `JpaPagingItemReader`는 `OFFSET 50000 LIMIT 1000` 쿼리를 실행하여 앞선 50,000건을 디스크에서 모두 읽고 버리는(Skip) 심각한 성능 저하가 발생합니다.
+* **Page Drift (데이터 누락 및 중복 현상)**:
+  - 배치 처리 중 레코드 상태가 변경(`PENDING` $\rightarrow$ `REJECTED`)되면 인덱스 위치가 밀려 특정 데이터가 누락되거나 중복 처리되는 데이터 정합성 결함이 발생합니다.
+
+#### 🛠️ 해결 전략 (How?)
+* **Keyset Pagination 커스텀 `ZeroOffsetAdoptionReader` 개발**:
+  - `OFFSET`을 완전히 제거하고 Clustered Index(`id`) 기반의 `WHERE a.id > :lastId ORDER BY a.id ASC LIMIT :pageSize` 쿼리를 적용했습니다.
+  - B-Tree 인덱스를 통해 다음 읽을 레코드 위치를 $O(\log N)$으로 즉시 탐색하며, 내부 큐(Queue) 버퍼링을 통해 Spring Batch `ItemStreamReader` 규격에 맞게 1건씩 스트리밍 소비합니다.
+
+#### 📊 10만 건 실측 벤치마크 결과 (`BatchReaderPerformanceTest.java`)
+| 페이징 방식 | 1회차 실행 | 2회차 실행 | 3회차 실행 | **3회 평균 소요 시간** | **성능 개선율** |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Limit-Offset (`JpaPagingItemReader`)** | 2,284 ms | 2,190 ms | 2,171 ms | **2,215 ms** | 기준 (1.0x) |
+| **Zero-Offset (`ZeroOffsetAdoptionReader`)** | 231 ms | 221 ms | 217 ms | **223 ms** | **🚀 9.90배 (990%) 향상** |
+
+---
+
+### 2. 장기 미처리 입양 신청 자동 만료 및 상태 복구 배치 (`ExpiredAdoptionBatchConfig.java`)
+
+#### 📌 비즈니스 문제 정의
+* 입양 신청 시 대상 동물은 `WAITING`(입양 대기) 상태로 잠겨 다른 사용자의 신청이 제한됩니다.
+* 하지만 신청자 또는 보호소 측에서 장기간(14일 이상) 방치(`PENDING`)할 경우 **동물이 영구히 대기 상태에 갇혀 다른 입양 희망자가 신청하지 못하는 비즈니스 병목**이 발생합니다.
+
+#### 🛠️ 배치 파이프라인 아키텍처
+* **Reader (`expiredAdoptionReader`)**: `@StepScope` 파라미터(`thresholdDate`)와 `Fetch Join`을 적용하여 14일 경과된 `PENDING` 건을 N+1 없이 청크 단위로 조회
+* **Processor (`expiredAdoptionProcessor`)**: 입양 신청 상태를 `REJECTED`(자동 반려)로 전이하고, 연관 동물의 상태를 `PROTECTED`(입양 가능)로 복구
+* **Writer (`expiredAdoptionWriter`)**: 단일 트랜잭션 내에서 `Adoption` 및 `Animal` 변경 사항을 일괄 영속화
+* **트랜잭션 격리**: `Chunk(100)` 단위 트랜잭션 분할로 롱 트랜잭션 및 Undo Log 폭증을 방지하고 결함 격리(Fault Isolation) 보장
+
+---
+
+## 📊 인증 아키텍처 실측 벤치마크 및 Trade-off 분석 (JWT vs Session)
+
+Paw-Mate 프로젝트의 인증 방식을 선정하기 위해 **JWT (Stateless), DB 세션 (RDB/JDBC), In-Memory 세션의 성능 및 자원 소모량을 다각도로 실측 벤치마크**했습니다. ([`SessionVsJwtBenchmarkTest.java`](file:///C:/Users/nahoo/Desktop/paw-mate-backend/src/test/java/com/kindtail/adoptmate/auth/SessionVsJwtBenchmarkTest.java))
+
+### 1. 실측 벤치마크 데이터 요약 (Benchmark Metrics)
+
+| 벤치마크 테스트 항목 | JWT Bearer Token (Stateless) | DB 세션 (Spring Session JDBC) | In-Memory 세션 (단일 서버) |
+| :--- | :---: | :---: | :---: |
+| **인증 연산 병목 유형** | **CPU Bound** (HMAC-SHA512 서명 검증) | **I/O & Connection Pool Bound** (SQL 쿼리) | **Heap Memory Bound** (해시 테이블) |
+| **단일 스레드 1만 회 소요 시간** | 17,407 ms (1회당 1.74 ms) | 150 ms (1회당 0.015 ms) | < 1 ms |
+| **50개 스레드 동시 처리량 (TPS)** | **1,287 req/s** (멀티코어 병렬 연산) | 30,864 req/s (HikariCP 커넥션 경합 발생) | 833,333 req/s |
+| **DB 부하 & 커넥션 소모** | **0% (DB 커넥션 소모 0개, Zero-I/O)** | **매 요청마다 DB 커넥션 획득 및 쿼리 실행** | 0% |
+| **요청 헤더 크기 (Payload)** | **240 Bytes** (세션 대비 4.4배) | **55 Bytes** | 55 Bytes |
+| **100만 요청 시 전송 대역폭** | **228.88 MB** (+176.43 MB 추가 대역폭) | **52.45 MB** | 52.45 MB |
+
+---
+
+### 2. Paw-Mate가 JWT를 채택한 핵심 아키텍처적 의사결정
+
+```mermaid
+graph LR
+    subgraph "DB 세션 방식 (대규모 트래픽 시 병목)"
+        Req1[클라이언트 요청] --> WAS1[WAS Server]
+        WAS1 -->|인증 시마다 커넥션 점유| Pool[HikariCP Connection Pool (Max 20)]
+        Pool -->|커넥션 고갈 및 락 대기| DB[(RDB Database)]
+    end
+
+    subgraph "JWT 무상태 방식 (Paw-Mate 채택)"
+        Req2[클라이언트 요청] --> WAS2[WAS Server]
+        WAS2 -->|자체 CPU 서명 검증 1.7ms| WAS2
+        WAS2 -->|진짜 비즈니스 로직에만 DB 커넥션 사용| DB2[(RDB Database)]
+    end
+```
+
+1. **HikariCP 커넥션 풀 고갈 및 DB 병목 방지**:
+   - DB 세션 방식은 단순 정적 조회 API를 호출하더라도 **인증을 위해 무조건 DB 커넥션을 1개 소모**합니다.
+   - 트래픽 폭증 시 세션 검증 쿼리로 인해 커넥션 풀이 고갈되어 실제 비즈니스 쿼리(입양 신청/상태 변경 등)가 타임아웃되는 치명적인 병목을 방지하기 위해 **DB 부하가 0%인 JWT를 채택**했습니다.
+2. **클라우드 오토스케일링 및 무한 수평 확장 (Scale-out)**:
+   - 서버를 수십 대로 확장하더라도 서버 간 세션 동기화나 외부 세션 스토리지 장애(SPOF) 없이 무상태(Stateless)로 유연하게 확장 가능합니다.
+3. **CORS / 프론트엔드(Vercel) 완전 분리 지원**:
+   - 프론트엔드(`vercel.app`)와 백엔드(`cloudtype.app`)가 서로 다른 도메인일 때 발생하는 브라우저의 서드파티 쿠키 차단(SameSite) 이슈를 완벽히 해결합니다.
+4. **한계점 보완 (보안 & 즉시 무효화)**:
+   - Access Token의 수명을 **1시간**으로 짧게 제한하고, **Redis 기반 Refresh Token Rotation(RTR)** 및 **로그아웃/탈퇴 시 Redis Blacklist**를 도입하여 보안과 무상태성의 균형을 완성했습니다.
+
+---
+
 ## 🛡️ 동시성 제어 & 데이터 무결성 아키텍처 (Concurrency & Integrity)
 
 대규모 트래픽 및 동시 다중 요청 환경에서 **데이터 무결성(Data Integrity)**을 보장하기 위해 **Redisson 분산 락(Facade/Template), JPA 낙관적 락, Soft Delete의 다계층 방어 전략**을 구축했습니다.
@@ -192,8 +281,8 @@ flowchart TD
 
 ## ⚙️ 환경 설정 및 실행 가이드 (Getting Started)
 
-### 1. 환경 변수 설정 (`.env`)
-프로젝트 루트에 `.env` 파일을 생성하거나 `.env.example`을 복사하여 작성합니다. (애플리케이션 구동 시 자동 로드)
+### 1. 환경 변수 설정 (`.env.example`)
+프로젝트 루트의 `.env.example` 파일을 복사하여 `.env` 파일을 생성하고 각 환경에 맞는 설정 값을 입력합니다. (애플리케이션 구동 시 `.env` 파일 자동 로드)
 
 ```properties
 # Spring Profile & Server
@@ -250,7 +339,7 @@ CLIENT_URL=http://localhost:5173
 docker compose up -d --build
 ```
 
-### 5. 전체 테스트 실행 (142 Tests 100% 통과)
+### 5. 전체 테스트 실행 (33개 테스트 스위트 / 140+ Tests 100% 통과)
 ```bash
 ./gradlew test
 ```
