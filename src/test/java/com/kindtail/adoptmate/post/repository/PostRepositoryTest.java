@@ -101,4 +101,37 @@ class PostRepositoryTest {
         Optional<Post> foundPost = postRepository.findById(savedPost.getId());
         assertThat(foundPost).isEmpty();
     }
+
+    @Test
+    @DisplayName("No-Offset 커서 방식으로 게시글 목록을 Slice 조회할 수 있다")
+    void findPostsByCursor_성공() {
+        // given
+        Post first = null;
+        for (int i = 1; i <= 5; i++) {
+            Post post = Post.builder()
+                    .title("제목 " + i)
+                    .content("내용 " + i)
+                    .member(testMember)
+                    .build();
+            Post saved = postRepository.save(post);
+            if (i == 3) {
+                first = saved;
+            }
+        }
+
+        // when (첫 페이지: lastPostId null)
+        org.springframework.data.domain.Slice<Post> firstSlice = postRepository.findPostsByCursor(null, PageRequest.of(0, 2));
+
+        // then
+        assertThat(firstSlice.getContent()).hasSize(2);
+        assertThat(firstSlice.hasNext()).isTrue();
+
+        // when (두 번째 페이지: lastPostId 지정)
+        Long cursorId = firstSlice.getContent().get(1).getId();
+        org.springframework.data.domain.Slice<Post> secondSlice = postRepository.findPostsByCursor(cursorId, PageRequest.of(0, 2));
+
+        // then
+        assertThat(secondSlice.getContent()).hasSize(2);
+        assertThat(secondSlice.getContent().get(0).getId()).isLessThan(cursorId);
+    }
 }

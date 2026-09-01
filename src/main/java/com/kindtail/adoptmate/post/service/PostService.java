@@ -13,7 +13,9 @@ import com.kindtail.adoptmate.post.dto.PostUpdateRequestDto;
 import com.kindtail.adoptmate.post.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +46,13 @@ public class PostService {
     @Transactional(readOnly = true)
     public Page<PostResponseDto> getAllPosts(Pageable pageable) {
         Page<Post> posts = postRepository.findAll(pageable);
+        return posts.map(PostResponseDto::from);
+    }
+
+    @Transactional(readOnly = true)
+    public Slice<PostResponseDto> getPostsByCursor(Long lastPostId, int size) {
+        Pageable pageable = PageRequest.of(0, size);
+        Slice<Post> posts = postRepository.findPostsByCursor(lastPostId, pageable);
         return posts.map(PostResponseDto::from);
     }
 

@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,17 @@ public class PostController implements PostControllerDocs {
     public ResponseEntity<CommonResDto> getPostList(Pageable pageable) {
         Page<PostResponseDto> postPage = postService.getAllPosts(pageable);
         CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "조회완료", postPage);
+        return ResponseEntity.ok(commonResDto);
+    }
+
+    @Override
+    @GetMapping("/cursor")
+    public ResponseEntity<CommonResDto> getPostsByCursor(
+            @RequestParam(required = false) Long lastPostId,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Slice<PostResponseDto> postSlice = postService.getPostsByCursor(lastPostId, size);
+        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "조회완료", postSlice);
         return ResponseEntity.ok(commonResDto);
     }
 

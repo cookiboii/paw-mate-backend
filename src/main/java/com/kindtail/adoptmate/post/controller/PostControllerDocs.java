@@ -13,8 +13,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
-@Tag(name = "6. 커뮤니티 게시글 API", description = "입양 후기 및 자유 게시글 작성, 목록 조회(페이징), 상세 조회, 수정, 삭제 API")
+@Tag(name = "6. 커뮤니티 게시글 API", description = "입양 후기 및 자유 게시글 작성, 목록 조회(페이징 및 No-Offset 커서), 상세 조회, 수정, 삭제 API")
 public interface PostControllerDocs {
 
     @Operation(summary = "게시글 작성", description = "새로운 커뮤니티 게시글을 작성합니다.")
@@ -25,11 +26,22 @@ public interface PostControllerDocs {
     })
     ResponseEntity<CommonResDto> createPost(@Valid @RequestBody PostCreateRequestDto dto);
 
-    @Operation(summary = "게시글 목록 조회 (페이징)", description = "커뮤니티 게시글 목록을 페이징하여 조회합니다.")
+    @Operation(summary = "게시글 목록 조회 (오프셋 페이징)", description = "커뮤니티 게시글 목록을 오프셋 기반으로 페이징하여 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 완료")
     })
     ResponseEntity<CommonResDto> getPostList(Pageable pageable);
+
+    @Operation(summary = "게시글 목록 조회 (No-Offset 커서 / 무한 스크롤)", description = "lastPostId를 기준으로 다음 페이지의 게시글 목록을 No-Offset 방식으로 조회하여 count 쿼리 오버헤드 없이 고속 페이징합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 완료")
+    })
+    ResponseEntity<CommonResDto> getPostsByCursor(
+            @Parameter(description = "마지막으로 조회된 게시글 ID (첫 페이지 요청 시 생략 또는 null)", example = "10")
+            @RequestParam(required = false) Long lastPostId,
+            @Parameter(description = "조회할 게시글 수 (기본값: 10)", example = "10")
+            @RequestParam(defaultValue = "10") int size
+    );
 
     @Operation(summary = "게시글 상세 조회", description = "게시글 ID로 상세 내용 및 작성자 정보를 조회합니다.")
     @ApiResponses({

@@ -131,6 +131,27 @@ class PostControllerTest {
     }
 
     @Test
+    @DisplayName("게시글 목록을 No-Offset 커서 기반으로 조회할 수 있다 (200 OK)")
+    void getPostsByCursor_성공() throws Exception {
+        // given
+        PostResponseDto responseDto = PostResponseDto.from(testPost);
+        org.springframework.data.domain.Slice<PostResponseDto> slice = new org.springframework.data.domain.SliceImpl<>(List.of(responseDto), PageRequest.of(0, 10), false);
+        given(postService.getPostsByCursor(eq(10L), eq(10))).willReturn(slice);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(get("/post/cursor")
+                .param("lastPostId", "10")
+                .param("size", "10"));
+
+        // then
+        resultActions.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value(200))
+                .andExpect(jsonPath("$.statusMessage").value("조회완료"))
+                .andExpect(jsonPath("$.result.content[0].title").value("테스트 제목"));
+    }
+
+    @Test
     @DisplayName("postId 로 게시글 상세 조회할 수 있다 (200 OK)")
     void getPostById_성공() throws Exception {
         // given

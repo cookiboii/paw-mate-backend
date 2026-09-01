@@ -14,7 +14,13 @@ import org.hibernate.annotations.SQLRestriction;
 @Getter
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor
-@Table(name = "post")
+@Table(
+        name = "post",
+        indexes = {
+                @Index(name = "idx_post_deleted_id", columnList = "is_deleted, post_id DESC"),
+                @Index(name = "idx_post_deleted_created", columnList = "is_deleted, created_at DESC")
+        }
+)
 @SQLDelete(sql = "UPDATE post SET is_deleted = true WHERE post_id = ? AND version = ?")
 @SQLRestriction("is_deleted = false")
 @Builder

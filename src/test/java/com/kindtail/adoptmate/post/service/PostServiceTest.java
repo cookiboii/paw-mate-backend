@@ -22,6 +22,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -145,6 +147,22 @@ class PostServiceTest {
         assertThat(result.getTotalElements()).isEqualTo(1);
         assertThat(result.getContent().get(0).title()).isEqualTo("테스트 제목");
         assertThat(result.getContent().get(0).email()).isEqualTo("author@example.com");
+    }
+
+    @Test
+    @DisplayName("No-Offset 커서 기반으로 게시글 목록을 Slice 조회할 수 있다")
+    void getPostsByCursor_성공() {
+        // given
+        Slice<Post> slice = new SliceImpl<>(List.of(testPost), PageRequest.of(0, 10), false);
+        given(postRepository.findPostsByCursor(any(), any(PageRequest.class))).willReturn(slice);
+
+        // when
+        Slice<PostResponseDto> result = postService.getPostsByCursor(10L, 10);
+
+        // then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).title()).isEqualTo("테스트 제목");
+        assertThat(result.hasNext()).isFalse();
     }
 
     @Test
