@@ -14,6 +14,8 @@ import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.auth.SecurityUtil;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +34,7 @@ public class AnimalService {
         this.memberRepository = memberRepository;
     }
 
+    @CacheEvict(value = {"animals", "animalsSpecies"}, allEntries = true)
     @Transactional
     public Animal registerAnimal(AnimalCreateRequest animalCreateRequest) {
         // 현재 인증된 사용자 이메일로 Member 조회
@@ -54,12 +57,14 @@ public class AnimalService {
         return animalRepository.save(animal);
     }
 
+    @Cacheable(value = "animals", key = "'page-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<AnimalResponse> getAllAnimals(Pageable pageable) {
         Page<Animal> animals = animalRepository.findAll(pageable);
         return animals.map(AnimalResponse::from);
     }
 
+    @Cacheable(value = "animals", key = "'cursor-' + (#lastAnimalId == null ? 0 : #lastAnimalId) + '-' + #size")
     @Transactional(readOnly = true)
     public Slice<AnimalResponse> getAnimalsByCursor(Long lastAnimalId, int size) {
         Pageable pageable = PageRequest.of(0, size);
@@ -67,18 +72,21 @@ public class AnimalService {
         return animals.map(AnimalResponse::from);
     }
 
+    @Cacheable(value = "animalsSpecies", key = "#species.name() + '-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<AnimalResponse> getAnimalsBySpecies(Species species, Pageable pageable) {
         Page<Animal> animals = animalRepository.findBySpecies(species, pageable);
         return animals.map(AnimalResponse::from);
     }
 
+    @Cacheable(value = "animalsSpecies", key = "'cursor-' + #species.name() + '-' + (#lastAnimalId == null ? 0 : #lastAnimalId) + '-' + #size")
     @Transactional(readOnly = true)
     public Slice<AnimalResponse> getAnimalsBySpeciesAndCursor(Species species, Long lastAnimalId, int size) {
         Pageable pageable = PageRequest.of(0, size);
         Slice<Animal> animals = animalRepository.findAnimalsBySpeciesAndCursor(species, lastAnimalId, pageable);
         return animals.map(AnimalResponse::from);
     }
+
     @Transactional(readOnly = true)
     public AnimalResponse getAnimal(Long id) {
         Animal animal = animalRepository.findById(id)
@@ -87,6 +95,7 @@ public class AnimalService {
         return AnimalResponse.from(animal);
     }
 
+    @CacheEvict(value = {"animals", "animalsSpecies"}, allEntries = true)
     @Transactional
     public AnimalResponse updateAnimal(Long id, AnimalStatusUpdateRequest request) {
         Animal animal = animalRepository.findById(id)
@@ -95,6 +104,7 @@ public class AnimalService {
         return AnimalResponse.from(animal);
     }
 
+    @CacheEvict(value = {"animals", "animalsSpecies"}, allEntries = true)
     @Transactional
     public void deleteAnimal(Long id) {
         animalRepository.deleteById(id);
