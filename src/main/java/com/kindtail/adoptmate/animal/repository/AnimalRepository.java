@@ -21,20 +21,15 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
     void deleteAnimalById(@Param("id") Long id);
 
     @Override
-    @EntityGraph(attributePaths = {"member"})
     Page<Animal> findAll(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"member"})
     Page<Animal> findBySpecies(Species species, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"member"})
     Slice<Animal> findSliceBy(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"member"})
     @Query("SELECT a FROM Animal a WHERE (:lastAnimalId IS NULL OR a.id < :lastAnimalId) ORDER BY a.id DESC")
     Slice<Animal> findAnimalsByCursor(@Param("lastAnimalId") Long lastAnimalId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"member"})
     @Query("SELECT a FROM Animal a WHERE a.species = :species AND (:lastAnimalId IS NULL OR a.id < :lastAnimalId) ORDER BY a.id DESC")
     Slice<Animal> findAnimalsBySpeciesAndCursor(@Param("species") Species species, @Param("lastAnimalId") Long lastAnimalId, Pageable pageable);
 }
