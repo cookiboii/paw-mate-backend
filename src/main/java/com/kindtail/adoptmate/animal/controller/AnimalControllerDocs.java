@@ -34,6 +34,17 @@ public interface AnimalControllerDocs {
             @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size
     );
 
+    @Operation(summary = "보호 동물 전체 목록 조회 (No-Offset 커서 / 무한 스크롤)", description = "lastAnimalId를 기준으로 다음 페이지의 동물 목록을 No-Offset 방식으로 조회하여 count 쿼리 오버헤드 없이 고속 페이징합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "동물 목록 조회 성공")
+    })
+    ResponseEntity<CommonResDto> getAnimalsByCursor(
+            @Parameter(description = "마지막으로 조회된 동물 ID (첫 페이지 요청 시 생략 또는 null)", example = "10")
+            @RequestParam(required = false) Long lastAnimalId,
+            @Parameter(description = "조회할 동물 수 (기본값: 10)", example = "10")
+            @RequestParam(defaultValue = "10") int size
+    );
+
     @Operation(summary = "종별 보호 동물 목록 조회 (페이징)", description = "종(DOG, CAT, OTHER)별로 보호 동물 목록을 페이징하여 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "종별 동물 목록 조회 성공")

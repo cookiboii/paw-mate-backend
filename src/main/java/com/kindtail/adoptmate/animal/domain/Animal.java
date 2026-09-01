@@ -18,7 +18,14 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "animal")
+@Table(
+        name = "animal",
+        indexes = {
+                @Index(name = "idx_animal_deleted_id", columnList = "is_deleted, animal_id DESC"),
+                @Index(name = "idx_animal_deleted_species", columnList = "is_deleted, species, animal_id DESC"),
+                @Index(name = "idx_animal_deleted_status", columnList = "is_deleted, status, animal_id DESC")
+        }
+)
 @SQLDelete(sql = "UPDATE animal SET is_deleted = true WHERE animal_id = ? AND version = ?")
 @SQLRestriction("is_deleted = false")
 public class Animal extends BaseTimeEntity {

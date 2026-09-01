@@ -142,8 +142,12 @@ com.kindtail.adoptmate
   - **반려(`REJECTED`) 시 스마트 복구**: 잔여 대기자 유무를 파악하여 대기자가 없으면 `PROTECTED`(입양 가능)로 복귀, 대기자가 남아있으면 `WAITING` 유지
 - **동물 단위 락 동기화 (`animal:{id}`)**: 신청 접수뿐만 아니라 심사 승인/반려 시에도 동일 동물 기준 분산 락을 획득하여 연쇄 반려의 데이터 무결성 보장
 
-### 💬 5. 커뮤니티 & 계층형 대댓글
+### 💬 5. 커뮤니티 & 계층형 대댓글 (No-Offset 커서 페이징 & 인덱스 최적화)
 - 입양 후기 및 자유 게시글 작성, 페이징 목록 조회, 상세 조회, 수정, 삭제
+- **No-Offset 커서 기반 고속 페이징 (`/post/cursor`)**:
+  - `lastPostId` 기준 Keyset 조건(`WHERE post_id < :lastPostId ORDER BY post_id DESC`)과 Spring Data `Slice`를 적용하여 대규모 트래픽 및 데이터 증가 시 발생하는 **$O(N)$ Count 쿼리 오버헤드와 Offset Skip I/O 병목을 0%로 제거**
+- **DB 복합 인덱스(Composite Index) 튜닝**:
+  - `@SQLRestriction("is_deleted = false")`와 정렬 컬럼에 맞춰 `idx_post_deleted_id(is_deleted, post_id DESC)` 및 `idx_post_deleted_created(is_deleted, created_at DESC)` 복합 인덱스를 구축하여 Full Table Scan 방지
 - **계층형 대댓글 구조**: 부모-자식 트리 구조로 무제한 뎁스의 답글 지원
 - **N+1 쿼리 최적화**: `@EntityGraph(attributePaths = {"member", "children", "children.member"})` 및 `@BatchSize`를 통한 쿼리 최적화
 - **Tell, Don't Ask 객체지향 권한 검증**: `post.validateAuthorOrAdmin(userInfo)`, `comment.validateAuthorOrAdmin(userInfo)` 도메인 메서드를 통해 작성자 본인 또는 관리자만 수정/삭제 가능하도록 캡슐화
@@ -479,8 +483,13 @@ erDiagram
 | `image` | `LONGTEXT` | YES | - | 보호 동물 사진 (URL 또는 Base64) |
 | `version` | `BIGINT` | NO | `0` | JPA 낙관적 락 버전 (`@Version`) |
 | `created_at` | `DATETIME` | NO | `BaseTime` | 등록 일시 |
-| `updated_at` | `DATETIME` | NO | `BaseTime` | 최근 수정 일시 |
 | `is_deleted` | `BOOLEAN` | NO | `false` | 논리 삭제 플래그 |
+
+> 🔑 **복합 인덱스 (Composite Index)**:  
+> - `idx_animal_deleted_id` (`is_deleted`, `animal_id DESC`)  
+> - `idx_animal_deleted_species` (`is_deleted`, `species`, `animal_id DESC`)  
+> - `idx_animal_deleted_status` (`is_deleted`, `status`, `animal_id DESC`)  
+> ➡️ 논리 삭제(`is_deleted = false`) 필터링과 종별/상태별 정렬 조건에 최적화된 복합 인덱스로 Full Table Scan 방지 및 No-Offset 페이징 조회 속도 극대화
 
 <br />
 
@@ -524,6 +533,11 @@ erDiagram
 | `created_at` | `DATETIME` | NO | `BaseTime` | 작성 일시 |
 | `updated_at` | `DATETIME` | NO | `BaseTime` | 최근 수정 일시 |
 | `is_deleted` | `BOOLEAN` | NO | `false` | 논리 삭제 플래그 |
+
+> 🔑 **복합 인덱스 (Composite Index)**:  
+> - `idx_post_deleted_id` (`is_deleted`, `post_id DESC`)  
+> - `idx_post_deleted_created` (`is_deleted`, `created_at DESC`)  
+> ➡️ 논리 삭제(`is_deleted = false`) 필터링과 정렬 조건에 최적화된 복합 인덱스로 Full Table Scan 방지 및 No-Offset 페이징 조회 속도 극대화
 
 <br />
 
@@ -624,7 +638,8 @@ erDiagram
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/animals/register` | Admin | 보호 동물 등록 | `AnimalCreateRequest` | `AnimalResponse` (HTTP 201) |
-| `GET` | `/animals/list` | Public | 보호 동물 전체 목록 조회 (페이징, 기본 `page=0, size=10`) | Query: `?page=0&size=10` | `Page<AnimalResponse>` |
+| `GET` | `/animals/list` | Public | 보호 동물 전체 목록 조회 (오프셋 페이징, 기본 `page=0, size=10`) | Query: `?page=0&size=10` | `Page<AnimalResponse>` |
+| `GET` | `/animals/cursor` | Public | **보호 동물 전체 목록 조회 (No-Offset 커서 / 무한 스크롤, Count 쿼리 0%)** | Query: `?lastAnimalId=10&size=10` | `Slice<AnimalResponse>` |
 | `GET` | `/animals/species` | Public | 보호 동물 종별 목록 조회 (페이징, 기본 `page=0, size=10`) | Query: `?species=DOG&page=0&size=10` | `Page<AnimalResponse>` |
 | `GET` | `/animals/{id}` | Public | 보호 동물 상세 조회 | Path: `id` | `AnimalResponse` |
 | `PUT` | `/animals/{id}/status` | Admin | 보호 동물 상태 변경 (`PROTECTED`/`WAITING`/`ADOPTED`) | Path: `id`, Body: `AnimalStatusUpdateRequest` | `AnimalResponse` |
@@ -649,7 +664,8 @@ erDiagram
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/post/create` | User | 게시글 작성 | `PostCreateRequestDto` | `PostResponseDto` (HTTP 201) |
-| `GET` | `/post/list` | Public | 게시글 목록 조회 (페이징) | Query: `?page=0&size=10&sort=id,desc` | `Page<PostResponseDto>` |
+| `GET` | `/post/list` | Public | 게시글 목록 조회 (오프셋 페이징) | Query: `?page=0&size=10&sort=id,desc` | `Page<PostResponseDto>` |
+| `GET` | `/post/cursor` | Public | **게시글 목록 조회 (No-Offset 커서 / 무한 스크롤, Count 쿼리 0%)** | Query: `?lastPostId=10&size=10` (첫 페이지 시 `lastPostId` 생략) | `Slice<PostResponseDto>` |
 | `GET` | `/post/{postId}` | Public | 게시글 상세 조회 | Path: `postId` | `PostResponseDto` |
 | `PUT` | `/post/{postId}` | Author/Admin | 게시글 수정 (작성자 또는 관리자) | Path: `postId`, Body: `PostUpdateRequestDto` | `PostResponseDto` |
 | `DELETE` | `/post/{postId}` | Author/Admin | 게시글 삭제 (작성자 또는 관리자) | Path: `postId` | `null` |

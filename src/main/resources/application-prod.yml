@@ -15,7 +15,7 @@ spring:
     password: ${DB_PASSWORD:adoptmate}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      connection-timeout: 3000
+      connection-timeout: 10000
       validation-timeout: 3000
       idle-timeout: 600000
       max-lifetime: 1800000

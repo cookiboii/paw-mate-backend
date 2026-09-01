@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -47,6 +48,16 @@ public class AnimalController implements AnimalControllerDocs {
     ) {
         Page<AnimalResponse> animalList = animalService.getAllAnimals(PageRequest.of(page, size));
         return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "동물 목록 조회 성공", animalList));
+    }
+
+    @Override
+    @GetMapping("/cursor")
+    public ResponseEntity<CommonResDto> getAnimalsByCursor(
+            @RequestParam(required = false) Long lastAnimalId,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Slice<AnimalResponse> animalSlice = animalService.getAnimalsByCursor(lastAnimalId, size);
+        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "동물 목록 조회 성공", animalSlice));
     }
 
     @Override

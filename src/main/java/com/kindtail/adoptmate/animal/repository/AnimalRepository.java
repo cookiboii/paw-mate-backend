@@ -4,6 +4,7 @@ import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Species;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -25,4 +26,15 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
 
     @EntityGraph(attributePaths = {"member"})
     Page<Animal> findBySpecies(Species species, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"member"})
+    Slice<Animal> findSliceBy(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"member"})
+    @Query("SELECT a FROM Animal a WHERE (:lastAnimalId IS NULL OR a.id < :lastAnimalId) ORDER BY a.id DESC")
+    Slice<Animal> findAnimalsByCursor(@Param("lastAnimalId") Long lastAnimalId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"member"})
+    @Query("SELECT a FROM Animal a WHERE a.species = :species AND (:lastAnimalId IS NULL OR a.id < :lastAnimalId) ORDER BY a.id DESC")
+    Slice<Animal> findAnimalsBySpeciesAndCursor(@Param("species") Species species, @Param("lastAnimalId") Long lastAnimalId, Pageable pageable);
 }

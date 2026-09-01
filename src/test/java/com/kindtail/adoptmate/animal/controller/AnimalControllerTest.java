@@ -126,6 +126,27 @@ class AnimalControllerTest {
     }
 
     @Test
+    @DisplayName("No-Offset 커서 기반으로 동물 목록을 조회할 수 있다")
+    void getAnimalsByCursor_성공() throws Exception {
+        // given
+        List<AnimalResponse> animalResponses = new ArrayList<>();
+        animalResponses.add(AnimalResponse.from(testAnimal));
+        org.springframework.data.domain.Slice<AnimalResponse> slice = new org.springframework.data.domain.SliceImpl<>(animalResponses, PageRequest.of(0, 10), false);
+
+        given(animalService.getAnimalsByCursor(eq(10L), eq(10))).willReturn(slice);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(get("/animals/cursor")
+                .param("lastAnimalId", "10")
+                .param("size", "10"));
+
+        // then
+        resultActions.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.content[0].species").value("DOG"));
+    }
+
+    @Test
     @DisplayName("종별로 페이지네이션된 동물 목록을 조회할 수 있다")
     void getAnimalsBySpecies_성공 () throws Exception {
         // given

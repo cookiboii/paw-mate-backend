@@ -168,6 +168,22 @@ class AnimalServiceTest {
     }
 
     @Test
+    @DisplayName("No-Offset 커서 기반으로 동물 목록을 Slice 조회할 수 있다")
+    void getAnimalsByCursor_성공() {
+        // given
+        org.springframework.data.domain.Slice<Animal> slice = new org.springframework.data.domain.SliceImpl<>(List.of(testAnimal), PageRequest.of(0, 10), false);
+        given(animalRepository.findAnimalsByCursor(any(), any(PageRequest.class))).willReturn(slice);
+
+        // when
+        org.springframework.data.domain.Slice<AnimalResponse> result = animalService.getAnimalsByCursor(10L, 10);
+
+        // then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).species()).isEqualTo(Species.DOG);
+        assertThat(result.hasNext()).isFalse();
+    }
+
+    @Test
     @DisplayName("종별로 페이지네이션된 동물 목록을 조회할 수 있다")
     void getAnimalsBySpecies_성공 () {
         // given

@@ -15,7 +15,9 @@ import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.auth.SecurityUtil;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,8 +61,22 @@ public class AnimalService {
     }
 
     @Transactional(readOnly = true)
+    public Slice<AnimalResponse> getAnimalsByCursor(Long lastAnimalId, int size) {
+        Pageable pageable = PageRequest.of(0, size);
+        Slice<Animal> animals = animalRepository.findAnimalsByCursor(lastAnimalId, pageable);
+        return animals.map(AnimalResponse::from);
+    }
+
+    @Transactional(readOnly = true)
     public Page<AnimalResponse> getAnimalsBySpecies(Species species, Pageable pageable) {
         Page<Animal> animals = animalRepository.findBySpecies(species, pageable);
+        return animals.map(AnimalResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public Slice<AnimalResponse> getAnimalsBySpeciesAndCursor(Species species, Long lastAnimalId, int size) {
+        Pageable pageable = PageRequest.of(0, size);
+        Slice<Animal> animals = animalRepository.findAnimalsBySpeciesAndCursor(species, lastAnimalId, pageable);
         return animals.map(AnimalResponse::from);
     }
     @Transactional(readOnly = true)

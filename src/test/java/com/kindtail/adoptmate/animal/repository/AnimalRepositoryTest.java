@@ -204,4 +204,36 @@ class AnimalRepositoryTest {
         Optional<Animal> foundAnimal = animalRepository.findById(savedAnimal.getId());
         assertThat(foundAnimal).isEmpty();
     }
+
+    @Test
+    @DisplayName("No-Offset 커서 방식으로 동물을 Slice 조회할 수 있다")
+    void findAnimalsByCursor_성공() {
+        // given
+        for (int i = 1; i <= 5; i++) {
+            Animal animal = Animal.builder()
+                    .species(Species.DOG)
+                    .breed("품종 " + i)
+                    .color("갈색")
+                    .gender(Gender.MALE)
+                    .age((long) i)
+                    .member(testMember)
+                    .build();
+            animalRepository.save(animal);
+        }
+
+        // when
+        org.springframework.data.domain.Slice<Animal> firstSlice = animalRepository.findAnimalsByCursor(null, PageRequest.of(0, 2));
+
+        // then
+        assertThat(firstSlice.getContent()).hasSize(2);
+        assertThat(firstSlice.hasNext()).isTrue();
+
+        // when (두 번째 페이지)
+        Long cursorId = firstSlice.getContent().get(1).getId();
+        org.springframework.data.domain.Slice<Animal> secondSlice = animalRepository.findAnimalsByCursor(cursorId, PageRequest.of(0, 2));
+
+        // then
+        assertThat(secondSlice.getContent()).hasSize(2);
+        assertThat(secondSlice.getContent().get(0).getId()).isLessThan(cursorId);
+    }
 }
