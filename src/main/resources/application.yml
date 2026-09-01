@@ -79,6 +79,12 @@ spring:
 
 server:
   port: ${SERVER_PORT:8000}
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 20
+    accept-count: 200
+    max-connections: 10000
 
 client:
   url: ${CLIENT_URL:https://paw-mate-frontend.vercel.app}
