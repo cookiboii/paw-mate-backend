@@ -41,31 +41,40 @@
 
 ### Security & Authentication
 - **Security**: Spring Security 6+ (Method Security `@PreAuthorize`, `@AuthenticationPrincipal` 적용)
+- **표준 인증 아키텍처**: `CustomUserDetailsService` 및 `CustomUserDetails`를 통한 Spring Security 표준 인증 일원화 (불필요한 별도 인증 DTO를 제거하고 토큰 발급 이후의 실시간 회원 탈퇴, 계정 정지 및 권한 변경을 즉각 반영)
+- **인증 제공자 엄격 분리 (`AuthProvider`)**: `EMAIL`(자체 이메일), `KAKAO`(카카오 OAuth2), `GOOGLE` 구분을 위한 Enum 도입 및 DB `auth_provider` 컬럼 `nullable = false` 강제로 결함 원천 차단
 - **CORS**: Spring Security 필터 체인 레벨 `CorsConfigurationSource` 표준 빈 등록 (Preflight & 에러 응답 헤더 보장)
-- **Security Utilities**: `SecurityUtil` (NPE 및 ClassCastException 방어, `getCurrentUserId()` 제공, `resolveToken` 토큰 추출 공통화)
+- **Security Utilities**: `SecurityUtil` (NPE 및 ClassCastException 방어, `getCurrentUserDetails()`, `getCurrentUserId()` 제공, `resolveToken` 토큰 추출 공통화)
 - **OAuth2**: Spring Security OAuth2 Client (Kakao) & `OAuthResponseUtil` 팝업 연동 템플릿 통합
-- **Token**: JWT (`jjwt 0.11.5` HMAC-SHA512, Claims에 `id`, `email`, `role`을 포함하여 반복 DB 조회 제거), Redis 기반 Refresh Token 관리 및 Blacklist 로그아웃 / 탈퇴 무효화 (`ErrorCode.LOGOUT_TOKEN` 401 매핑)
+- **Token**: JWT (`jjwt 0.11.5` HMAC-SHA512), Redis 기반 Refresh Token 관리 및 Blacklist 로그아웃 / 탈퇴 무효화 (`ErrorCode.LOGOUT_TOKEN` 401 매핑)
 - **Password**: BCryptPasswordEncoder
 
 ### Database & Persistence
 - **ORM**: Spring Data JPA, Hibernate 6
 - **Database**: MySQL 8.0 (운영/개발), H2 (테스트 인메모리)
+- **Connection Pool (HikariCP) & Thread Pool 최적화**:
+  - **Fixed Pool 전략**: 운영 환경 `maximum-pool-size: 50`, `minimum-idle: 50` 고정 풀 운영으로 트래픽 급증 시 풀 확장 지연(Latency Spike) 제거
+  - **Fail-Fast 타임아웃**: `connection-timeout: 5000ms` (5초) 설정으로 장애 전파 방지 및 빠른 실패 유도
+  - **커넥션 누수 감지**: `leak-detection-threshold: 3000ms` (3초 이상 미반환 커넥션 자동 경고 및 StackTrace 추적)
+  - **OSIV 비활성화 (`open-in-view: false`)**: DB 커넥션을 `@Transactional` 서비스 구간에서만 점유하고 즉시 반납하여 커넥션 회전율 극대화
 - **Auditing & Soft Delete**: 
   - `BaseTimeEntity` 공통 상속 (생성일시/수정일시 및 `is_deleted` 자동 관리)
   - Hibernate 6 `@SQLDelete` & `@SQLRestriction("is_deleted = false")` 적용 (데이터 이력 영구 보존 및 FK 무결성 보장)
 - **쿼리 성능 최적화**: `@EntityGraph` 및 `Fetch Join`, `default_batch_fetch_size: 100` 적용 (N+1 문제 원천 차단)
-- **객체지향 & 클린 아키텍처**:
-  - **Tell, Don't Ask** 원칙 및 도메인 순수성: `Post`/`Comment` 도메인 엔티티 내 `validateAuthorOrAdmin(currentUserId, isAdmin)` 기반 순수 권한 검증 캡슐화 (보안 프레임워크 의존성 분리)
-  - **계층 분리 및 DTO 반환 표준화**: Service 레이어에서 JPA Entity 외부 노출을 차단하고 DTO 반환을 강제하여 트랜잭션 외부 `LazyInitializationException` 및 엔티티 오염 방지
+- **객체지향(OOP) & 클린 아키텍처**:
+  - **도메인 엔티티의 DTO 역의존성 제거**: `Animal.updateStatus(Status status)` 등 엔티티가 프레젠테이션 DTO에 의존하지 않도록 순수 도메인 타입만 수용, `MemberResponseDto.from(Member)`로 단방향 의존성 정립
+  - **상태 머신 규칙 엔티티 캡슐화 (Rich Domain Model)**: `Adoption.approve()`, `Adoption.reject()`, `changeStatus()`를 엔티티 내부에 캡슐화하여 상태 전이 유효성을 도메인 스스로 보장
+  - **불변 Record DTO & `@Setter` 0개 달성**: `CommonResDto`를 포함한 모든 DTO를 Java 17+ 불변 `record`로 전환하여 사이드 이펙트 원천 차단
+  - **Tell, Don't Ask** 원칙: `Post`/`Comment` 도메인 엔티티 내 `validateAuthorOrAdmin(userDetails)` 기반 도메인 권한 검증 캡슐화
 
 ### Cache & Concurrency Control
 - **Distributed Lock**: Redisson (`RLock`, Pub/Sub 기반 분산 락)
-- **Lock Architecture**: `Facade` 및 `DistributedLockTemplate` 패턴 (Redisson Watchdog 기반 자동 락 갱신 지원 `leaseTime <= 0`, 트랜잭션 지연 시 락 조기 만료 및 동시성 붕괴 원천 차단)
+- **Lock Architecture**: `Facade` 및 `DistributedLockTemplate` 패턴 (Template-Callback 패턴 적용, Redisson Watchdog 기반 자동 락 갱신 지원 `leaseTime <= 0`, 트랜잭션 지연 시 락 조기 만료 및 동시성 붕괴 원천 차단)
 - **Optimistic Lock**: JPA `@Version` (엔티티 동시 수정 및 Lost Update 방지)
 - **State Machine**: 입양 상태 전이 유효성 검증 및 다중 신청 연쇄 처리 (승인 시 타 신청 자동 반려)
 - **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce 최신 클라이언트 구성, JSON/Hash 직렬화, SSL 지원)
 - **Mail**: JavaMailSender (Gmail SMTP 이메일 인증 및 비밀번호 재설정)
-- **Testing & Productivity**: JUnit 5, `@SpringBatchTest`, AssertJ, Mockito (150개 테스트 100% 통과, `@Tag("benchmark")` 태깅 및 전용 태스크 분리로 빌드 및 CI 속도 극대화)
+- **Testing & Productivity**: JUnit 5, `@SpringBatchTest`, AssertJ, Mockito (153개 테스트 100% 통과, `@Tag("benchmark")` 태깅 및 전용 태스크 분리로 빌드 및 CI 속도 극대화)
 - **API Documentation**: SpringDoc OpenAPI UI (Swagger 3) + **Swagger Docs Interface 분리 패턴** (`*Docs.java`)
 
 ---
@@ -74,33 +83,40 @@
 
 ```
 com.kindtail.adoptmate
-├── 📂 adoption         # 입양 신청, 상태 머신, 승인/반려 (Facade & 분산 락)
+├── 📂 adoption         # 입양 신청, 상태 머신(Rich Domain), 승인/반려 (Facade & 분산 락)
 │   ├── controller      # AdoptionController & AdoptionControllerDocs (인터페이스 분리)
-│   ├── domain          # Adoption, AdoptionStatus (상태 머신), HousingType
-│   ├── dto             # 입양 신청/응답 DTO
+│   ├── domain          # Adoption (approve/reject 상태 전이 캡슐화), AdoptionStatus, HousingType
+│   ├── dto             # 입양 신청/응답 DTO (Record)
 │   ├── facade          # AdoptionFacade (Redisson 분산 락 & 트랜잭션 분리)
 │   ├── repository      # AdoptionRepository
 │   └── service         # AdoptionService (입양 심사 및 연쇄 상태 전이 비즈니스 로직)
 ├── 📂 animal           # 보호 동물 등록, 조회, 종별 필터링
 │   ├── controller      # AnimalController & AnimalControllerDocs
-│   ├── domain          # Animal, Species, Status, Gender
+│   ├── domain          # Animal (순수 도메인 상태 변경 updateStatus), Species, Status, Gender
 │   └── service         # AnimalService (SecurityUtil 기반 안전한 인증 정보 조회)
-├── 📂 auth             # JWT 토큰 생성/검증, OAuth2 소셜 로그인, 시큐리티 필터 & 유틸리티
-│   ├── JwtAuthFilter   # Bearer 토큰 추출 및 SecurityContext 인증 주입
+├── 📂 auth             # Spring Security 표준 인증, JWT 토큰 관리, OAuth2 소셜 로그인
+│   ├── CustomUserDetails # Spring Security 표준 UserDetails 구현체 (Role, ID, Email 캡슐화)
+│   ├── CustomUserDetailsService # 이메일 기반 회원 로드 및 실시간 탈퇴/권한 상태 검증
+│   ├── JwtAuthFilter   # Bearer 토큰 파싱 및 SecurityContext 표준 Principal(CustomUserDetails) 주입
 │   ├── JwtTokenProvider# Access/Refresh Token 발급 및 검증 (HMAC-SHA512)
-│   ├── SecurityUtil    # [신규] Null-Safe 사용자 정보 조회 및 resolveToken 토큰 파싱
-│   ├── OAuthResponseUtil # [신규] 소셜 로그인 팝업 postMessage HTML 생성 공통 유틸
+│   ├── SecurityUtil    # Null-Safe 사용자 정보 조회 (getCurrentUserDetails, getCurrentUserId)
+│   ├── OAuthResponseUtil # 소셜 로그인 팝업 postMessage HTML 생성 공통 유틸
 │   └── OAuth2SuccessHandler # 카카오/OAuth2 로그인 성공 시 Redis 토큰 보관 및 팝업 응답
 ├── 📂 comment          # 계층형 대댓글 (부모-자식 트리 구조)
 │   ├── controller      # CommentController & CommentControllerDocs
 │   ├── domain          # Comment (validateAuthorOrAdmin 도메인 메서드 캡슐화)
 │   └── service         # CommentService
-├── 📂 common           # 공통 응답 DTO, 글로벌 예외 처리기, 분산 락 템플릿, BaseTimeEntity
+├── 📂 common           # 불변 공통 응답 DTO(Record), 글로벌 예외 처리기, 분산 락 템플릿, BaseTimeEntity
 │   ├── controller      # EmailVerificationController, KakaoAuthController & Docs
+│   ├── dto             # CommonResDto (Java 17 Record 불변 객체, Setter 0개), CommonErrorDto
 │   ├── exception       # GlobalExceptionHandler (401, 403, @Valid 필드 상세화, 409, 413)
 │   └── lock            # DistributedLockTemplate (Redisson 분산 락 실행기)
-├── 📂 config           # SecurityConfig, RedisConfig, SwaggerConfig, CorsConfig
+├── 📂 config           # SecurityConfig, RedisConfig, RedissonConfig, SwaggerConfig, CorsConfig
 ├── 📂 member           # 회원가입, 로그인, 정보 조회, 이메일 인증, 회원 탈퇴
+│   ├── domain          # Member, Role, AuthProvider (EMAIL, KAKAO, GOOGLE 구분 Enum)
+│   ├── dto             # MemberResponseDto (from 정적 팩토리 메서드), LoginDto 등 (Record)
+│   ├── facade          # MemberFacade (이메일 중복 가입 분산 락)
+│   └── service         # MemberService
 └── 📂 post             # 커뮤니티 게시글 CRUD 및 페이징 (validateAuthorOrAdmin 적용)
 ```
 
@@ -109,9 +125,14 @@ com.kindtail.adoptmate
 ## 🚀 주요 기능 및 핵심 아키텍처
 
 ### 🔐 1. 인증 & 보안 아키텍처 (Spring Security & JWT)
-- **JWT 무상태(Stateless) 인증**: Access Token(1시간)과 Refresh Token(7일) 기반의 보안 아키텍처
-- **JWT Claims `memberId` 포함을 통한 불필요한 DB 쿼리 제거**:
-  - 토큰 생성 시 `id`, `email`, `role`을 클레임에 함께 저장하여, 인증 후 서비스 계층에서 매 요청마다 발생하던 `memberRepository.findByEmail()` 반복 조회를 제거
+- **Spring Security 표준 인증 아키텍처 일원화 (`CustomUserDetailsService` & `CustomUserDetails`)**:
+  - 임의의 중간 DTO(`TokenUserInfo`)를 완전히 제거하고, Spring Security의 표준 `UserDetails`/`UserDetailsService` 계약을 준수하도록 표준화
+  - `JwtAuthFilter`에서 토큰 검증 후 `CustomUserDetailsService.loadUserByUsername()`을 통해 최신 회원 엔티티 상태를 검증함으로써, **JWT 발급 이후 발생한 회원 탈퇴(Soft Delete), 계정 정지(Ban), 권한 변경(Role Change)이 실시간으로 즉각 인가 필터에 반영**
+- **인증 제공자 엄격 구분 (`AuthProvider` Enum & `nullable = false`)**:
+  - 자체 이메일 회원가입(`EMAIL`)과 카카오 OAuth2 소셜 로그인(`KAKAO`), 구글(`GOOGLE`)을 명확히 구분하는 `AuthProvider` Enum 도입
+  - `Member` 엔티티의 `auth_provider` 컬럼에 `nullable = false` 및 기본값 `EMAIL`을 적용하여 데이터 정합성 결함(`null` 유입) 원천 차단
+- **JWT 무상태(Stateless) 인증 및 만료 관리**:
+  - Access Token(1시간)과 Refresh Token(7일) 기반의 보안 아키텍처
 - **Redis 연동 토큰 관리 & 철저한 무효화**:
   - 사용자별 Refresh Token을 Redis에 보관하여 토큰 갱신 지원
   - 로그아웃 및 **회원 탈퇴 시** Access Token 잔여 시간만큼 Blacklist에 등록하여 탈취된 토큰 즉시 무효화
@@ -122,10 +143,10 @@ com.kindtail.adoptmate
 - **이메일 인증 시스템**: 6자리 난수 코드를 Redis에 3분간 캐싱하여 검증 (5회 실패 시 30분 차단)
 - **카카오 OAuth2 소셜 로그인 & 계정 자동 연동**:
   - 표준 OAuth2 Authorization Code Grant 방식으로 사용자 정보 연동
-  - 기존 일반 이메일 가입 유저가 카카오 로그인 시 `socialProvider` 및 `socialId` 자동 연동 (중복 키 에러 방지)
+  - 기존 일반 이메일 가입 유저가 카카오 로그인 시 `authProvider` 및 `socialId` 자동 연동 (중복 키 에러 방지)
   - `OAuthResponseUtil`을 통한 팝업 postMessage 응답 템플릿 통합
 - **안전한 논리 삭제(Soft Delete)**: 회원 탈퇴 시 기존 작성 글/입양 이력 보존 및 이메일 유니크 인덱스 충돌 방지 (`email = CONCAT('deleted_', id, '_', email)`)
-- **`@AuthenticationPrincipal` 표준 주입**: 컨트롤러에서 `CustomUserDetails`를 Type-safe하게 주입받아 사용
+- **`@AuthenticationPrincipal` 표준 주입**: 컨트롤러에서 `CustomUserDetails`를 Type-safe하게 주입받아 사용 (`isAdmin()`, `getId()`, `getEmail()`, `getRole()` 편의 메서드 제공)
 
 ### 📖 2. Swagger Docs Interface 분리 패턴 (관심사 분리)
 - 컨트롤러 코드에서 방대한 Swagger/OpenAPI 어노테이션(`@Tag`, `@Operation`, `@ApiResponses`, `@Parameter`)을 전용 인터페이스(`*Docs.java`)로 완전히 분리
@@ -141,8 +162,8 @@ com.kindtail.adoptmate
 - 입양 신청서 제출 (연락처, 주거 형태, 반려동물 유무, 입양 사유 등 세분화된 정보 수집)
 - 동물-회원 간 중복 입양 신청 방지 (`uniqueConstraints`, 분산 락 및 서비스 레벨 검증)
 - 신청 접수 시 보호 동물 상태가 `WAITING(대기)`으로 자동 전환
-- **입양 상태 머신(State Machine) 및 연쇄 처리**:
-  - **상태 전이 검증**: `PENDING`(대기) 상태인 신청만 심사 가능하며, 이미 완료된 신청의 중복/역방향 변경 원천 차단
+- **입양 상태 머신(State Machine) 엔티티 캡슐화 (Rich Domain Model)**:
+  - **도메인 내 상태 전이 검증**: `Adoption.approve()`, `Adoption.reject()`, `Adoption.changeStatus()` 비즈니스 메서드를 엔티티 내부에 직접 구현하여, `PENDING`(대기) 상태가 아니거나 잘못된 전이 시도 시 도메인 스스로 `CustomException(INVALID_ADOPTION_STATUS_TRANSITION)`을 발생시키도록 무결성 캡슐화
   - **승인(`APPROVED`) 시 연쇄 처리**: 동물 상태를 `ADOPTED`로 갱신하고, 동일 동물에 대한 타 신청건들을 자동으로 `REJECTED`(반려) 처리
   - **반려(`REJECTED`) 시 스마트 복구**: 잔여 대기자 유무를 파악하여 대기자가 없으면 `PROTECTED`(입양 가능)로 복귀, 대기자가 남아있으면 `WAITING` 유지
 - **동물 단위 락 동기화 (`animal:{id}`)**: 신청 접수뿐만 아니라 심사 승인/반려 시에도 동일 동물 기준 분산 락을 획득하여 연쇄 반려의 데이터 무결성 보장
@@ -155,11 +176,16 @@ com.kindtail.adoptmate
   - `@SQLRestriction("is_deleted = false")`와 정렬 컬럼에 맞춰 `idx_post_deleted_id(is_deleted, post_id DESC)` 및 `idx_post_deleted_created(is_deleted, created_at DESC)` 복합 인덱스를 구축하여 Full Table Scan 방지
 - **계층형 대댓글 구조**: 부모-자식 트리 구조로 무제한 뎁스의 답글 지원
 - **N+1 쿼리 최적화**: `@EntityGraph(attributePaths = {"member", "children", "children.member"})` 및 `@BatchSize`를 통한 쿼리 최적화
-- **Tell, Don't Ask 객체지향 권한 검증**: `post.validateAuthorOrAdmin(currentUserId, isAdmin)`, `comment.validateAuthorOrAdmin(currentUserId, isAdmin)` 순수 도메인 메서드를 통해 권한 검증 캡슐화 및 프레임워크 결합도 해소
+- **Tell, Don't Ask 객체지향 권한 검증**: `post.validateAuthorOrAdmin(userDetails)`, `comment.validateAuthorOrAdmin(userDetails)` 도메인 메서드를 통해 객체 스스로 권한을 판별하도록 캡슐화
 
-### 🏗️ 6. 서비스 계층 분리 및 DTO 반환 표준화 (JPA Entity 노출 차단)
-- `PostService`, `AnimalService`, `MemberService`, `MemberFacade` 등 모든 서비스 레이어가 컨트롤러에 JPA 엔티티 대신 DTO(`PostResponseDto`, `AnimalResponse`, `MemberResponseDto` 등)를 직접 반환
-- 트랜잭션 범위 밖에서 발생할 수 있는 `LazyInitializationException`을 원천 차단하고, 컨트롤러 계층에서의 의도치 않은 엔티티 상태 변질 방지
+### 🏗️ 6. 객체지향 클린 아키텍처 & 불변 Record DTO (`@Setter` 0개 달성)
+- **도메인 엔티티의 DTO 역의존성 원천 차단**:
+  - `Animal.updateStatus(Status status)`: 엔티티가 프레젠테이션 계층 DTO(`AnimalStatusUpdateRequest`)에 의존하던 안티패턴을 제거하고 순수 도메인 타입만 수용
+  - `Member`: 엔티티가 DTO를 직접 생성하던 `toDto()`를 제거하고, `MemberResponseDto.from(Member)` 정적 팩토리 메서드로 단방향 의존성(`DTO ➔ Entity`) 확립
+- **전체 DTO 불변 Record 전환 및 Setter 완전 박멸**:
+  - 공통 응답 포맷인 `CommonResDto`를 Java 17+ 불변 `record`로 리팩토링하여 프로젝트 내에 가변 `@Setter`가 단 하나도 존재하지 않는(0개) 완전한 불변 데이터 전송 아키텍처 완성
+- **JPA Entity 외부 노출 원천 차단**:
+  - 모든 서비스/퍼사드 레이어가 Controller에 DTO만 반환하여 트랜잭션 외부 `LazyInitializationException` 및 의도치 않은 엔티티 상태 오염 방지
 
 ### 🚨 7. 전역 예외 처리 고도화 (`GlobalExceptionHandler`)
 - `AccessDeniedException (403)` / `AuthenticationException (401)`: 보안 인가 실패 시 일관된 표준 JSON 에러 반환
@@ -399,7 +425,7 @@ CLIENT_URL=http://localhost:5173
 docker compose up -d --build
 ```
 
-### 5. 전체 테스트 실행 (150개 단위/통합 테스트 100% 통과)
+### 5. 전체 테스트 실행 (153개 단위/통합/동시성 테스트 100% 통과)
 ```bash
 # 1) 일반 단위/통합 테스트 실행 (대용량 벤치마크 제외로 빠른 빌드 & CI 루프 보장)
 ./gradlew test
@@ -431,7 +457,7 @@ erDiagram
         varchar name "회원 이름 / 닉네임"
         varchar role "권한 (USER, ADMIN)"
         varchar profile_image "프로필 이미지 URL"
-        varchar social_provider "소셜 로그인 제공자 (kakao)"
+        varchar auth_provider "인증 제공자 (EMAIL, KAKAO, GOOGLE) NOT NULL"
         varchar social_id "소셜 고유 식별자"
         datetime created_at "생성 일시"
         datetime updated_at "수정 일시"
@@ -519,7 +545,7 @@ erDiagram
 | `name` | `VARCHAR(255)` | NO | - | 회원 이름 / 닉네임 |
 | `role` | `VARCHAR(20)` | NO | `'USER'` | 권한 (`USER`, `ADMIN`) |
 | `profile_image` | `VARCHAR(255)` | YES | - | 프로필 이미지 URL |
-| `social_provider` | `VARCHAR(50)` | YES | - | 소셜 로그인 제공자 (`kakao` 등) |
+| `auth_provider` | `VARCHAR(20)` | NO | `'EMAIL'` | 인증 제공자 구분 (`EMAIL`, `KAKAO`, `GOOGLE`) |
 | `social_id` | `VARCHAR(255)` | YES | - | 소셜 고유 식별자 |
 | `created_at` | `DATETIME` | NO | `BaseTime` | 계정 생성 일시 |
 | `updated_at` | `DATETIME` | NO | `BaseTime` | 최근 수정 일시 |
@@ -637,7 +663,9 @@ erDiagram
 
 ## 📋 REST API 명세서
 
-### 📦 공통 응답 포맷 (`CommonResDto`)
+### 📦 공통 응답 포맷 (`CommonResDto` - Java 17 Record 불변 객체)
+> 모든 API 응답은 가변 `@Setter`가 완전히 제거된 불변 `record CommonResDto(int statusCode, String statusMessage, Object result)` 표준 규격을 준수합니다.
+
 ```json
 {
   "statusCode": 200,
