@@ -1,5 +1,6 @@
 package com.kindtail.adoptmate.common.service;
 
+import com.kindtail.adoptmate.member.domain.AuthProvider;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.dto.KakaoUserDto;
@@ -87,7 +88,7 @@ public class KakaoOAuthService {
                 : "카카오사용자_" + socialId;
         String profileImage = kakaoUser.properties() != null ? kakaoUser.properties().profileImage() : null;
 
-        Optional<Member> existingUser = memberRepository.findBySocialProviderAndSocialId("KAKAO", socialId);
+        Optional<Member> existingUser = memberRepository.findByAuthProviderAndSocialId(AuthProvider.KAKAO, socialId);
         if (existingUser.isPresent()) {
             return MemberResponseDto.from(existingUser.get());
         }
@@ -95,7 +96,7 @@ public class KakaoOAuthService {
         Optional<Member> emailUser = memberRepository.findByEmail(email);
         if (emailUser.isPresent()) {
             Member member = emailUser.get();
-            member.updateSocialInfo("KAKAO", socialId, profileImage);
+            member.updateSocialInfo(AuthProvider.KAKAO, socialId, profileImage);
             return MemberResponseDto.from(member);
         }
 
@@ -104,7 +105,7 @@ public class KakaoOAuthService {
                 .email(email)
                 .profileImage(profileImage)
                 .socialId(socialId)
-                .socialProvider("KAKAO")
+                .authProvider(AuthProvider.KAKAO)
                 .role(Role.USER)
                 .password(null)
                 .build();

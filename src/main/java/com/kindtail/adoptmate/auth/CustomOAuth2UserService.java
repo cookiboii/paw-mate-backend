@@ -1,5 +1,6 @@
 package com.kindtail.adoptmate.auth;
 
+import com.kindtail.adoptmate.member.domain.AuthProvider;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
@@ -58,17 +59,25 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         log.info("OAuth2 로그인 진행: provider={}, socialId={}, email={}", provider, socialId, email);
 
+        AuthProvider authProvider;
+        try {
+            authProvider = AuthProvider.valueOf(provider.toUpperCase());
+        } catch (Exception e) {
+            authProvider = AuthProvider.KAKAO;
+        }
+
+        final AuthProvider finalAuthProvider = authProvider;
         final String finalEmail = email;
         final String finalName = name;
         final String finalProfileImage = profileImage;
         final String finalSocialId = socialId;
 
-        Member member = memberRepository.findBySocialProviderAndSocialId(provider, socialId)
+        Member member = memberRepository.findByAuthProviderAndSocialId(authProvider, socialId)
                 .orElseGet(() -> {
                     Optional<Member> existingMember = memberRepository.findByEmail(finalEmail);
                     if (existingMember.isPresent()) {
                         Member found = existingMember.get();
-                        found.updateSocialInfo(provider, finalSocialId, finalProfileImage);
+                        found.updateSocialInfo(finalAuthProvider, finalSocialId, finalProfileImage);
                         return found;
                     }
                     // 신규 회원 등록
@@ -77,7 +86,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                             .name(finalName)
                             .profileImage(finalProfileImage)
                             .socialId(finalSocialId)
-                            .socialProvider(provider)
+                            .authProvider(finalAuthProvider)
                             .role(Role.USER)
                             .build();
                     return memberRepository.save(newMember);
