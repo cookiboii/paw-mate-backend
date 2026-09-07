@@ -1,5 +1,6 @@
 package com.kindtail.adoptmate.member.repository;
 
+import com.kindtail.adoptmate.member.domain.AuthProvider;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,33 +57,33 @@ class MemberRepositoryTest {
     }
 
     @Test
-    @DisplayName("socialProvider 와 socialId 로 회원을 조회할 수 있다")
+    @DisplayName("authProvider 와 socialId 로 회원을 조회할 수 있다")
     void findBySocialProviderAndSocialId_성공 () {
         // given
         Member socialMember = Member.builder()
                 .email("social@example.com")
                 .name("소셜 사용자")
                 .socialId("1234567890")
-                .socialProvider("GOOGLE")
+                .authProvider(AuthProvider.GOOGLE)
                 .role(Role.USER)
                 .build();
         memberRepository.save(socialMember);
 
         // when
-        Optional<Member> foundMember = memberRepository.findBySocialProviderAndSocialId("GOOGLE", "1234567890");
+        Optional<Member> foundMember = memberRepository.findByAuthProviderAndSocialId(AuthProvider.GOOGLE, "1234567890");
 
         // then
         assertThat(foundMember).isPresent();
         assertThat(foundMember.get().getName()).isEqualTo("소셜 사용자");
         assertThat(foundMember.get().getSocialId()).isEqualTo("1234567890");
-        assertThat(foundMember.get().getSocialProvider()).isEqualTo("GOOGLE");
+        assertThat(foundMember.get().getAuthProvider()).isEqualTo(AuthProvider.GOOGLE);
     }
 
     @Test
     @DisplayName("일치하는 소셜 정보가 없으면 빈 Optional 을 반환한다")
     void findBySocialProviderAndSocialId_없음 () {
         // when
-        Optional<Member> foundMember = memberRepository.findBySocialProviderAndSocialId("GOOGLE", "invalid");
+        Optional<Member> foundMember = memberRepository.findByAuthProviderAndSocialId(AuthProvider.GOOGLE, "invalid");
 
         // then
         assertThat(foundMember).isEmpty();

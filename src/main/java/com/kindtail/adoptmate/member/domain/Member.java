@@ -48,8 +48,10 @@ public class Member extends BaseTimeEntity {
     @Column
     private String profileImage;
 
-    @Column
-    private String socialProvider;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false)
+    @Builder.Default
+    private AuthProvider authProvider = AuthProvider.EMAIL;
 
     @Builder.Default
     @OneToMany(mappedBy = "member")
@@ -72,17 +74,22 @@ public class Member extends BaseTimeEntity {
         this.password = password;
         this.name = name;
         this.role = role;
+        this.authProvider = AuthProvider.EMAIL;
     }
 
     public void updatePassword(String password) {
         this.password = password;
     }
 
-    public void updateSocialInfo(String socialProvider, String socialId, String profileImage) {
-        this.socialProvider = socialProvider;
+    public void updateSocialInfo(AuthProvider authProvider, String socialId, String profileImage) {
+        this.authProvider = authProvider != null ? authProvider : AuthProvider.EMAIL;
         this.socialId = socialId;
         if (profileImage != null && !profileImage.isBlank()) {
             this.profileImage = profileImage;
         }
+    }
+
+    public String getSocialProvider() {
+        return this.authProvider != null ? this.authProvider.name() : null;
     }
 }
