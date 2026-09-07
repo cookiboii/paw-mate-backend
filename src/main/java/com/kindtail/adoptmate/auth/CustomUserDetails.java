@@ -30,20 +30,27 @@ public class CustomUserDetails implements UserDetails, OAuth2User {
     }
 
     public Long getId() {
-        return member.getId();
+        return member != null ? member.getId() : null;
     }
 
     public String getEmail() {
-        return member.getEmail();
+        return member != null ? member.getEmail() : null;
     }
 
     public Role getRole() {
-        return member.getRole();
+        return member != null ? member.getRole() : null;
+    }
+
+    public boolean isAdmin() {
+        return member != null && member.getRole() == Role.ADMIN;
     }
 
     // UserDetails 메서드 구현
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (member == null || member.getRole() == null) {
+            return Collections.emptyList();
+        }
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + member.getRole().name()));
     }
 

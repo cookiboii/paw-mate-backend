@@ -9,7 +9,6 @@ import com.kindtail.adoptmate.adoption.repository.AdoptionRepository;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
-import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
@@ -193,8 +192,7 @@ class AdoptionServiceTest {
         Adoption adoption1 = Adoption.of(member, animal, "010-1111-1111", HousingType.APARTMENT, "없음", "이유 1", AdoptionStatus.PENDING);
         Adoption adoption2 = Adoption.of(member, animal, "010-2222-2222", HousingType.VILLA, "개 1마리", "이유 2", AdoptionStatus.APPROVED);
 
-        given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
-        given(adoptionRepository.findByMember(member)).willReturn(List.of(adoption1, adoption2));
+        given(adoptionRepository.findByMemberId(memberId)).willReturn(List.of(adoption1, adoption2));
 
         // when
         List<AdoptionResponseDto> result = adoptionService.getAdoptions(memberId);
@@ -287,7 +285,7 @@ class AdoptionServiceTest {
     void updateStatusToRejected_WithOtherPending() {
         // given
         Long adoptionId = 1L;
-        animal.updateStatus(new AnimalStatusUpdateRequest(Status.WAITING));
+        animal.updateStatus(Status.WAITING);
         Adoption adoption = Adoption.of(member, animal, "010-1234-5678", HousingType.APARTMENT, "없음", "신청 이유", AdoptionStatus.PENDING);
 
         given(adoptionRepository.findByIdWithFetchJoin(adoptionId)).willReturn(Optional.of(adoption));

@@ -83,15 +83,7 @@ class AdoptionFacadeTest {
                 AdoptionStatus.APPROVED, LocalDateTime.now()
         );
 
-        com.kindtail.adoptmate.animal.domain.Animal animal = com.kindtail.adoptmate.animal.domain.Animal.builder()
-                .id(animalId)
-                .build();
-        com.kindtail.adoptmate.adoption.domain.Adoption adoption = com.kindtail.adoptmate.adoption.domain.Adoption.builder()
-                .id(adoptionId)
-                .animal(animal)
-                .build();
-
-        given(adoptionRepository.findById(adoptionId)).willReturn(java.util.Optional.of(adoption));
+        given(adoptionRepository.findAnimalIdById(adoptionId)).willReturn(java.util.Optional.of(animalId));
         given(distributedLockTemplate.execute(eq("animal:10"), any(Supplier.class)))
                 .willAnswer(invocation -> {
                     Supplier<AdoptionResponseDto> supplier = invocation.getArgument(1);

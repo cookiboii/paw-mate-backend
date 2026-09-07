@@ -16,10 +16,6 @@ import java.util.Optional;
 public interface AnimalRepository extends JpaRepository<Animal, Long> {
     Optional<Animal> findById(Long Id);
 
-    @Modifying(clearAutomatically = true)
-    @Query("update Animal a set a.isDeleted = true where a.id = :id")
-    void deleteAnimalById(@Param("id") Long id);
-
     @Override
     Page<Animal> findAll(Pageable pageable);
 

@@ -2,6 +2,8 @@ package com.kindtail.adoptmate.adoption.domain;
 
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.common.domain.BaseTimeEntity;
+import com.kindtail.adoptmate.common.exception.CustomException;
+import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
 import lombok.*;
@@ -106,8 +108,29 @@ public class Adoption extends BaseTimeEntity {
                 .build();
     }
 
-    public void updateAdoption(AdoptionStatus status) {
-        this.status = status;
+    /**
+     * 입양 신청 상태 전이 (Rich Domain Model & State Pattern)
+     * PENDING 상태에서만 APPROVED 또는 REJECTED 로 전이 가능
+     */
+    public void changeStatus(AdoptionStatus newStatus) {
+        if (this.status != AdoptionStatus.PENDING) {
+            throw new CustomException(ErrorCode.INVALID_ADOPTION_STATUS_TRANSITION);
+        }
+        if (newStatus == null || newStatus == AdoptionStatus.PENDING) {
+            throw new CustomException(ErrorCode.INVALID_ADOPTION_STATUS_TRANSITION);
+        }
+        this.status = newStatus;
     }
 
+    public void approve() {
+        changeStatus(AdoptionStatus.APPROVED);
+    }
+
+    public void reject() {
+        changeStatus(AdoptionStatus.REJECTED);
+    }
+
+    public void updateAdoption(AdoptionStatus status) {
+        changeStatus(status);
+    }
 }

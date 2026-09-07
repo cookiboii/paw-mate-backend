@@ -33,16 +33,33 @@ class DistributedLockTemplateTest {
     private DistributedLockTemplate distributedLockTemplate;
 
     @Test
-    @DisplayName("락 획득 성공 시 주어진 작업을 정상 수행하고 락을 반납한다")
+    @DisplayName("락 획득 성공 시 주어진 작업을 정상 수행하고 락을 반납한다 (Watchdog 기본 모드)")
     void execute_Success() throws InterruptedException {
         // given
         String key = "testKey";
         given(redissonClient.getLock("LOCK:" + key)).willReturn(rLock);
-        given(rLock.tryLock(anyLong(), anyLong(), any(TimeUnit.class))).willReturn(true);
+        given(rLock.tryLock(anyLong(), any(TimeUnit.class))).willReturn(true);
         given(rLock.isHeldByCurrentThread()).willReturn(true);
 
         // when
         String result = distributedLockTemplate.execute(key, () -> "success");
+
+        // then
+        assertThat(result).isEqualTo("success");
+        verify(rLock).unlock();
+    }
+
+    @Test
+    @DisplayName("명시적 leaseTime 지정 시 3-arg tryLock을 호출한다")
+    void execute_WithExplicitLeaseTime_Success() throws InterruptedException {
+        // given
+        String key = "testKey";
+        given(redissonClient.getLock("LOCK:" + key)).willReturn(rLock);
+        given(rLock.tryLock(eq(3L), eq(10L), eq(TimeUnit.SECONDS))).willReturn(true);
+        given(rLock.isHeldByCurrentThread()).willReturn(true);
+
+        // when
+        String result = distributedLockTemplate.execute(key, 3L, 10L, TimeUnit.SECONDS, () -> "success");
 
         // then
         assertThat(result).isEqualTo("success");
@@ -55,7 +72,7 @@ class DistributedLockTemplateTest {
         // given
         String key = "testKey";
         given(redissonClient.getLock("LOCK:" + key)).willReturn(rLock);
-        given(rLock.tryLock(anyLong(), anyLong(), any(TimeUnit.class))).willReturn(false);
+        given(rLock.tryLock(anyLong(), any(TimeUnit.class))).willReturn(false);
 
         // when & then
         assertThatThrownBy(() -> distributedLockTemplate.execute(key, () -> "fail"))
@@ -71,7 +88,7 @@ class DistributedLockTemplateTest {
         // given
         String key = "testKey";
         given(redissonClient.getLock("LOCK:" + key)).willReturn(rLock);
-        given(rLock.tryLock(anyLong(), anyLong(), any(TimeUnit.class))).willReturn(true);
+        given(rLock.tryLock(anyLong(), any(TimeUnit.class))).willReturn(true);
         given(rLock.isHeldByCurrentThread()).willReturn(true);
 
         AtomicBoolean executed = new AtomicBoolean(false);

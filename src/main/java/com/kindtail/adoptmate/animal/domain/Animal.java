@@ -1,7 +1,6 @@
 package com.kindtail.adoptmate.animal.domain;
 
 import com.kindtail.adoptmate.adoption.domain.Adoption;
-import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.common.domain.BaseTimeEntity;
 import com.kindtail.adoptmate.member.domain.Member;
 import jakarta.persistence.*;
@@ -63,8 +62,8 @@ public class Animal extends BaseTimeEntity {
     @Column(columnDefinition = "BIGINT DEFAULT 0")
     private Long version = 0L;
 
-    public void updateStatus(AnimalStatusUpdateRequest request) {
-        this.status = request.status();
+    public void updateStatus(Status status) {
+        this.status = status;
     }
 
     @Builder.Default

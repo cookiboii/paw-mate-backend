@@ -1,6 +1,5 @@
 package com.kindtail.adoptmate.animal.domain;
 
-import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import org.junit.jupiter.api.DisplayName;
@@ -87,10 +86,8 @@ class AnimalTest {
                 .status(Status.WAITING)
                 .build();
 
-        AnimalStatusUpdateRequest request = new AnimalStatusUpdateRequest(Status.ADOPTED);
-
         // when
-        animal.updateStatus(request);
+        animal.updateStatus(Status.ADOPTED);
 
         // then
         assertThat(animal.getStatus()).isEqualTo(Status.ADOPTED);

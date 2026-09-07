@@ -1,7 +1,7 @@
 package com.kindtail.adoptmate.member.controller;
 
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.SecurityUtil;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.*;
@@ -32,8 +32,7 @@ public class MemberController implements MemberControllerDocs {
     @Override
     @PostMapping("/register")
     public ResponseEntity<CommonResDto> registerMember(@RequestBody @Valid MemberRegisterRequestDto requestDto) {
-        Member member = memberFacade.registerMember(requestDto);
-        MemberResponseDto responseDto = MemberResponseDto.from(member);
+        MemberResponseDto responseDto = memberFacade.registerMember(requestDto);
         return ResponseEntity.status(CREATED).body(new CommonResDto(CREATED, "회원가입 성공", responseDto));
     }
 
@@ -69,13 +68,7 @@ public class MemberController implements MemberControllerDocs {
     @Override
     @GetMapping("/myInfo")
     public ResponseEntity<CommonResDto> getMyInfo() {
-        Member member = memberService.getMemberInfo();
-        MemberInfoResponseDto dto = MemberInfoResponseDto.builder()
-                .id(member.getId())
-                .name(member.getName())
-                .email(member.getEmail())
-                .role(member.getRole())
-                .build();
+        MemberInfoResponseDto dto = memberService.getMemberInfo();
         return ResponseEntity.ok(new CommonResDto(OK, "내 정보 조회 성공", dto));
     }
 
@@ -83,36 +76,28 @@ public class MemberController implements MemberControllerDocs {
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> getAllMembers() {
-        List<Member> members = memberService.getMembers();
-        List<MemberInfoResponseDto> dtoList = members.stream()
-                .map(member -> MemberInfoResponseDto.builder()
-                        .id(member.getId())
-                        .name(member.getName())
-                        .email(member.getEmail())
-                        .role(member.getRole())
-                        .build())
-                .toList();
+        List<MemberInfoResponseDto> dtoList = memberService.getMembers();
         return ResponseEntity.ok(new CommonResDto(OK, "전체조회", dtoList));
     }
 
     @Override
     @PostMapping("/password")
     public ResponseEntity<CommonResDto> changePassword(
-            @AuthenticationPrincipal TokenUserInfo userInfo,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody @Valid PasswordChangeRequestDto dto
     ) {
-        memberService.changePassword(userInfo.getEmail(), dto);
+        memberService.changePassword(userDetails.getEmail(), dto);
         return ResponseEntity.ok(new CommonResDto(OK, "비밀번호 변경 완료", null));
     }
 
     @Override
     @DeleteMapping("/delete")
     public ResponseEntity<CommonResDto> deleteMember(
-            @AuthenticationPrincipal TokenUserInfo userInfo,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest request
     ) {
         String accessToken = SecurityUtil.resolveToken(request);
-        memberService.deleteUser(userInfo.getEmail(), accessToken);
+        memberService.deleteUser(userDetails.getEmail(), accessToken);
         return ResponseEntity.ok(new CommonResDto(OK, "회원 탈퇴 완료", null));
     }
 }

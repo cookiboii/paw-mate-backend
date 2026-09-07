@@ -8,9 +8,10 @@ import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.dto.AdoptionUpdateRequestDto;
 import com.kindtail.adoptmate.adoption.facade.AdoptionFacade;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
+import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.service.MemberService;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,16 +63,19 @@ class AdoptionControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private TokenUserInfo tokenUserInfo;
+    private CustomUserDetails customUserDetails;
 
     @BeforeEach
     void setUp() {
-        tokenUserInfo = TokenUserInfo.builder()
+        Member member = Member.builder()
+                .id(1L)
                 .email("test@example.com")
+                .name("테스트사용자")
                 .role(Role.USER)
                 .build();
+        customUserDetails = new CustomUserDetails(member);
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                tokenUserInfo, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                customUserDetails, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
     }

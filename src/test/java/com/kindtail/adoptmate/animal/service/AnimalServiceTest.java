@@ -10,7 +10,7 @@ import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -55,7 +55,7 @@ class AnimalServiceTest {
     private Animal testAnimal;
     private SecurityContext securityContext;
     private Authentication authentication;
-    private TokenUserInfo tokenUserInfo;
+    private CustomUserDetails customUserDetails;
 
     @BeforeEach
     void setUp() {
@@ -89,10 +89,10 @@ class AnimalServiceTest {
     private void setupSecurityContext() {
         securityContext = mock(SecurityContext.class);
         authentication = mock(Authentication.class);
-        tokenUserInfo = new TokenUserInfo("test@example.com", ADMIN);
+        customUserDetails = new CustomUserDetails(testMember);
 
         given(securityContext.getAuthentication()).willReturn(authentication);
-        given(authentication.getPrincipal()).willReturn(tokenUserInfo);
+        given(authentication.getPrincipal()).willReturn(customUserDetails);
         SecurityContextHolder.setContext(securityContext);
     }
 
@@ -115,12 +115,12 @@ class AnimalServiceTest {
         given(animalRepository.save(any(Animal.class))).willReturn(testAnimal);
 
         // when
-        Animal result = animalService.registerAnimal(request);
+        AnimalResponse result = animalService.registerAnimal(request);
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getSpecies()).isEqualTo(Species.DOG);
-        assertThat(result.getBreed()).isEqualTo("진도개");
+        assertThat(result.species()).isEqualTo(Species.DOG);
+        assertThat(result.breed()).isEqualTo("진도개");
         verify(memberRepository).findByEmail("test@example.com");
         verify(animalRepository).save(any(Animal.class));
     }

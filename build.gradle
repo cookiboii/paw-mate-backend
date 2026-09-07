@@ -58,5 +58,13 @@ dependencies {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'benchmark'
+    }
+}
+
+tasks.register('benchmarkTest', Test) {
+    useJUnitPlatform {
+        includeTags 'benchmark'
+    }
 }

@@ -1,9 +1,11 @@
 package com.kindtail.adoptmate.auth;
 
 import com.kindtail.adoptmate.member.domain.Role;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.security.SignatureException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,9 +21,12 @@ import java.util.concurrent.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Tag("benchmark")
 @SpringBootTest
 @ActiveProfiles("test")
 class SessionVsJwtBenchmarkTest {
+
+    private record BenchmarkUser(String email, Role role) {}
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
@@ -30,21 +35,18 @@ class SessionVsJwtBenchmarkTest {
     private JdbcTemplate jdbcTemplate;
 
     // 인메모리 세션 저장소 (단일 서버 인메모리 세션 모델)
-    private final Map<String, TokenUserInfo> inMemorySessionStore = new ConcurrentHashMap<>();
+    private final Map<String, BenchmarkUser> inMemorySessionStore = new ConcurrentHashMap<>();
 
     private String sampleJwtToken;
     private String sampleSessionId;
-    private TokenUserInfo sampleUser;
+    private BenchmarkUser sampleUser;
 
     @BeforeEach
     void setUp() {
-        sampleUser = TokenUserInfo.builder()
-                .email("bench_user@adoptmate.com")
-                .role(Role.USER)
-                .build();
+        sampleUser = new BenchmarkUser("bench_user@adoptmate.com", Role.USER);
 
         // 1. JWT 토큰 발급
-        sampleJwtToken = jwtTokenProvider.createToken(sampleUser.getEmail(), sampleUser.getRole().name());
+        sampleJwtToken = jwtTokenProvider.createToken(sampleUser.email(), sampleUser.role().name());
 
         // 2. 인메모리 세션 등록
         sampleSessionId = "SESSION_" + UUID.randomUUID();
@@ -57,7 +59,7 @@ class SessionVsJwtBenchmarkTest {
                 "role VARCHAR(50), " +
                 "last_accessed_time TIMESTAMP)");
         jdbcTemplate.update("MERGE INTO test_db_session KEY (session_id) VALUES (?, ?, ?, NOW())",
-                sampleSessionId, sampleUser.getEmail(), sampleUser.getRole().name());
+                sampleSessionId, sampleUser.email(), sampleUser.role().name());
     }
 
     @Test
@@ -67,7 +69,7 @@ class SessionVsJwtBenchmarkTest {
 
         // Warm-up
         for (int i = 0; i < 100; i++) {
-            jwtTokenProvider.validateAndTokenUserInfo(sampleJwtToken);
+            jwtTokenProvider.getClaims(sampleJwtToken);
             inMemorySessionStore.get(sampleSessionId);
             queryDbSession(sampleSessionId);
         }
@@ -76,8 +78,8 @@ class SessionVsJwtBenchmarkTest {
         StopWatch jwtWatch = new StopWatch();
         jwtWatch.start();
         for (int i = 0; i < iterations; i++) {
-            TokenUserInfo info = jwtTokenProvider.validateAndTokenUserInfo(sampleJwtToken);
-            assertThat(info.getEmail()).isEqualTo(sampleUser.getEmail());
+            Claims claims = jwtTokenProvider.getClaims(sampleJwtToken);
+            assertThat(claims.getSubject()).isEqualTo(sampleUser.email());
         }
         jwtWatch.stop();
         long jwtTotalMs = jwtWatch.getTotalTimeMillis();
@@ -86,8 +88,8 @@ class SessionVsJwtBenchmarkTest {
         StopWatch dbWatch = new StopWatch();
         dbWatch.start();
         for (int i = 0; i < iterations; i++) {
-            TokenUserInfo info = queryDbSession(sampleSessionId);
-            assertThat(info.getEmail()).isEqualTo(sampleUser.getEmail());
+            BenchmarkUser info = queryDbSession(sampleSessionId);
+            assertThat(info.email()).isEqualTo(sampleUser.email());
         }
         dbWatch.stop();
         long dbTotalMs = dbWatch.getTotalTimeMillis();
@@ -96,8 +98,8 @@ class SessionVsJwtBenchmarkTest {
         StopWatch memWatch = new StopWatch();
         memWatch.start();
         for (int i = 0; i < iterations; i++) {
-            TokenUserInfo info = inMemorySessionStore.get(sampleSessionId);
-            assertThat(info.getEmail()).isEqualTo(sampleUser.getEmail());
+            BenchmarkUser info = inMemorySessionStore.get(sampleSessionId);
+            assertThat(info.email()).isEqualTo(sampleUser.email());
         }
         memWatch.stop();
         long memTotalMs = memWatch.getTotalTimeMillis();
@@ -129,20 +131,20 @@ class SessionVsJwtBenchmarkTest {
 
         // 1. JWT 멀티스레드 부하 테스트 (Zero Lock, Zero DB Connection)
         long jwtElapsed = runConcurrentTask(threadCount, requestsPerThread, () -> {
-            TokenUserInfo info = jwtTokenProvider.validateAndTokenUserInfo(sampleJwtToken);
-            assertThat(info.getEmail()).isEqualTo(sampleUser.getEmail());
+            Claims claims = jwtTokenProvider.getClaims(sampleJwtToken);
+            assertThat(claims.getSubject()).isEqualTo(sampleUser.email());
         });
 
         // 2. DB 세션 멀티스레드 부하 테스트 (HikariCP 커넥션 풀 경합 + DB 커넥션 점유)
         long dbElapsed = runConcurrentTask(threadCount, requestsPerThread, () -> {
-            TokenUserInfo info = queryDbSession(sampleSessionId);
-            assertThat(info.getEmail()).isEqualTo(sampleUser.getEmail());
+            BenchmarkUser info = queryDbSession(sampleSessionId);
+            assertThat(info.email()).isEqualTo(sampleUser.email());
         });
 
         // 3. In-Memory 세션 멀티스레드 부하 테스트
         long memElapsed = runConcurrentTask(threadCount, requestsPerThread, () -> {
-            TokenUserInfo info = inMemorySessionStore.get(sampleSessionId);
-            assertThat(info.getEmail()).isEqualTo(sampleUser.getEmail());
+            BenchmarkUser info = inMemorySessionStore.get(sampleSessionId);
+            assertThat(info.email()).isEqualTo(sampleUser.email());
         });
 
         System.out.println("\n==========================================================================================");
@@ -190,8 +192,8 @@ class SessionVsJwtBenchmarkTest {
     @DisplayName("[4] 다중 서버 확장성(Scale-out) 시뮬레이션: 세션(Sticky / 외부 저장소 종속) vs JWT(완전 무상태 확장성)")
     void compareScaleOutCharacteristics() {
         // 클라우드 환경의 다중 서버 인스턴스 (Node A, Node B) 가정
-        Map<String, TokenUserInfo> serverNodeA = new ConcurrentHashMap<>();
-        Map<String, TokenUserInfo> serverNodeB = new ConcurrentHashMap<>();
+        Map<String, BenchmarkUser> serverNodeA = new ConcurrentHashMap<>();
+        Map<String, BenchmarkUser> serverNodeB = new ConcurrentHashMap<>();
 
         // 1. Session 방식: Node A에서 사용자가 로그인하여 로컬 세션 생성
         String sessionId = "SESSION_" + UUID.randomUUID();
@@ -204,16 +206,16 @@ class SessionVsJwtBenchmarkTest {
         assertThat(serverNodeB.get(sessionId)).isNull();
 
         // 2. JWT 방식: Node A에서 발급 (동일한 Secret Key 설정 공유)
-        String jwtToken = jwtTokenProvider.createToken(sampleUser.getEmail(), sampleUser.getRole().name());
+        String jwtToken = jwtTokenProvider.createToken(sampleUser.email(), sampleUser.role().name());
 
         // Node A 검증 -> 서명 검증 성공
-        TokenUserInfo infoA = jwtTokenProvider.validateAndTokenUserInfo(jwtToken);
-        assertThat(infoA.getEmail()).isEqualTo(sampleUser.getEmail());
+        Claims infoA = jwtTokenProvider.getClaims(jwtToken);
+        assertThat(infoA.getSubject()).isEqualTo(sampleUser.email());
 
         // Node B 검증 -> 세션 동기화나 네트워크 I/O 없이 Secret Key만으로 즉시 서명 검증 성공!
         // (수십 대의 서버로 오토스케일링되어도 완벽한 무상태 수평 확장이 가능)
-        TokenUserInfo infoB = jwtTokenProvider.validateAndTokenUserInfo(jwtToken);
-        assertThat(infoB.getEmail()).isEqualTo(sampleUser.getEmail());
+        Claims infoB = jwtTokenProvider.getClaims(jwtToken);
+        assertThat(infoB.getSubject()).isEqualTo(sampleUser.email());
 
         System.out.println("\n==========================================================================================");
         System.out.println(" 🌐 [다중 서버 확장성(Scale-out) 특성 비교]");
@@ -237,8 +239,8 @@ class SessionVsJwtBenchmarkTest {
         assertThat(inMemorySessionStore.get(sessionId)).isNull();
 
         // 2. JWT 방식: 서버에 상태가 없으므로 발급된 토큰 자체는 만료시간 전까지 유효함
-        String jwt = jwtTokenProvider.createToken(sampleUser.getEmail(), sampleUser.getRole().name());
-        TokenUserInfo infoBefore = jwtTokenProvider.validateAndTokenUserInfo(jwt);
+        String jwt = jwtTokenProvider.createToken(sampleUser.email(), sampleUser.role().name());
+        Claims infoBefore = jwtTokenProvider.getClaims(jwt);
         assertThat(infoBefore).isNotNull();
 
         // 무상태 JWT는 토큰 자체를 서버가 즉시 무효화할 수 없음 (서명 및 유효기간이 유효하므로 검증 통과)
@@ -274,13 +276,13 @@ class SessionVsJwtBenchmarkTest {
         String tamperedJwt = parts[0] + "." + tamperedPayloadBase64 + "." + parts[2];
 
         // SecretKey 서명 검증 시 즉시 SignatureException 발생하며 차단!
-        assertThatThrownBy(() -> jwtTokenProvider.validateAndTokenUserInfo(tamperedJwt))
+        assertThatThrownBy(() -> jwtTokenProvider.getClaims(tamperedJwt))
                 .isInstanceOf(SignatureException.class);
 
         // 2. Session: Session ID(UUID)는 단순 무작위 난수 키이므로
         // 만약 네트워크 도청/탈취(Session Hijacking)가 발생하면 세션 ID 자체로는 위조 여부를 검증할 수 없음
         String validSessionId = sampleSessionId;
-        TokenUserInfo authenticated = inMemorySessionStore.get(validSessionId);
+        BenchmarkUser authenticated = inMemorySessionStore.get(validSessionId);
         assertThat(authenticated).isNotNull();
 
         System.out.println("\n==========================================================================================");
@@ -291,13 +293,13 @@ class SessionVsJwtBenchmarkTest {
         System.out.println("==========================================================================================\n");
     }
 
-    private TokenUserInfo queryDbSession(String sessionId) {
+    private BenchmarkUser queryDbSession(String sessionId) {
         return jdbcTemplate.queryForObject(
                 "SELECT email, role FROM test_db_session WHERE session_id = ?",
-                (rs, rowNum) -> TokenUserInfo.builder()
-                        .email(rs.getString("email"))
-                        .role(Role.valueOf(rs.getString("role")))
-                        .build(),
+                (rs, rowNum) -> new BenchmarkUser(
+                        rs.getString("email"),
+                        Role.valueOf(rs.getString("role"))
+                ),
                 sessionId
         );
     }

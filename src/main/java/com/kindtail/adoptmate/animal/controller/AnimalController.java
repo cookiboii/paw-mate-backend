@@ -28,8 +28,7 @@ public class AnimalController implements AnimalControllerDocs {
     @PostMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CommonResDto> adoptAnimal(@Valid @RequestBody AnimalCreateRequest animalCreateRequest) {
-        Animal animal = animalService.registerAnimal(animalCreateRequest);
-        AnimalResponse responseDto = AnimalResponse.from(animal);
+        AnimalResponse responseDto = animalService.registerAnimal(animalCreateRequest);
 
         CommonResDto response = new CommonResDto(
                 HttpStatus.CREATED,

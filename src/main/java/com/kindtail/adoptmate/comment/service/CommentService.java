@@ -1,7 +1,7 @@
 package com.kindtail.adoptmate.comment.service;
 
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.SecurityUtil;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.comment.domain.Comment;
 import com.kindtail.adoptmate.comment.dto.CommentDto;
 import com.kindtail.adoptmate.comment.dto.CommentResponseDto;
@@ -64,23 +64,23 @@ public class CommentService {
 
     @Transactional
     public void deleteComment(Long id) {
-        TokenUserInfo userInfo = SecurityUtil.getCurrentUserInfo();
+        CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
 
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
 
-        comment.validateAuthorOrAdmin(userInfo);
+        comment.validateAuthorOrAdmin(userDetails);
         commentRepository.delete(comment);
     }
 
     @Transactional
     public CommentResponseDto updateComment(Long commentId, CommentUpdateDto dto) {
-        TokenUserInfo userInfo = SecurityUtil.getCurrentUserInfo();
+        CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
 
-        comment.validateAuthorOrAdmin(userInfo);
+        comment.validateAuthorOrAdmin(userDetails);
         comment.updateComment(dto.content());
         return CommentResponseDto.fromComment(comment);
     }

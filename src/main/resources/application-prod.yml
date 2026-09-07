@@ -15,14 +15,15 @@ spring:
     password: ${DB_PASSWORD:adoptmate}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      connection-timeout: 20000
+      connection-timeout: 5000
       validation-timeout: 3000
       idle-timeout: 600000
       max-lifetime: 1800000
       connection-test-query: SELECT 1
       keepalive-time: 300000
       maximum-pool-size: 50
-      minimum-idle: 20
+      minimum-idle: 50
+      leak-detection-threshold: 3000
 
   jpa:
     hibernate:

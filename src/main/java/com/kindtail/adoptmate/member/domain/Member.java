@@ -4,7 +4,6 @@ import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.comment.domain.Comment;
 import com.kindtail.adoptmate.common.domain.BaseTimeEntity;
-import com.kindtail.adoptmate.member.dto.MemberResponseDto;
 import com.kindtail.adoptmate.post.domain.Post;
 import jakarta.persistence.*;
 import lombok.*;
@@ -85,16 +84,5 @@ public class Member extends BaseTimeEntity {
         if (profileImage != null && !profileImage.isBlank()) {
             this.profileImage = profileImage;
         }
-    }
-
-    public MemberResponseDto toDto() {
-        return MemberResponseDto.builder()
-                .id(this.id)
-                .email(this.email)
-                .name(this.name)
-                .profileImage(this.profileImage)
-                .socialProvider(this.socialProvider)
-                .role(this.role)
-                .build();
     }
 }

@@ -3,7 +3,7 @@ package com.kindtail.adoptmate.adoption.controller;
 import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
 import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.dto.AdoptionUpdateRequestDto;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,7 +29,7 @@ public interface AdoptionControllerDocs {
     ResponseEntity<CommonResDto> registerAdoption(
             @Parameter(description = "신청 대상 동물 ID", example = "1") @PathVariable("animalId") Long animalId,
             @Valid @RequestBody AdoptionCreateRequest adoptionCreateRequest,
-            @AuthenticationPrincipal TokenUserInfo userInfo
+            @AuthenticationPrincipal CustomUserDetails userDetails
     );
 
     @Operation(summary = "내 입양 신청 내역 조회", description = "현재 로그인한 회원이 신청한 모든 입양 내역을 조회합니다.")
@@ -37,7 +37,7 @@ public interface AdoptionControllerDocs {
             @ApiResponse(responseCode = "200", description = "내 입양 내역 조회 성공"),
             @ApiResponse(responseCode = "401", description = "인증 실패")
     })
-    ResponseEntity<CommonResDto> myAdoption(@AuthenticationPrincipal TokenUserInfo userInfo);
+    ResponseEntity<CommonResDto> myAdoption(@AuthenticationPrincipal CustomUserDetails userDetails);
 
     @Operation(summary = "전체 입양 신청 내역 조회 (리스트 - 관리자 전용)", description = "관리자 권한으로 전체 회원의 입양 신청 내역을 리스트로 조회합니다.")
     @ApiResponses({

@@ -42,9 +42,9 @@
 ### Security & Authentication
 - **Security**: Spring Security 6+ (Method Security `@PreAuthorize`, `@AuthenticationPrincipal` 적용)
 - **CORS**: Spring Security 필터 체인 레벨 `CorsConfigurationSource` 표준 빈 등록 (Preflight & 에러 응답 헤더 보장)
-- **Security Utilities**: `SecurityUtil` (NPE 및 ClassCastException 방어, `resolveToken` 토큰 추출 공통화)
+- **Security Utilities**: `SecurityUtil` (NPE 및 ClassCastException 방어, `getCurrentUserId()` 제공, `resolveToken` 토큰 추출 공통화)
 - **OAuth2**: Spring Security OAuth2 Client (Kakao) & `OAuthResponseUtil` 팝업 연동 템플릿 통합
-- **Token**: JWT (`jjwt 0.11.5` HMAC-SHA512), Redis 기반 Refresh Token 관리 및 Blacklist 로그아웃 / 탈퇴 무효화
+- **Token**: JWT (`jjwt 0.11.5` HMAC-SHA512, Claims에 `id`, `email`, `role`을 포함하여 반복 DB 조회 제거), Redis 기반 Refresh Token 관리 및 Blacklist 로그아웃 / 탈퇴 무효화 (`ErrorCode.LOGOUT_TOKEN` 401 매핑)
 - **Password**: BCryptPasswordEncoder
 
 ### Database & Persistence
@@ -54,16 +54,18 @@
   - `BaseTimeEntity` 공통 상속 (생성일시/수정일시 및 `is_deleted` 자동 관리)
   - Hibernate 6 `@SQLDelete` & `@SQLRestriction("is_deleted = false")` 적용 (데이터 이력 영구 보존 및 FK 무결성 보장)
 - **쿼리 성능 최적화**: `@EntityGraph` 및 `Fetch Join`, `default_batch_fetch_size: 100` 적용 (N+1 문제 원천 차단)
-- **객체지향 설계**: **Tell, Don't Ask** 원칙에 따른 `Post`/`Comment` 도메인 엔티티 내 `validateAuthorOrAdmin(userInfo)` 권한 캡슐화
+- **객체지향 & 클린 아키텍처**:
+  - **Tell, Don't Ask** 원칙 및 도메인 순수성: `Post`/`Comment` 도메인 엔티티 내 `validateAuthorOrAdmin(currentUserId, isAdmin)` 기반 순수 권한 검증 캡슐화 (보안 프레임워크 의존성 분리)
+  - **계층 분리 및 DTO 반환 표준화**: Service 레이어에서 JPA Entity 외부 노출을 차단하고 DTO 반환을 강제하여 트랜잭션 외부 `LazyInitializationException` 및 엔티티 오염 방지
 
 ### Cache & Concurrency Control
 - **Distributed Lock**: Redisson (`RLock`, Pub/Sub 기반 분산 락)
-- **Lock Architecture**: `Facade` 및 `DistributedLockTemplate` 패턴 (락 라이프사이클과 DB 트랜잭션의 관심사 완전 분리)
+- **Lock Architecture**: `Facade` 및 `DistributedLockTemplate` 패턴 (Redisson Watchdog 기반 자동 락 갱신 지원 `leaseTime <= 0`, 트랜잭션 지연 시 락 조기 만료 및 동시성 붕괴 원천 차단)
 - **Optimistic Lock**: JPA `@Version` (엔티티 동시 수정 및 Lost Update 방지)
 - **State Machine**: 입양 상태 전이 유효성 검증 및 다중 신청 연쇄 처리 (승인 시 타 신청 자동 반려)
 - **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce 최신 클라이언트 구성, JSON/Hash 직렬화, SSL 지원)
 - **Mail**: JavaMailSender (Gmail SMTP 이메일 인증 및 비밀번호 재설정)
-- **Testing & Benchmark**: JUnit 5, `@SpringBatchTest`, AssertJ, Mockito (33개 테스트 스위트 100% 통과)
+- **Testing & Productivity**: JUnit 5, `@SpringBatchTest`, AssertJ, Mockito (150개 테스트 100% 통과, `@Tag("benchmark")` 태깅 및 전용 태스크 분리로 빌드 및 CI 속도 극대화)
 - **API Documentation**: SpringDoc OpenAPI UI (Swagger 3) + **Swagger Docs Interface 분리 패턴** (`*Docs.java`)
 
 ---
@@ -108,11 +110,14 @@ com.kindtail.adoptmate
 
 ### 🔐 1. 인증 & 보안 아키텍처 (Spring Security & JWT)
 - **JWT 무상태(Stateless) 인증**: Access Token(1시간)과 Refresh Token(7일) 기반의 보안 아키텍처
+- **JWT Claims `memberId` 포함을 통한 불필요한 DB 쿼리 제거**:
+  - 토큰 생성 시 `id`, `email`, `role`을 클레임에 함께 저장하여, 인증 후 서비스 계층에서 매 요청마다 발생하던 `memberRepository.findByEmail()` 반복 조회를 제거
 - **Redis 연동 토큰 관리 & 철저한 무효화**:
   - 사용자별 Refresh Token을 Redis에 보관하여 토큰 갱신 지원
   - 로그아웃 및 **회원 탈퇴 시** Access Token 잔여 시간만큼 Blacklist에 등록하여 탈취된 토큰 즉시 무효화
+  - `JwtAuthFilter` 및 `SecurityConfig` 연동을 통해 블랙리스트 토큰 감지 시 `ErrorCode.LOGOUT_TOKEN` (401 Unauthorized) 표준 에러 응답 체계화
 - **`SecurityUtil`을 통한 Null-Safe 보안 컨텍스트 접근**:
-  - `SecurityUtil.getCurrentUserInfo()`, `SecurityUtil.getCurrentUserEmail()`로 서비스단에서 `NPE`나 `ClassCastException` 없이 안전하게 인증 정보 획득
+  - `SecurityUtil.getCurrentUserDetails()`, `SecurityUtil.getCurrentUserEmail()`, `SecurityUtil.getCurrentUserId()`로 서비스단에서 `NPE`나 `ClassCastException` 없이 안전하게 인증 정보 획득
   - `SecurityUtil.resolveToken(request)`으로 컨트롤러와 필터에 흩어져 있던 `Bearer ` 헤더 추출 로직 일원화
 - **이메일 인증 시스템**: 6자리 난수 코드를 Redis에 3분간 캐싱하여 검증 (5회 실패 시 30분 차단)
 - **카카오 OAuth2 소셜 로그인 & 계정 자동 연동**:
@@ -120,7 +125,7 @@ com.kindtail.adoptmate
   - 기존 일반 이메일 가입 유저가 카카오 로그인 시 `socialProvider` 및 `socialId` 자동 연동 (중복 키 에러 방지)
   - `OAuthResponseUtil`을 통한 팝업 postMessage 응답 템플릿 통합
 - **안전한 논리 삭제(Soft Delete)**: 회원 탈퇴 시 기존 작성 글/입양 이력 보존 및 이메일 유니크 인덱스 충돌 방지 (`email = CONCAT('deleted_', id, '_', email)`)
-- **`@AuthenticationPrincipal` 표준 주입**: 컨트롤러에서 `TokenUserInfo`를 Type-safe하게 주입받아 사용
+- **`@AuthenticationPrincipal` 표준 주입**: 컨트롤러에서 `CustomUserDetails`를 Type-safe하게 주입받아 사용
 
 ### 📖 2. Swagger Docs Interface 분리 패턴 (관심사 분리)
 - 컨트롤러 코드에서 방대한 Swagger/OpenAPI 어노테이션(`@Tag`, `@Operation`, `@ApiResponses`, `@Parameter`)을 전용 인터페이스(`*Docs.java`)로 완전히 분리
@@ -150,9 +155,13 @@ com.kindtail.adoptmate
   - `@SQLRestriction("is_deleted = false")`와 정렬 컬럼에 맞춰 `idx_post_deleted_id(is_deleted, post_id DESC)` 및 `idx_post_deleted_created(is_deleted, created_at DESC)` 복합 인덱스를 구축하여 Full Table Scan 방지
 - **계층형 대댓글 구조**: 부모-자식 트리 구조로 무제한 뎁스의 답글 지원
 - **N+1 쿼리 최적화**: `@EntityGraph(attributePaths = {"member", "children", "children.member"})` 및 `@BatchSize`를 통한 쿼리 최적화
-- **Tell, Don't Ask 객체지향 권한 검증**: `post.validateAuthorOrAdmin(userInfo)`, `comment.validateAuthorOrAdmin(userInfo)` 도메인 메서드를 통해 작성자 본인 또는 관리자만 수정/삭제 가능하도록 캡슐화
+- **Tell, Don't Ask 객체지향 권한 검증**: `post.validateAuthorOrAdmin(currentUserId, isAdmin)`, `comment.validateAuthorOrAdmin(currentUserId, isAdmin)` 순수 도메인 메서드를 통해 권한 검증 캡슐화 및 프레임워크 결합도 해소
 
-### 🚨 6. 전역 예외 처리 고도화 (`GlobalExceptionHandler`)
+### 🏗️ 6. 서비스 계층 분리 및 DTO 반환 표준화 (JPA Entity 노출 차단)
+- `PostService`, `AnimalService`, `MemberService`, `MemberFacade` 등 모든 서비스 레이어가 컨트롤러에 JPA 엔티티 대신 DTO(`PostResponseDto`, `AnimalResponse`, `MemberResponseDto` 등)를 직접 반환
+- 트랜잭션 범위 밖에서 발생할 수 있는 `LazyInitializationException`을 원천 차단하고, 컨트롤러 계층에서의 의도치 않은 엔티티 상태 변질 방지
+
+### 🚨 7. 전역 예외 처리 고도화 (`GlobalExceptionHandler`)
 - `AccessDeniedException (403)` / `AuthenticationException (401)`: 보안 인가 실패 시 일관된 표준 JSON 에러 반환
 - `MethodArgumentNotValidException (400)`: `@Valid` 실패 시 `[email] 이메일 형식이 올바르지 않습니다.` 형태로 구체적 필드명 명시
 - `MaxUploadSizeExceededException (413)`: 파일 업로드 10MB 초과 시 친절한 안내 메시지 반환
@@ -187,12 +196,16 @@ Spring Batch 5.x를 도입하여 **대용량 입양 데이터 처리의 $O(N)$ I
 
 ### 2. 장기 미처리 입양 신청 자동 만료 및 상태 복구 배치 (`ExpiredAdoptionBatchConfig.java`)
 
-#### 📌 비즈니스 문제 정의
-* 입양 신청 시 대상 동물은 `WAITING`(입양 대기) 상태로 잠겨 다른 사용자의 신청이 제한됩니다.
-* 하지만 신청자 또는 보호소 측에서 장기간(14일 이상) 방치(`PENDING`)할 경우 **동물이 영구히 대기 상태에 갇혀 다른 입양 희망자가 신청하지 못하는 비즈니스 병목**이 발생합니다.
+#### 📌 비즈니스 문제 정의 및 페이징 건너뜀(Page Skipping) 결함 해결
+* **비즈니스 문제 정의**:
+  - 입양 신청 시 대상 동물은 `WAITING`(입양 대기) 상태로 잠겨 다른 사용자의 신청이 제한됩니다.
+  - 하지만 신청자 또는 보호소 측에서 장기간(14일 이상) 방치(`PENDING`)할 경우 **동물이 영구히 대기 상태에 갇혀 다른 입양 희망자가 신청하지 못하는 비즈니스 병목**이 발생합니다.
+* **`JpaPagingItemReader` Page-Skipping 결함 해결**:
+  - `WHERE a.status = 'PENDING'` 조건으로 데이터를 청크 단위로 조회한 뒤 상태를 변경(`REJECTED`)할 때, 기본 `JpaPagingItemReader`의 오프셋 증가 방식(`firstResult = page * pageSize`)을 사용하면 **이미 상태가 변경된 데이터가 뷰에서 사라져 후속 데이터의 절반 이상을 건너뛰는(Skip) 심각한 누락 버그**가 발생합니다.
+  - 이를 방지하기 위해 `getPage() { return 0; }` 오버라이딩을 적용하여, 처리된 레코드가 사라져도 **항상 첫 번째 페이지(Offset 0)를 소비하도록 보정함으로써 단 1건의 누락도 없이 전체 만료 대상을 완벽하게 처리**하도록 데이터 무결성을 보장했습니다.
 
 #### 🛠️ 배치 파이프라인 아키텍처
-* **Reader (`expiredAdoptionReader`)**: `@StepScope` 파라미터(`thresholdDate`)와 `Fetch Join`을 적용하여 14일 경과된 `PENDING` 건을 N+1 없이 청크 단위로 조회
+* **Reader (`expiredAdoptionReader`)**: `@StepScope` 파라미터(`thresholdDate`)와 `Fetch Join`을 적용하여 14일 경과된 `PENDING` 건을 N+1 없이 청크 단위로 조회 (`getPage() { return 0; }` 무결성 페이징 적용)
 * **Processor (`expiredAdoptionProcessor`)**: 입양 신청 상태를 `REJECTED`(자동 반려)로 전이하고, 연관 동물의 상태를 `PROTECTED`(입양 가능)로 복구
 * **Writer (`expiredAdoptionWriter`)**: 단일 트랜잭션 내에서 `Adoption` 및 `Animal` 변경 사항을 일괄 영속화
 * **트랜잭션 격리**: `Chunk(100)` 단위 트랜잭션 분할로 롱 트랜잭션 및 Undo Log 폭증을 방지하고 결함 격리(Fault Isolation) 보장
@@ -306,10 +319,13 @@ flowchart TD
 
 ### 1. 트랜잭션과 분산 락의 생명주기 및 관심사 분리 (`Facade & DistributedLockTemplate`)
 1. **Facade 계층**(`AdoptionFacade`, `MemberFacade`)에서 `DistributedLockTemplate`을 통해 Redis 분산 락을 먼저 획득 (DB 커넥션 미사용)
-2. 락 획득 성공 후 **Service 계층**(`@Transactional`)으로 진입하여 DB 트랜잭션 시작 및 비즈니스 로직 수행
-3. Service 메서드 종료와 함께 **DB 트랜잭션 커밋 완료 & 커넥션 즉시 반납**
-4. Template의 `finally` 블록에서 **Redis 분산 락 안전 해제**
-👉 **락 대기 시간 동안 DB 커넥션 풀을 낭비하지 않으며, 트랜잭션 커밋 후 락 해제를 완벽하게 보장**합니다.
+2. **Redisson Watchdog 기반 락 자동 연장 지원 (`leaseTime <= 0`)**:
+   - 고정된 임대 시간(`leaseTime`)을 지정할 경우 비즈니스 로직이나 외부 API 지연 시 트랜잭션 커밋 전에 락이 강제 반납되어 데이터 정합성이 깨질 위험이 있습니다.
+   - `DistributedLockTemplate`은 기본 `leaseTime = -1L`로 설정하여 Redisson의 **Watchdog 스레드가 트랜잭션 완료 시까지 락을 안전하게 자동 갱신**하며, 명시적 만료 시간이 필요한 경우 유연하게 지정할 수 있도록 2-arg / 3-arg 오버로딩을 모두 지원합니다.
+3. 락 획득 성공 후 **Service 계층**(`@Transactional`)으로 진입하여 DB 트랜잭션 시작 및 비즈니스 로직 수행
+4. Service 메서드 종료와 함께 **DB 트랜잭션 커밋 완료 & 커넥션 즉시 반납**
+5. Template의 `finally` 블록에서 **Redis 분산 락 안전 해제**
+👉 **락 대기 시간 동안 DB 커넥션 풀을 낭비하지 않으며, 락 조기 만료 방지 및 트랜잭션 커밋 후 락 해제를 완벽하게 보장**합니다.
 
 ### 2. 주요 적용 도메인
 | 도메인 | 적용 기술 / 계층 | 락 키 (Type-safe) / 정책 | 목적 |
@@ -383,9 +399,13 @@ CLIENT_URL=http://localhost:5173
 docker compose up -d --build
 ```
 
-### 5. 전체 테스트 실행 (33개 테스트 스위트 / 140+ Tests 100% 통과)
+### 5. 전체 테스트 실행 (150개 단위/통합 테스트 100% 통과)
 ```bash
+# 1) 일반 단위/통합 테스트 실행 (대용량 벤치마크 제외로 빠른 빌드 & CI 루프 보장)
 ./gradlew test
+
+# 2) 대용량 벤치마크 테스트 단독 실행 (10만 건 배치 및 1만 건 세션 vs JWT 부하 측정)
+./gradlew benchmarkTest
 ```
 
 ---

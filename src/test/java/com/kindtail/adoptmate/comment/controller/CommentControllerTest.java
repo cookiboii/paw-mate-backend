@@ -1,13 +1,14 @@
 package com.kindtail.adoptmate.comment.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.comment.dto.CommentDto;
 import com.kindtail.adoptmate.comment.dto.CommentResponseDto;
 import com.kindtail.adoptmate.comment.dto.CommentUpdateDto;
 import com.kindtail.adoptmate.comment.service.CommentService;
+import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -63,12 +64,15 @@ class CommentControllerTest {
                 1L, "댓글작성자", 10L, "commenter@example.com", "댓글 내용입니다.", LocalDateTime.now(), new ArrayList<>()
         );
 
-        TokenUserInfo tokenUserInfo = TokenUserInfo.builder()
+        Member member = Member.builder()
+                .id(1L)
                 .email("commenter@example.com")
+                .name("댓글작성자")
                 .role(Role.USER)
                 .build();
+        CustomUserDetails userDetails = new CustomUserDetails(member);
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                tokenUserInfo, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                userDetails, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
     }

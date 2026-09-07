@@ -3,7 +3,6 @@ package com.kindtail.adoptmate.concurrency;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
-import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
@@ -113,7 +112,7 @@ class OptimisticLockTest {
                     } catch (InterruptedException ignored) {
                     }
 
-                    a1.updateStatus(new AnimalStatusUpdateRequest(Status.WAITING));
+                    a1.updateStatus(Status.WAITING);
                     animalRepository.saveAndFlush(a1);
                     return null;
                 });
@@ -140,7 +139,7 @@ class OptimisticLockTest {
                     } catch (InterruptedException ignored) {
                     }
 
-                    a2.updateStatus(new AnimalStatusUpdateRequest(Status.ADOPTED));
+                    a2.updateStatus(Status.ADOPTED);
                     animalRepository.saveAndFlush(a2);
                     return null;
                 });

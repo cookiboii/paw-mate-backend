@@ -4,6 +4,7 @@ import com.kindtail.adoptmate.common.lock.DistributedLockTemplate;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
+import com.kindtail.adoptmate.member.dto.MemberResponseDto;
 import com.kindtail.adoptmate.member.service.MemberService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,7 @@ class MemberFacadeTest {
         // given
         String email = "test@pawmate.com";
         MemberRegisterRequestDto request = new MemberRegisterRequestDto("테스터", email, "pwd123", Role.USER);
-        Member expectedMember = Member.builder()
+        MemberResponseDto expectedMember = MemberResponseDto.builder()
                 .id(1L)
                 .email(email)
                 .name("테스터")
@@ -48,13 +49,13 @@ class MemberFacadeTest {
 
         given(distributedLockTemplate.execute(eq("register:" + email), any(Supplier.class)))
                 .willAnswer(invocation -> {
-                    Supplier<Member> supplier = invocation.getArgument(1);
+                    Supplier<MemberResponseDto> supplier = invocation.getArgument(1);
                     return supplier.get();
                 });
         given(memberService.registerMember(request)).willReturn(expectedMember);
 
         // when
-        Member result = memberFacade.registerMember(request);
+        MemberResponseDto result = memberFacade.registerMember(request);
 
         // then
         assertThat(result).isEqualTo(expectedMember);

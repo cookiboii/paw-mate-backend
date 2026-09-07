@@ -18,7 +18,7 @@ public class DistributedLockTemplate {
 
     private static final String LOCK_PREFIX = "LOCK:";
     private static final long DEFAULT_WAIT_TIME = 5L;
-    private static final long DEFAULT_LEASE_TIME = 3L;
+    private static final long DEFAULT_LEASE_TIME = -1L; // -1L 설정 시 Redisson Watchdog이 동작하여 트랜잭션 종료 시까지 안전하게 자동 연장
     private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.SECONDS;
 
     private final RedissonClient redissonClient;
@@ -46,7 +46,9 @@ public class DistributedLockTemplate {
         RLock rLock = redissonClient.getLock(lockKey);
 
         try {
-            boolean available = rLock.tryLock(waitTime, leaseTime, timeUnit);
+            boolean available = (leaseTime > 0)
+                    ? rLock.tryLock(waitTime, leaseTime, timeUnit)
+                    : rLock.tryLock(waitTime, timeUnit);
             if (!available) {
                 log.warn("[DistributedLock] Failed to acquire lock for key: {}", lockKey);
                 throw new CustomException(ErrorCode.LOCK_ACQUISITION_FAILED);

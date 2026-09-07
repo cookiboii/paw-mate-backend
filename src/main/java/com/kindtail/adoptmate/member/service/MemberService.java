@@ -1,6 +1,6 @@
 package com.kindtail.adoptmate.member.service;
 
-import com.kindtail.adoptmate.auth.TokenUserInfo;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
@@ -32,8 +32,8 @@ public class MemberService {
 
     public void logout(String accessToken) {
         try {
-            TokenUserInfo userInfo = jwtTokenProvider.validateAndTokenUserInfo(accessToken);
-            redisTemplate.delete("refreshToken:" + userInfo.getEmail());
+            String email = jwtTokenProvider.getEmailFromToken(accessToken);
+            redisTemplate.delete("refreshToken:" + email);
         } catch (Exception ignored) {
         }
         long remainingMillis = jwtTokenProvider.getRemainingExpirationMillis(accessToken);
@@ -69,11 +69,11 @@ public class MemberService {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
-        return jwtTokenProvider.createToken(member.getEmail(), member.getRole().toString());
+        return jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString());
     }
 
     @Transactional
-    public Member registerMember(MemberRegisterRequestDto memberRegisterRequestDto) {
+    public MemberResponseDto registerMember(MemberRegisterRequestDto memberRegisterRequestDto) {
         String email = memberRegisterRequestDto.email();
         String password = memberRegisterRequestDto.password();
         String username = memberRegisterRequestDto.name();
@@ -91,14 +91,15 @@ public class MemberService {
                 .password(password)
                 .role(role)
                 .build();
-        return memberRepository.save(member);
+        Member saved = memberRepository.save(member);
+        return MemberResponseDto.from(saved);
     }
 
     @Transactional(readOnly = true)
     public MemberLoginResultDto login(MemberLoginRequestDto loginRequestDto) {
         Member member = authenticateMember(loginRequestDto);
 
-        String token = jwtTokenProvider.createToken(member.getEmail(), member.getRole().toString());
+        String token = jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString());
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getEmail());
         saveRefreshToken(member.getEmail(), refreshToken);
 
@@ -121,15 +122,29 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public Member getMemberInfo() {
+    public MemberInfoResponseDto getMemberInfo() {
         String email = SecurityUtil.getCurrentUserEmail();
-        return memberRepository.findByEmail(email)
+        Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+
+        return MemberInfoResponseDto.builder()
+                .id(member.getId())
+                .name(member.getName())
+                .email(member.getEmail())
+                .role(member.getRole())
+                .build();
     }
 
     @Transactional(readOnly = true)
-    public List<Member> getMembers() {
-        return memberRepository.findAll();
+    public List<MemberInfoResponseDto> getMembers() {
+        return memberRepository.findAll().stream()
+                .map(member -> MemberInfoResponseDto.builder()
+                        .id(member.getId())
+                        .name(member.getName())
+                        .email(member.getEmail())
+                        .role(member.getRole())
+                        .build())
+                .toList();
     }
 
     @Transactional

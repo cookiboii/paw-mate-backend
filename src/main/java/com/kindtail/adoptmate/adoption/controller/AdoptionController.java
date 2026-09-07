@@ -5,7 +5,7 @@ import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.dto.AdoptionUpdateRequestDto;
 import com.kindtail.adoptmate.adoption.facade.AdoptionFacade;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.member.service.MemberService;
 import jakarta.validation.Valid;
@@ -34,9 +34,9 @@ public class AdoptionController implements AdoptionControllerDocs {
     public ResponseEntity<CommonResDto> registerAdoption(
             @PathVariable("animalId") Long animalId,
             @Valid @RequestBody AdoptionCreateRequest adoptionCreateRequest,
-            @AuthenticationPrincipal TokenUserInfo userInfo
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long memberId = memberService.getMemberIdByEmail(userInfo.getEmail());
+        Long memberId = (userDetails.getId() != null) ? userDetails.getId() : memberService.getMemberIdByEmail(userDetails.getEmail());
         AdoptionResponseDto adoptionResponse = adoptionFacade.applyAdoption(adoptionCreateRequest, memberId, animalId);
 
         CommonResDto response = new CommonResDto(
@@ -50,8 +50,8 @@ public class AdoptionController implements AdoptionControllerDocs {
 
     @Override
     @GetMapping("/myAdoption")
-    public ResponseEntity<CommonResDto> myAdoption(@AuthenticationPrincipal TokenUserInfo userInfo) {
-        Long memberId = memberService.getMemberIdByEmail(userInfo.getEmail());
+    public ResponseEntity<CommonResDto> myAdoption(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long memberId = (userDetails.getId() != null) ? userDetails.getId() : memberService.getMemberIdByEmail(userDetails.getEmail());
         List<AdoptionResponseDto> adoptions = adoptionService.getAdoptions(memberId);
 
         CommonResDto response = new CommonResDto(

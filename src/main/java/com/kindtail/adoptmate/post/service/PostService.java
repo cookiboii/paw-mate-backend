@@ -1,7 +1,7 @@
 package com.kindtail.adoptmate.post.service;
 
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.SecurityUtil;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
@@ -30,9 +30,8 @@ public class PostService {
 
     @CacheEvict(value = "posts", allEntries = true)
     @Transactional
-    public Post createPost(PostCreateRequestDto dto) {
+    public PostResponseDto createPost(PostCreateRequestDto dto) {
         String email = SecurityUtil.getCurrentUserEmail();
-
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
@@ -43,7 +42,8 @@ public class PostService {
                 .member(member)
                 .build();
 
-        return postRepository.save(post);
+        Post saved = postRepository.save(post);
+        return PostResponseDto.from(saved);
     }
 
     @Cacheable(value = "posts", key = "'page-' + #pageable.pageNumber + '-' + #pageable.pageSize")
@@ -64,12 +64,12 @@ public class PostService {
     @CacheEvict(value = "posts", allEntries = true)
     @Transactional
     public void deletePost(Long postId) {
-        TokenUserInfo userInfo = SecurityUtil.getCurrentUserInfo();
+        CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        post.validateAuthorOrAdmin(userInfo);
+        post.validateAuthorOrAdmin(userDetails);
         postRepository.delete(post);
     }
 
@@ -83,12 +83,12 @@ public class PostService {
     @CacheEvict(value = "posts", allEntries = true)
     @Transactional
     public PostResponseDto updatePost(Long postId, PostUpdateRequestDto dto) {
-        TokenUserInfo userInfo = SecurityUtil.getCurrentUserInfo();
+        CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        post.validateAuthorOrAdmin(userInfo);
+        post.validateAuthorOrAdmin(userDetails);
         post.updatePost(dto.title(), dto.content(), dto.img());
         return PostResponseDto.from(post);
     }

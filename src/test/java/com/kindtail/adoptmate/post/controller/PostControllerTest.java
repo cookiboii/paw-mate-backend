@@ -1,9 +1,9 @@
 package com.kindtail.adoptmate.post.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.post.domain.Post;
@@ -79,12 +79,9 @@ class PostControllerTest {
                 .member(author)
                 .build();
 
-        TokenUserInfo tokenUserInfo = TokenUserInfo.builder()
-                .email("test@example.com")
-                .role(Role.USER)
-                .build();
+        CustomUserDetails userDetails = new CustomUserDetails(author);
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                tokenUserInfo, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                userDetails, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -94,7 +91,7 @@ class PostControllerTest {
     void createPost_성공() throws Exception {
         // given
         PostCreateRequestDto requestDto = new PostCreateRequestDto("테스트 제목", "테스트 내용", "test.jpg");
-        given(postService.createPost(any(PostCreateRequestDto.class))).willReturn(testPost);
+        given(postService.createPost(any(PostCreateRequestDto.class))).willReturn(PostResponseDto.from(testPost));
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/post/create")

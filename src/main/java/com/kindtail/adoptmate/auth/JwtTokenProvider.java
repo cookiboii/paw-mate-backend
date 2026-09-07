@@ -1,6 +1,5 @@
 package com.kindtail.adoptmate.auth;
 
-import com.kindtail.adoptmate.member.domain.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -37,9 +36,12 @@ public class JwtTokenProvider {
         this.secretKeyRt = Keys.hmacShaKeyFor(secretKeyRtString.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String createToken(String email, String role) {
+    public String createToken(Long id, String email, String role) {
         Claims claims = Jwts.claims().setSubject(email);
         claims.put("role", role);
+        if (id != null) {
+            claims.put("id", id);
+        }
         Date now = new Date();
 
         return Jwts.builder()
@@ -50,16 +52,32 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public TokenUserInfo validateAndTokenUserInfo(String token) {
-        Claims claims = Jwts.parserBuilder()
+    public String createToken(String email, String role) {
+        return createToken(null, email, role);
+    }
+
+    public String getEmailFromToken(String token) {
+        return getClaims(token).getSubject();
+    }
+
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public Claims getClaims(String token) {
+        return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-        return TokenUserInfo.builder()
-                .email(claims.getSubject())
-                .role(Role.valueOf(claims.get("role", String.class)))
-                .build();
     }
 
     public String createRefreshToken(String email) {

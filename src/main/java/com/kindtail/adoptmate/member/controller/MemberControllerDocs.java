@@ -1,6 +1,6 @@
 package com.kindtail.adoptmate.member.controller;
 
-import com.kindtail.adoptmate.auth.TokenUserInfo;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.member.dto.MemberLoginRequestDto;
 import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
@@ -68,7 +68,7 @@ public interface MemberControllerDocs {
             @ApiResponse(responseCode = "400", description = "현재 비밀번호 불일치")
     })
     ResponseEntity<CommonResDto> changePassword(
-            @AuthenticationPrincipal TokenUserInfo userInfo,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody @Valid PasswordChangeRequestDto dto
     );
 
@@ -78,7 +78,7 @@ public interface MemberControllerDocs {
             @ApiResponse(responseCode = "401", description = "인증 실패")
     })
     ResponseEntity<CommonResDto> deleteMember(
-            @AuthenticationPrincipal TokenUserInfo userInfo,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest request
     );
 }

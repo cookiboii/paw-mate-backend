@@ -2,6 +2,7 @@ package com.kindtail.adoptmate.batch;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.batch.core.*;
@@ -13,11 +14,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.StopWatch;
 
+@Tag("benchmark")
 @SpringBatchTest
 @SpringBootTest
 @ActiveProfiles("test")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-
 class BatchReaderPerformanceTest {
 
     @Autowired(required = false)

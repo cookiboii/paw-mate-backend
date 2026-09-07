@@ -1,6 +1,6 @@
 package com.kindtail.adoptmate.comment.domain;
 
-import com.kindtail.adoptmate.auth.TokenUserInfo;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.domain.BaseTimeEntity;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
@@ -62,15 +62,20 @@ public class Comment extends BaseTimeEntity {
     /**
      * 작성자 본인 또는 관리자 권한 검증 (Tell, Don't Ask)
      */
-    public void validateAuthorOrAdmin(TokenUserInfo userInfo) {
-        if (userInfo == null) {
+    public void validateAuthorOrAdmin(Long currentUserId, boolean isAdmin) {
+        if (currentUserId == null) {
             throw new CustomException(ErrorCode.UNAUTHORIZED);
         }
-        boolean isAuthor = this.member != null && this.member.getEmail().equals(userInfo.getEmail());
-        boolean isAdmin = userInfo.isAdmin();
-
+        boolean isAuthor = this.member != null && this.member.getId() != null && this.member.getId().equals(currentUserId);
         if (!isAuthor && !isAdmin) {
             throw new CustomException(ErrorCode.UNAUTHORIZED_AUTHOR);
         }
+    }
+
+    public void validateAuthorOrAdmin(CustomUserDetails userDetails) {
+        if (userDetails == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        validateAuthorOrAdmin(userDetails.getId(), userDetails.isAdmin());
     }
 }

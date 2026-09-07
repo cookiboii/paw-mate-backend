@@ -7,7 +7,6 @@ import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
 import com.kindtail.adoptmate.adoption.repository.AdoptionRepository;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Status;
-import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
@@ -62,17 +61,14 @@ public class AdoptionService {
         );
         Adoption saved = adoptionRepository.save(adoption);
         // 📌 4. 신청 접수 시 동물 상태를 '입양 대기(WAITING)'로 자동 전환
-        animal.updateStatus(new AnimalStatusUpdateRequest(Status.WAITING));
+        animal.updateStatus(Status.WAITING);
 
         return AdoptionResponseDto.from(saved);
     }
 
     @Transactional(readOnly = true)
     public List<AdoptionResponseDto> getAdoptions(Long memberId) {
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
-
-        List<Adoption> adoptions = adoptionRepository.findByMember(member);
+        List<Adoption> adoptions = adoptionRepository.findByMemberId(memberId);
         return adoptions.stream()
                 .map(AdoptionResponseDto::from)
                 .collect(Collectors.toList());
@@ -97,34 +93,31 @@ public class AdoptionService {
         Adoption adoption = adoptionRepository.findByIdWithFetchJoin(adoptionId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ADOPTION_NOT_FOUND));
 
-        // 📌 상태 머신 검증: PENDING 상태일 때만 APPROVED 또는 REJECTED 로 전이 가능
-        if (adoption.getStatus() != AdoptionStatus.PENDING) {
-            throw new CustomException(ErrorCode.INVALID_ADOPTION_STATUS_TRANSITION);
-        }
-
         Animal animal = adoption.getAnimal();
 
         if (status == AdoptionStatus.APPROVED) {
-            adoption.updateAdoption(AdoptionStatus.APPROVED);
-            animal.updateStatus(new AnimalStatusUpdateRequest(Status.ADOPTED));
+            adoption.approve();
+            animal.updateStatus(Status.ADOPTED);
 
             // 📌 연쇄 처리: 한 신청이 최종 승인되면 동일 동물에 대한 다른 대기(PENDING) 신청 건들은 자동 반려
             List<Adoption> otherPendingAdoptions = adoptionRepository.findByAnimalAndStatusAndIdNot(
                     animal, AdoptionStatus.PENDING, adoptionId
             );
             for (Adoption other : otherPendingAdoptions) {
-                other.updateAdoption(AdoptionStatus.REJECTED);
+                other.reject();
             }
         } else if (status == AdoptionStatus.REJECTED) {
-            adoption.updateAdoption(AdoptionStatus.REJECTED);
+            adoption.reject();
 
             // 📌 다른 PENDING 신청이 더 이상 없을 때만 동물을 PROTECTED(입양 가능) 상태로 복귀
             boolean hasOtherPending = adoptionRepository.existsByAnimalAndStatusAndIdNot(
                     animal, AdoptionStatus.PENDING, adoptionId
             );
             if (!hasOtherPending) {
-                animal.updateStatus(new AnimalStatusUpdateRequest(Status.PROTECTED));
+                animal.updateStatus(Status.PROTECTED);
             }
+        } else {
+            throw new CustomException(ErrorCode.INVALID_ADOPTION_STATUS_TRANSITION);
         }
 
         return AdoptionResponseDto.from(adoption);

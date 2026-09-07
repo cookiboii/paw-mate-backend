@@ -1,9 +1,9 @@
 package com.kindtail.adoptmate.member.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.config.SecurityConfig;
@@ -83,12 +83,9 @@ class MemberControllerTest {
                 .role(Role.USER)
                 .build();
 
-        TokenUserInfo tokenUserInfo = TokenUserInfo.builder()
-                .email("test@example.com")
-                .role(Role.USER)
-                .build();
+        CustomUserDetails userDetails = new CustomUserDetails(testMember);
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                tokenUserInfo, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                userDetails, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -105,7 +102,7 @@ class MemberControllerTest {
         );
 
         MemberResponseDto responseDto = MemberResponseDto.from(testMember);
-        given(memberFacade.registerMember(any(MemberRegisterRequestDto.class))).willReturn(testMember);
+        given(memberFacade.registerMember(any(MemberRegisterRequestDto.class))).willReturn(responseDto);
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/adoptmate/register")
@@ -165,7 +162,13 @@ class MemberControllerTest {
     @DisplayName("내 정보를 조회할 수 있다")
     void getMyInfo_성공 () throws Exception {
         // given
-        given(memberService.getMemberInfo()).willReturn(testMember);
+        MemberInfoResponseDto infoDto = MemberInfoResponseDto.builder()
+                .id(testMember.getId())
+                .name(testMember.getName())
+                .email(testMember.getEmail())
+                .role(testMember.getRole())
+                .build();
+        given(memberService.getMemberInfo()).willReturn(infoDto);
 
         // when
         ResultActions resultActions = mockMvc.perform(get("/adoptmate/myInfo"));
@@ -181,7 +184,13 @@ class MemberControllerTest {
     @DisplayName("ADMIN 이 전체 회원을 조회할 수 있다")
     void getAllMembers_성공 () throws Exception {
         // given
-        List<Member> members = List.of(testMember);
+        MemberInfoResponseDto infoDto = MemberInfoResponseDto.builder()
+                .id(testMember.getId())
+                .name(testMember.getName())
+                .email(testMember.getEmail())
+                .role(testMember.getRole())
+                .build();
+        List<MemberInfoResponseDto> members = List.of(infoDto);
         given(memberService.getMembers()).willReturn(members);
 
         // when

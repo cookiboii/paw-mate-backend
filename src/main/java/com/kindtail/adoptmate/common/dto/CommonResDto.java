@@ -1,23 +1,37 @@
 package com.kindtail.adoptmate.common.dto;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 import org.springframework.http.HttpStatus;
 
-@Setter
-@Getter
-@ToString
-@NoArgsConstructor
-public class CommonResDto {
-    private int statusCode;
-    private String statusMessage;
-    private Object result; // 요청에 따라 전달할 데이터가 그때그때 다르니까 Object 타입으로 선언함.
+/**
+ * 공통 API 응답 불변 Record DTO
+ */
+public record CommonResDto(
+        int statusCode,
+        String statusMessage,
+        Object result
+) {
 
     public CommonResDto(HttpStatus httpStatus, String statusMessage, Object result) {
-        this.statusCode = httpStatus.value();
-        this.statusMessage = statusMessage;
-        this.result = result;
+        this(httpStatus.value(), statusMessage, result);
+    }
+
+    public static CommonResDto ok(String statusMessage, Object result) {
+        return new CommonResDto(HttpStatus.OK, statusMessage, result);
+    }
+
+    public static CommonResDto created(String statusMessage, Object result) {
+        return new CommonResDto(HttpStatus.CREATED, statusMessage, result);
+    }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
+
+    public String getStatusMessage() {
+        return statusMessage;
+    }
+
+    public Object getResult() {
+        return result;
     }
 }

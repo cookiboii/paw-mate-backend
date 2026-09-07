@@ -89,7 +89,7 @@ class AnimalControllerTest {
                 Status.PROTECTED
         );
 
-        given(animalService.registerAnimal(any(AnimalCreateRequest.class))).willReturn(testAnimal);
+        given(animalService.registerAnimal(any(AnimalCreateRequest.class))).willReturn(AnimalResponse.from(testAnimal));
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/animals/register")

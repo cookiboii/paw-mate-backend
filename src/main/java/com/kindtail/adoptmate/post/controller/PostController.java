@@ -25,8 +25,7 @@ public class PostController implements PostControllerDocs {
     @Override
     @PostMapping("/create")
     public ResponseEntity<CommonResDto> createPost(@Valid @RequestBody PostCreateRequestDto dto) {
-        Post post = postService.createPost(dto);
-        PostResponseDto responseDto = PostResponseDto.from(post);
+        PostResponseDto responseDto = postService.createPost(dto);
         CommonResDto commonResDto = new CommonResDto(HttpStatus.CREATED, "글쓰기완료", responseDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(commonResDto);
     }

@@ -1,5 +1,6 @@
 package com.kindtail.adoptmate.member.domain;
 
+import com.kindtail.adoptmate.member.dto.MemberResponseDto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -58,8 +59,8 @@ class MemberTest {
     }
 
     @Test
-    @DisplayName("toDto 로 MemberResponseDto 를 생성할 수 있다")
-    void toDto_로_DTO_생성 () {
+    @DisplayName("MemberResponseDto.from 으로 MemberResponseDto 를 생성할 수 있다")
+    void from_으로_DTO_생성 () {
         // given
         Member member = Member.builder()
                 .email("test@example.com")
@@ -70,7 +71,7 @@ class MemberTest {
                 .build();
 
         // when
-        var dto = member.toDto();
+        var dto = MemberResponseDto.from(member);
 
         // then
         assertThat(dto.email()).isEqualTo("test@example.com");

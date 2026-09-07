@@ -1,8 +1,8 @@
 package com.kindtail.adoptmate.member.facade;
 
 import com.kindtail.adoptmate.common.lock.DistributedLockTemplate;
-import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
+import com.kindtail.adoptmate.member.dto.MemberResponseDto;
 import com.kindtail.adoptmate.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,7 +17,7 @@ public class MemberFacade {
     /**
      * 이메일 기준 분산 락 적용 후 회원 가입
      */
-    public Member registerMember(MemberRegisterRequestDto requestDto) {
+    public MemberResponseDto registerMember(MemberRegisterRequestDto requestDto) {
         return distributedLockTemplate.execute(
                 "register:" + requestDto.email(),
                 () -> memberService.registerMember(requestDto)

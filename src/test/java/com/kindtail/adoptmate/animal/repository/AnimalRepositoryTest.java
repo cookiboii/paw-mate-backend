@@ -184,28 +184,6 @@ class AnimalRepositoryTest {
     }
 
     @Test
-    @DisplayName("deleteAnimalById 로 동물을 삭제할 수 있다")
-    void deleteAnimalById_성공 () {
-        // given
-        Animal animal = Animal.builder()
-                .species(Species.DOG)
-                .breed("비글")
-                .color("갈색")
-                .gender(Gender.MALE)
-                .age(4L)
-                .member(testMember)
-                .build();
-        Animal savedAnimal = animalRepository.save(animal);
-
-        // when
-        animalRepository.deleteAnimalById(savedAnimal.getId());
-
-        // then
-        Optional<Animal> foundAnimal = animalRepository.findById(savedAnimal.getId());
-        assertThat(foundAnimal).isEmpty();
-    }
-
-    @Test
     @DisplayName("No-Offset 커서 방식으로 동물을 Slice 조회할 수 있다")
     void findAnimalsByCursor_성공() {
         // given

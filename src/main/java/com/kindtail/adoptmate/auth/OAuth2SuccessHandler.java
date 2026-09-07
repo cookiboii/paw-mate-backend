@@ -31,7 +31,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        String token = jwtTokenProvider.createToken(userDetails.getEmail(), userDetails.getRole().name());
+        String token = jwtTokenProvider.createToken(userDetails.getId(), userDetails.getEmail(), userDetails.getRole().name());
         String refreshToken = jwtTokenProvider.createRefreshToken(userDetails.getEmail());
 
         redisTemplate.opsForValue().set(

@@ -34,32 +34,46 @@ public abstract class SecurityUtil {
     }
 
     /**
-     * 현재 인증된 사용자의 TokenUserInfo 객체 반환
+     * 현재 인증된 사용자의 CustomUserDetails 객체 반환
      */
-    public static TokenUserInfo getCurrentUserInfo() {
+    public static CustomUserDetails getCurrentUserDetails() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getPrincipal() == null) {
             throw new CustomException(ErrorCode.UNAUTHORIZED);
         }
 
-        if (authentication.getPrincipal() instanceof TokenUserInfo tokenUserInfo) {
-            return tokenUserInfo;
+        if (authentication.getPrincipal() instanceof CustomUserDetails customUserDetails) {
+            return customUserDetails;
         }
 
         throw new CustomException(ErrorCode.UNAUTHORIZED, "유효하지 않은 인증 정보입니다.");
     }
 
     /**
+     * 현재 인증된 사용자 정보 반환 (호환성 메서드)
+     */
+    public static CustomUserDetails getCurrentUserInfo() {
+        return getCurrentUserDetails();
+    }
+
+    /**
+     * 현재 인증된 사용자의 ID(PK) 반환
+     */
+    public static Long getCurrentUserId() {
+        return getCurrentUserDetails().getId();
+    }
+
+    /**
      * 현재 인증된 사용자의 이메일 반환
      */
     public static String getCurrentUserEmail() {
-        return getCurrentUserInfo().getEmail();
+        return getCurrentUserDetails().getEmail();
     }
 
     /**
      * 현재 인증된 사용자가 관리자인지 여부 확인
      */
     public static boolean isCurrentUserAdmin() {
-        return getCurrentUserInfo().isAdmin();
+        return getCurrentUserDetails().isAdmin();
     }
 }

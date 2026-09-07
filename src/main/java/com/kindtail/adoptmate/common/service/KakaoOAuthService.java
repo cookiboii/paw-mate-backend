@@ -89,14 +89,14 @@ public class KakaoOAuthService {
 
         Optional<Member> existingUser = memberRepository.findBySocialProviderAndSocialId("KAKAO", socialId);
         if (existingUser.isPresent()) {
-            return existingUser.get().toDto();
+            return MemberResponseDto.from(existingUser.get());
         }
 
         Optional<Member> emailUser = memberRepository.findByEmail(email);
         if (emailUser.isPresent()) {
             Member member = emailUser.get();
             member.updateSocialInfo("KAKAO", socialId, profileImage);
-            return member.toDto();
+            return MemberResponseDto.from(member);
         }
 
         Member member = Member.builder()
@@ -109,6 +109,6 @@ public class KakaoOAuthService {
                 .password(null)
                 .build();
 
-        return memberRepository.save(member).toDto();
+        return MemberResponseDto.from(memberRepository.save(member));
     }
 }

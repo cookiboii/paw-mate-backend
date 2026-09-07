@@ -3,7 +3,6 @@ package com.kindtail.adoptmate.batch;
 import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
 import com.kindtail.adoptmate.animal.domain.Status;
-import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.PersistenceContext;
@@ -73,13 +72,21 @@ public class ExpiredAdoptionBatchConfig {
         parameters.put("status", AdoptionStatus.PENDING);
         parameters.put("thresholdDate", thresholdDate);
 
-        return new JpaPagingItemReaderBuilder<Adoption>()
-                .name("expiredAdoptionReader")
-                .entityManagerFactory(emf)
-                .queryString("SELECT a FROM Adoption a JOIN FETCH a.animal WHERE a.status = :status AND a.applyDate <= :thresholdDate ORDER BY a.id ASC")
-                .parameterValues(parameters)
-                .pageSize(CHUNK_SIZE)
-                .build();
+        // 📌 PENDING -> REJECTED 업데이트 시 데이터가 실시간 소모되므로,
+        // 일반적인 offset 페이징(page * size)을 사용하면 100건마다 데이터가 건너뛰어지는(Page Skipping) 버그가 발생합니다.
+        // 항상 0번 오프셋을 읽도록 getPage()를 0으로 고정하여 데이터 누락을 원천 차단합니다.
+        JpaPagingItemReader<Adoption> reader = new JpaPagingItemReader<>() {
+            @Override
+            public int getPage() {
+                return 0;
+            }
+        };
+        reader.setName("expiredAdoptionReader");
+        reader.setEntityManagerFactory(emf);
+        reader.setQueryString("SELECT a FROM Adoption a JOIN FETCH a.animal WHERE a.status = :status AND a.applyDate <= :thresholdDate ORDER BY a.id ASC");
+        reader.setParameterValues(parameters);
+        reader.setPageSize(CHUNK_SIZE);
+        return reader;
     }
 
     @Bean
@@ -87,7 +94,7 @@ public class ExpiredAdoptionBatchConfig {
         return adoption -> {
             adoption.updateAdoption(AdoptionStatus.REJECTED);
             if (adoption.getAnimal() != null) {
-                adoption.getAnimal().updateStatus(new AnimalStatusUpdateRequest(Status.PROTECTED));
+                adoption.getAnimal().updateStatus(Status.PROTECTED);
             }
             return adoption;
         };

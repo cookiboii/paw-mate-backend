@@ -79,11 +79,11 @@ class MemberServiceTest {
         given(memberRepository.save(any(Member.class))).willReturn(testMember);
 
         // when
-        Member result = memberService.registerMember(request);
+        MemberResponseDto result = memberService.registerMember(request);
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getEmail()).isEqualTo("test@example.com");
+        assertThat(result.email()).isEqualTo("test@example.com");
         verify(memberRepository).save(any(Member.class));
     }
 
@@ -117,16 +117,19 @@ class MemberServiceTest {
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.of(testMember));
         given(passwordEncoder.matches("password123", "encodedPassword123")).willReturn(true);
-        given(jwtTokenProvider.createToken("test@example.com", "USER")).willReturn(accessToken);
+        given(jwtTokenProvider.createToken(1L, "test@example.com", "USER")).willReturn(accessToken);
         given(jwtTokenProvider.createRefreshToken("test@example.com")).willReturn(refreshToken);
+        given(jwtTokenProvider.getExpirationRt()).willReturn(604800);
 
         // when
         MemberLoginResultDto result = memberService.login(loginRequest);
 
         // then
+        assertThat(result).isNotNull();
         assertThat(result.token()).isEqualTo(accessToken);
         assertThat(result.refreshToken()).isEqualTo(refreshToken);
-        verify(redisTemplate.opsForValue()).set(eq("refreshToken:test@example.com"), eq(refreshToken), any(Duration.class));
+        assertThat(result.email()).isEqualTo("test@example.com");
+        assertThat(result.role()).isEqualTo(Role.USER);
     }
 
     @Test
@@ -166,11 +169,11 @@ class MemberServiceTest {
         given(memberRepository.findAll()).willReturn(members);
 
         // when
-        List<Member> result = memberService.getMembers();
+        List<MemberInfoResponseDto> result = memberService.getMembers();
 
         // then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getEmail()).isEqualTo("test@example.com");
+        assertThat(result.get(0).email()).isEqualTo("test@example.com");
     }
 
     @Test

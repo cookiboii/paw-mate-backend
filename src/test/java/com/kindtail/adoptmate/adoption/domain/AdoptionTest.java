@@ -3,6 +3,8 @@ package com.kindtail.adoptmate.adoption.domain;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
+import com.kindtail.adoptmate.common.exception.CustomException;
+import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -86,6 +88,49 @@ class AdoptionTest {
 
         // then
         assertThat(adoption.getStatus()).isEqualTo(AdoptionStatus.APPROVED);
+    }
+
+    @Test
+    @DisplayName("approve 메서드로 입양 상태를 APPROVED 로 변경할 수 있다")
+    void approveSuccess() {
+        // given
+        Adoption adoption = Adoption.of(member, animal, "인터뷰 내용", AdoptionStatus.PENDING);
+
+        // when
+        adoption.approve();
+
+        // then
+        assertThat(adoption.getStatus()).isEqualTo(AdoptionStatus.APPROVED);
+    }
+
+    @Test
+    @DisplayName("reject 메서드로 입양 상태를 REJECTED 로 변경할 수 있다")
+    void rejectSuccess() {
+        // given
+        Adoption adoption = Adoption.of(member, animal, "인터뷰 내용", AdoptionStatus.PENDING);
+
+        // when
+        adoption.reject();
+
+        // then
+        assertThat(adoption.getStatus()).isEqualTo(AdoptionStatus.REJECTED);
+    }
+
+    @Test
+    @DisplayName("이미 승인/반려된 신청에 대해 상태 전이를 시도하면 CustomException 이 발생한다")
+    void invalidStatusTransitionThrowsException() {
+        // given
+        Adoption adoption = Adoption.of(member, animal, "인터뷰 내용", AdoptionStatus.PENDING);
+        adoption.approve();
+
+        // when & then
+        assertThatThrownBy(() -> adoption.approve())
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ADOPTION_STATUS_TRANSITION);
+
+        assertThatThrownBy(() -> adoption.reject())
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ADOPTION_STATUS_TRANSITION);
     }
 
     @Test

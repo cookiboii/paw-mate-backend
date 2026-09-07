@@ -1,6 +1,6 @@
 package com.kindtail.adoptmate.post.service;
 
-import com.kindtail.adoptmate.auth.TokenUserInfo;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
@@ -85,12 +85,16 @@ class PostServiceTest {
     }
 
     private void setupSecurityContext(String email, Role role) {
-        TokenUserInfo tokenUserInfo = TokenUserInfo.builder()
+        Long memberId = "other@example.com".equals(email) ? 2L : 1L;
+        Member member = Member.builder()
+                .id(memberId)
                 .email(email)
+                .name("테스트유저")
                 .role(role)
                 .build();
+        CustomUserDetails userDetails = new CustomUserDetails(member);
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                tokenUserInfo, null, List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
+                userDetails, null, List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -108,11 +112,11 @@ class PostServiceTest {
         given(postRepository.save(any(Post.class))).willReturn(testPost);
 
         // when
-        Post result = postService.createPost(request);
+        PostResponseDto result = postService.createPost(request);
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getTitle()).isEqualTo("테스트 제목");
+        assertThat(result.title()).isEqualTo("테스트 제목");
         verify(postRepository).save(any(Post.class));
     }
 

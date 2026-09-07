@@ -31,9 +31,7 @@ public class AdoptionFacade {
      * 동물 ID 기준 분산 락 적용 후 입양 상태 변경 (동물 상태 변경 및 연쇄 반려의 데이터 무결성 보장)
      */
     public AdoptionResponseDto updateStatus(Long adoptionId, AdoptionStatus status) {
-        Long animalId = adoptionRepository.findById(adoptionId)
-                .map(a -> a.getAnimal() != null ? a.getAnimal().getId() : null)
-                .orElse(null);
+        Long animalId = adoptionRepository.findAnimalIdById(adoptionId).orElse(null);
 
         String lockKey = animalId != null ? "animal:" + animalId : "adoption:" + adoptionId;
 

@@ -112,10 +112,12 @@ public class SecurityConfig {
 
     private AuthenticationEntryPoint unauthorizedEntryPoint() {
         return (request, response, authException) -> {
-            response.setStatus(ErrorCode.UNAUTHORIZED.getHttpStatus().value());
+            ErrorCode errorCode = (request.getAttribute("exception") instanceof ErrorCode ec)
+                    ? ec : ErrorCode.UNAUTHORIZED;
+            response.setStatus(errorCode.getHttpStatus().value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
-            CommonErrorDto errorDto = CommonErrorDto.of(ErrorCode.UNAUTHORIZED);
+            CommonErrorDto errorDto = CommonErrorDto.of(errorCode);
             response.getWriter().write(objectMapper.writeValueAsString(errorDto));
         };
     }

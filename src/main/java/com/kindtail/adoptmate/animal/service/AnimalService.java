@@ -9,7 +9,7 @@ import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
-import com.kindtail.adoptmate.auth.TokenUserInfo;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.auth.SecurityUtil;
@@ -36,8 +36,7 @@ public class AnimalService {
 
     @CacheEvict(value = {"animals", "animalsSpecies"}, allEntries = true)
     @Transactional
-    public Animal registerAnimal(AnimalCreateRequest animalCreateRequest) {
-        // 현재 인증된 사용자 이메일로 Member 조회
+    public AnimalResponse registerAnimal(AnimalCreateRequest animalCreateRequest) {
         String email = SecurityUtil.getCurrentUserEmail();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
@@ -54,7 +53,7 @@ public class AnimalService {
                 .member(member)
                 .build();
 
-        return animalRepository.save(animal);
+        return AnimalResponse.from(animalRepository.save(animal));
     }
 
     @Cacheable(value = "animals", key = "'page-' + #pageable.pageNumber + '-' + #pageable.pageSize")
@@ -100,7 +99,7 @@ public class AnimalService {
     public AnimalResponse updateAnimal(Long id, AnimalStatusUpdateRequest request) {
         Animal animal = animalRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
-        animal.updateStatus(request);
+        animal.updateStatus(request.status());
         return AnimalResponse.from(animal);
     }
 
