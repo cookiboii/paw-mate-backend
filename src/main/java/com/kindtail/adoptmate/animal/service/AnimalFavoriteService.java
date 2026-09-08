@@ -58,6 +58,24 @@ public class AnimalFavoriteService {
         return new FavoriteToggleResponseDto(animalId, isFavorite, favoriteCount);
     }
 
+    @Transactional
+    public FavoriteToggleResponseDto removeFavorite(Long animalId, Long memberId) {
+        Animal animal = animalRepository.findById(animalId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+
+        animalFavoriteRepository.findByMemberAndAnimal(member, animal)
+                .ifPresent(favorite -> {
+                    animalFavoriteRepository.delete(favorite);
+                    log.info("Member {} explicitly removed favorite on Animal {}", memberId, animalId);
+                });
+
+        long favoriteCount = animalFavoriteRepository.countByAnimalId(animalId);
+        return new FavoriteToggleResponseDto(animalId, false, favoriteCount);
+    }
+
     public Page<AnimalResponse> getMyFavoriteAnimals(Long memberId, Pageable pageable) {
         if (!memberRepository.existsById(memberId)) {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);

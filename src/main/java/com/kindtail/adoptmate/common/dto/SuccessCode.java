@@ -39,6 +39,7 @@ public enum SuccessCode {
     ANIMAL_DELETE_SUCCESS(HttpStatus.OK, "A106", "삭제 성공"),
     ANIMAL_FAVORITE_TOGGLE_SUCCESS(HttpStatus.OK, "A107", "관심 동물 상태가 성공적으로 변경되었습니다."),
     ANIMAL_FAVORITE_LIST_SUCCESS(HttpStatus.OK, "A108", "관심 동물 목록 조회 성공"),
+    ANIMAL_FAVORITE_DELETE_SUCCESS(HttpStatus.OK, "A109", "관심 동물이 찜 목록에서 삭제되었습니다."),
 
     // Adoption
     ADOPTION_APPLY_SUCCESS(HttpStatus.CREATED, "AD101", "입양 신청이 완료되었습니다."),

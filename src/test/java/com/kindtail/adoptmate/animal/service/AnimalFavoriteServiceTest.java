@@ -164,4 +164,29 @@ class AnimalFavoriteServiceTest {
         assertThat(animalFavoriteService.isFavorite(1L, 1L)).isTrue();
         assertThat(animalFavoriteService.getFavoriteCount(1L)).isEqualTo(5L);
     }
+
+    @Test
+    @DisplayName("명시적으로 찜을 삭제할 수 있다 (removeFavorite)")
+    void removeFavorite_성공() {
+        // given
+        Long animalId = 1L;
+        Long memberId = 1L;
+        AnimalFavorite existingFavorite = AnimalFavorite.builder()
+                .member(testMember)
+                .animal(testAnimal)
+                .build();
+
+        given(animalRepository.findById(animalId)).willReturn(Optional.of(testAnimal));
+        given(memberRepository.findById(memberId)).willReturn(Optional.of(testMember));
+        given(animalFavoriteRepository.findByMemberAndAnimal(testMember, testAnimal)).willReturn(Optional.of(existingFavorite));
+        given(animalFavoriteRepository.countByAnimalId(animalId)).willReturn(0L);
+
+        // when
+        FavoriteToggleResponseDto response = animalFavoriteService.removeFavorite(animalId, memberId);
+
+        // then
+        assertThat(response.isFavorite()).isFalse();
+        assertThat(response.favoriteCount()).isEqualTo(0L);
+        verify(animalFavoriteRepository).delete(existingFavorite);
+    }
 }

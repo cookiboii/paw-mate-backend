@@ -770,6 +770,7 @@ return CommonResDto.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
 | `PUT` | `/animals/{id}/status` | Admin | 보호 동물 상태 변경 (`PROTECTED`/`WAITING`/`ADOPTED`) | Path: `id`, Body: `AnimalStatusUpdateRequest` | `AnimalResponse` |
 | `DELETE` | `/animals/{id}`, `/animals/delete/{id}` | Admin | 보호 동물 삭제 | Path: `id` | `null` (HTTP 200) |
 | `POST` | `/animals/{id}/favorite` | User | 관심 동물 찜하기 토글 (등록/취소) | Path: `id`, Header: `Authorization: Bearer <token>` | `FavoriteToggleResponseDto` |
+| `DELETE` | `/animals/{id}/favorite` | User | 관심 동물 찜 명시적 삭제/취소 | Path: `id`, Header: `Authorization: Bearer <token>` | `FavoriteToggleResponseDto` |
 | `GET` | `/animals/favorites/my` | User | 내가 찜한 보호 동물 목록 조회 (페이징) | Header: `Authorization: Bearer <token>`, `?page=0&size=10` | `Page<AnimalResponse>` |
 
 > 💡 **관심 동물 찜하기 토글 응답 규격 (`FavoriteToggleResponseDto`)**:

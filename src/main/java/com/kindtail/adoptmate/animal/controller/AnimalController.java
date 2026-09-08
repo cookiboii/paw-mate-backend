@@ -118,4 +118,15 @@ public class AnimalController implements AnimalControllerDocs {
         Page<AnimalResponse> response = animalFavoriteService.getMyFavoriteAnimals(memberId, PageRequest.of(page, size));
         return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_LIST_SUCCESS, response);
     }
+
+    @Override
+    @DeleteMapping("/{id}/favorite")
+    public ResponseEntity<CommonResDto<FavoriteToggleResponseDto>> deleteFavorite(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long memberId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
+        FavoriteToggleResponseDto response = animalFavoriteService.removeFavorite(id, memberId);
+        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_DELETE_SUCCESS, response);
+    }
 }

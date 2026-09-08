@@ -314,4 +314,26 @@ class AnimalControllerTest {
                 .andExpect(jsonPath("$.statusMessage").value("관심 동물 목록 조회 성공"))
                 .andExpect(jsonPath("$.result.content[0].breed").value("말티즈"));
     }
+
+    @Test
+    @DisplayName("관심 동물 찜을 명시적으로 삭제할 수 있다")
+    void deleteFavorite_성공 () throws Exception {
+        // given
+        Long animalId = 1L;
+        com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto responseDto =
+                new com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto(animalId, false, 0L);
+
+        given(animalFavoriteService.removeFavorite(eq(animalId), any())).willReturn(responseDto);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(delete("/animals/{id}/favorite", animalId));
+
+        // then
+        resultActions.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value(200))
+                .andExpect(jsonPath("$.statusMessage").value("관심 동물이 찜 목록에서 삭제되었습니다."))
+                .andExpect(jsonPath("$.result.isFavorite").value(false))
+                .andExpect(jsonPath("$.result.favoriteCount").value(0));
+    }
 }

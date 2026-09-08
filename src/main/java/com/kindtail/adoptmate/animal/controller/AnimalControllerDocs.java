@@ -108,4 +108,15 @@ public interface AnimalControllerDocs {
             @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal CustomUserDetails userDetails
     );
+
+    @Operation(summary = "관심 동물 찜 명시적 삭제 (회원 전용)", description = "특정 보호 동물의 찜(즐겨찾기) 상태를 명시적으로 삭제/해제합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "관심 동물이 찜 목록에서 삭제되었습니다."),
+            @ApiResponse(responseCode = "401", description = "로그인 필요"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 동물")
+    })
+    ResponseEntity<CommonResDto<com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto>> deleteFavorite(
+            @Parameter(description = "동물 ID", example = "1") @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    );
 }
