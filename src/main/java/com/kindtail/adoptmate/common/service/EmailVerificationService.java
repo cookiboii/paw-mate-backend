@@ -48,7 +48,7 @@ public class EmailVerificationService {
             log.debug("Verification code generated for {}: {}", email, authNum);
         } catch (MessagingException e) {
             log.error("Failed to send verification email to: {}", email, e);
-            throw new RuntimeException("이메일 전송 과정 중 문제 발생!");
+            throw new CustomException(ErrorCode.EMAIL_SEND_FAILED);
         }
 
         // 인증 코드를 Redis 에 3분간 저장
@@ -62,21 +62,26 @@ public class EmailVerificationService {
     public Map<String, String> verifyEmail(Map<String, String> map) {
         String email = map.get("email");
         String code = map.get("code");
+        verifyEmail(email, code);
+        return map;
+    }
+
+    public boolean verifyEmail(String email, String code) {
         log.debug("Verifying email: {}, code: {}", email, code);
 
         if (email == null || code == null) {
-            throw new IllegalArgumentException("이메일과 인증 코드를 입력해주세요.");
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "이메일과 인증 코드를 입력해주세요.");
         }
 
         if (isBlocked(email)) {
-            throw new IllegalArgumentException("5회 이상 인증에 실패하여 차단된 상태입니다. 30분 후 다시 시도해주세요.");
+            throw new CustomException(ErrorCode.EMAIL_VERIFICATION_BLOCKED);
         }
 
         String key = VERIFICATION_CODE_KEY + email;
         Object foundCode = redisTemplate.opsForValue().get(key);
 
         if (foundCode == null) {
-            throw new IllegalArgumentException("인증 코드가 만료되었습니다. 다시 전송해주세요.");
+            throw new CustomException(ErrorCode.EMAIL_VERIFICATION_CODE_EXPIRED);
         }
 
         int attemptCount = incrementAttemptCount(email);
@@ -84,16 +89,19 @@ public class EmailVerificationService {
             if (attemptCount >= 5) {
                 blockUser(email);
                 log.warn("User blocked due to 5 consecutive failed email verifications: {}", email);
-                throw new IllegalArgumentException("인증 5회 실패로 30분간 차단됩니다.");
+                throw new CustomException(ErrorCode.EMAIL_VERIFICATION_BLOCKED, "인증 5회 실패로 30분간 차단됩니다.");
             }
             int remainingAttempts = 5 - attemptCount;
-            throw new IllegalArgumentException(String.format("인증 코드가 일치하지 않습니다. (남은 횟수: %d회)", remainingAttempts));
+            throw new CustomException(ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH,
+                    String.format("인증 코드가 일치하지 않습니다. (남은 횟수: %d회)", remainingAttempts));
         }
 
         log.info("Email verification successful for {}", email);
         redisTemplate.delete(key);
         redisTemplate.delete(VERIFICATION_ATTEMPT_KEY + email);
-        return map;
+        // 📌 회원가입 시 검증할 수 있도록 인증 완료 토큰을 Redis에 10분간 보관
+        redisTemplate.opsForValue().set("signup_verified:" + email, "true", Duration.ofMinutes(10));
+        return true;
     }
 
     private boolean isBlocked(String email) {
@@ -115,16 +123,17 @@ public class EmailVerificationService {
         return count != null ? count.intValue() : 1;
     }
 
+    @org.springframework.cache.annotation.CacheEvict(value = "userDetails", key = "#updateDto.email()")
     @Transactional
     public void updatePassword(PasswordResetRequestDto updateDto) {
         String email = updateDto.email();
         if (email == null || updateDto.password() == null) {
-            throw new IllegalArgumentException("이메일과 새 비밀번호를 모두 입력해주세요.");
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "이메일과 새 비밀번호를 모두 입력해주세요.");
         }
 
         Boolean isVerified = redisTemplate.hasKey("reset_verified:" + email);
         if (!Boolean.TRUE.equals(isVerified)) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED, "이메일 인증이 완료되지 않았습니다. 인증을 먼저 진행해주세요.");
+            throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
 
         Member member = memberRepository.findByEmail(email).orElseThrow(
@@ -155,7 +164,7 @@ public class EmailVerificationService {
             log.info("Password reset email sent to: {}", email);
         } catch (MessagingException e) {
             log.error("Failed to send password reset email to: {}", email, e);
-            throw new RuntimeException("비밀번호 재설정 이메일 발송 중 오류가 발생했습니다.", e);
+            throw new CustomException(ErrorCode.EMAIL_SEND_FAILED);
         }
 
         redisTemplate.opsForValue().set("reset:" + email, authCode, Duration.ofMinutes(5));

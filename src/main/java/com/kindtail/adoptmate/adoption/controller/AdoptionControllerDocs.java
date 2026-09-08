@@ -26,7 +26,7 @@ public interface AdoptionControllerDocs {
             @ApiResponse(responseCode = "400", description = "이미 신청한 동물 또는 보호 중이지 않은 동물"),
             @ApiResponse(responseCode = "409", description = "동시 신청 요청 집중 충돌")
     })
-    ResponseEntity<CommonResDto> registerAdoption(
+    ResponseEntity<CommonResDto<AdoptionResponseDto>> registerAdoption(
             @Parameter(description = "신청 대상 동물 ID", example = "1") @PathVariable("animalId") Long animalId,
             @Valid @RequestBody AdoptionCreateRequest adoptionCreateRequest,
             @AuthenticationPrincipal CustomUserDetails userDetails
@@ -37,21 +37,21 @@ public interface AdoptionControllerDocs {
             @ApiResponse(responseCode = "200", description = "내 입양 내역 조회 성공"),
             @ApiResponse(responseCode = "401", description = "인증 실패")
     })
-    ResponseEntity<CommonResDto> myAdoption(@AuthenticationPrincipal CustomUserDetails userDetails);
+    ResponseEntity<CommonResDto<java.util.List<AdoptionResponseDto>>> myAdoption(@AuthenticationPrincipal CustomUserDetails userDetails);
 
     @Operation(summary = "전체 입양 신청 내역 조회 (리스트 - 관리자 전용)", description = "관리자 권한으로 전체 회원의 입양 신청 내역을 리스트로 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "전체 조회 성공"),
             @ApiResponse(responseCode = "403", description = "관리자 권한 없음")
     })
-    ResponseEntity<CommonResDto> allAdoptions();
+    ResponseEntity<CommonResDto<java.util.List<AdoptionResponseDto>>> allAdoptions();
 
     @Operation(summary = "전체 입양 신청 내역 조회 (페이징 - 관리자 전용)", description = "관리자 권한으로 전체 입양 신청 내역을 페이징하여 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "전체 입양 목록 조회 성공"),
             @ApiResponse(responseCode = "403", description = "관리자 권한 없음")
     })
-    ResponseEntity<CommonResDto> getAdoptionList(Pageable pageable);
+    ResponseEntity<CommonResDto<org.springframework.data.domain.Page<AdoptionResponseDto>>> getAdoptionList(Pageable pageable);
 
     @Operation(summary = "입양 신청 상태 변경 (승인/반려 - 관리자 전용)", description = "입양 신청을 승인(APPROVED) 또는 반려(REJECTED)합니다. 승인 시 타 신청건 연쇄 반려 및 동물 락 동기화가 수행됩니다.")
     @ApiResponses({
@@ -60,7 +60,7 @@ public interface AdoptionControllerDocs {
             @ApiResponse(responseCode = "403", description = "관리자 권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 입양 신청")
     })
-    ResponseEntity<CommonResDto> updateStatus(
+    ResponseEntity<CommonResDto<AdoptionResponseDto>> updateStatus(
             @Parameter(description = "입양 신청 ID", example = "1") @PathVariable Long adoptionId,
             @Valid @RequestBody AdoptionUpdateRequestDto requestDto
     );

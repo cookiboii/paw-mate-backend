@@ -36,7 +36,7 @@ public class Post extends BaseTimeEntity {
     @Lob
     private String content;
 
-    @Lob
+    @Column(length = 2048)
     private String image;
 
     @ManyToOne(fetch = FetchType.LAZY)

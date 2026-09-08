@@ -105,10 +105,10 @@ com.kindtail.adoptmate
 │   ├── controller      # CommentController & CommentControllerDocs
 │   ├── domain          # Comment (validateAuthorOrAdmin 도메인 메서드 캡슐화)
 │   └── service         # CommentService
-├── 📂 common           # 불변 공통 응답 DTO(Record), 글로벌 예외 처리기, 분산 락 템플릿, BaseTimeEntity
+├── 📂 common           # 불변 공통 응답 DTO(Record), 표준 성공/에러 코드, 글로벌 예외 처리기, 분산 락 템플릿, BaseTimeEntity
 │   ├── controller      # EmailVerificationController, KakaoAuthController & Docs
-│   ├── dto             # CommonResDto (Java 17 Record 불변 객체, Setter 0개), CommonErrorDto
-│   ├── exception       # GlobalExceptionHandler (401, 403, @Valid 필드 상세화, 409, 413)
+│   ├── dto             # CommonResDto (Java 17 Record 불변 객체), SuccessCode (표준 성공 코드), CommonErrorDto
+│   ├── exception       # CustomException, ErrorCode (표준 비즈니스 에러 코드), GlobalExceptionHandler
 │   └── lock            # DistributedLockTemplate (Redisson 분산 락 실행기)
 ├── 📂 config           # SecurityConfig, RedisConfig, RedissonConfig, SwaggerConfig, CorsConfig
 ├── 📂 member           # 회원가입, 로그인, 정보 조회, 이메일 인증, 회원 탈퇴
@@ -186,11 +186,21 @@ com.kindtail.adoptmate
 - **JPA Entity 외부 노출 원천 차단**:
   - 모든 서비스/퍼사드 레이어가 Controller에 DTO만 반환하여 트랜잭션 외부 `LazyInitializationException` 및 의도치 않은 엔티티 상태 오염 방지
 
-### 🚨 7. 전역 예외 처리 고도화 (`GlobalExceptionHandler`)
+### 🎯 7. 컨트롤러 응답 및 비즈니스 예외 일원화 (`SuccessCode` & `ErrorCode` Enum 패턴)
+- **`SuccessCode` 표준 Enum & 정적 팩토리 메서드 (`CommonResDto.toResponseEntity`)**:
+  - 컨트롤러 전반에서 산발적으로 문자열/상태코드를 직접 하드코딩하던 방식을 폐기하고, 도메인별 표준 성공 코드(`MEMBER_REGISTER_SUCCESS`, `POST_CREATE_SUCCESS` 등)를 정의
+  - `CommonResDto.toResponseEntity(SuccessCode.XXX, data)` 패턴으로 단 한 줄의 선언적이고 타입 안전한 Controller 응답 규격 완성
+- **도메인별 비즈니스 예외 표준화 (`ErrorCode`)**:
+  - 회원(`Mxxx`), 보호 동물(`Axxx`), 입양 신청(`ADxxx`), 게시판/댓글(`Pxxx`, `CMxxx`), 동시성 락(`Lxxx`), 이메일 인증(`Exxx`), 공통(`Cxxx`) 체계 구축
+  - 서비스 계층의 원시 예외(`IllegalArgumentException`, `RuntimeException`)를 `CustomException(ErrorCode.XXX)`로 일원화하여 예외 추적성 및 예측 가능성 극대화
+
+### 🚨 8. 전역 예외 처리 고도화 (`GlobalExceptionHandler`)
+- `CustomException (비즈니스 예외)`: `ErrorCode`에 정의된 HTTP 상태 코드와 메시지를 자동으로 매핑하여 일관된 `CommonErrorDto` 반환
 - `AccessDeniedException (403)` / `AuthenticationException (401)`: 보안 인가 실패 시 일관된 표준 JSON 에러 반환
 - `MethodArgumentNotValidException (400)`: `@Valid` 실패 시 `[email] 이메일 형식이 올바르지 않습니다.` 형태로 구체적 필드명 명시
 - `MaxUploadSizeExceededException (413)`: 파일 업로드 10MB 초과 시 친절한 안내 메시지 반환
 - `OptimisticLockingFailureException (409)`: 데이터 동시 수정 충돌 시 안전한 안내 반환
+- `DataIntegrityViolationException (409)`: DB 제약조건 위반 시 명확한 에러 메시지 반환
 
 ---
 
@@ -619,25 +629,62 @@ erDiagram
 
 ## 📋 REST API 명세서
 
-### 📦 공통 응답 포맷 (`CommonResDto` - Java 17 Record 불변 객체)
-> 모든 API 응답은 가변 `@Setter`가 완전히 제거된 불변 `record CommonResDto(int statusCode, String statusMessage, Object result)` 표준 규격을 준수합니다.
+### 📦 공통 응답 포맷 (`CommonResDto` & `SuccessCode`)
+> 모든 API 응답은 가변 `@Setter`가 완전히 제거된 불변 `record CommonResDto<T>(int statusCode, String statusMessage, T result)` 표준 규격을 준수하며, `SuccessCode` Enum을 통한 정적 팩토리 메서드로 일관되게 생성됩니다.
 
 ```json
 {
   "statusCode": 200,
-  "statusMessage": "성공 메시지",
+  "statusMessage": "회원가입성공",
   "result": { ... }
 }
 ```
 
-### 🚨 공통 에러 포맷 (`CommonErrorDto`)
+```java
+// Controller 응답 표준화 패턴 (CommonResDto.toResponseEntity)
+return CommonResDto.toResponseEntity(SuccessCode.MEMBER_REGISTER_SUCCESS, responseDto);
+return CommonResDto.toResponseEntity(SuccessCode.POST_CREATE_SUCCESS, result);
+return CommonResDto.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
+```
+
+### 🚨 공통 에러 포맷 (`CommonErrorDto` & `ErrorCode`)
+> 비즈니스 예외는 모두 `CustomException(ErrorCode)`으로 표준화되어 있으며, `GlobalExceptionHandler`를 통해 예측 가능한 JSON 규격으로 반환됩니다.
+
 ```json
 {
   "statusCode": 400,
-  "code": "C001",
-  "statusMessage": "[email] 유효하지 않은 이메일 형식입니다."
+  "code": "M002",
+  "statusMessage": "이미 존재하는 이메일입니다."
 }
 ```
+
+#### 🏷️ 도메인별 표준 에러 코드 (`ErrorCode`) 명세
+| 분류 | 에러 코드 (Code) | HTTP Status | 메시지 (Message) | 설명 |
+| :--- | :--- | :---: | :--- | :--- |
+| **Common** | `C001` (`INVALID_INPUT_VALUE`) | 400 | 유효하지 않은 입력값입니다. | `@Valid` 유효성 검사 실패 및 요청 파라미터 결함 |
+| | `C002` (`METHOD_NOT_ALLOWED`) | 405 | 지원하지 않는 HTTP 메서드입니다. | 엔드포인트에 허용되지 않은 HTTP Method 요청 |
+| | `C003` (`INTERNAL_SERVER_ERROR`) | 500 | 서버 내부 오류가 발생했습니다. | 핸들링되지 않은 최상위 서버 오류 |
+| | `C004` (`UNAUTHORIZED_AUTHOR`) | 403 | 본인 또는 관리자만 수정/삭제 권한이 있습니다. | 게시글/댓글 작성자 또는 관리자가 아닌 경우 |
+| **Member** | `M001` (`MEMBER_NOT_FOUND`) | 404 | 존재하지 않는 회원입니다. | 요청된 ID/이메일에 해당하는 회원 부재 |
+| | `M002` (`EMAIL_ALREADY_EXISTS`) | 400 | 이미 존재하는 이메일입니다. | 회원가입 또는 이메일 인증 시 중복 이메일 유입 |
+| | `M003` (`INVALID_PASSWORD`) | 400 | 비밀번호가 일치하지 않습니다. | 로그인 또는 비밀번호 변경 시 불일치 |
+| | `M004` (`UNAUTHORIZED`) | 401 | 인증 정보가 유효하지 않습니다. | 인증 토큰 누락 또는 유효하지 않은 인증 정보 |
+| | `M005` (`LOGOUT_TOKEN`) | 401 | 이미 로그아웃 처리된 토큰입니다. | 블랙리스트에 등록된 만료/로그아웃 토큰 사용 |
+| **Animal** | `A001` (`ANIMAL_NOT_FOUND`) | 404 | 존재하지 않는 보호 동물입니다. | 요청한 동물 ID 부재 |
+| | `A002` (`INVALID_ANIMAL_STATUS`) | 400 | 유효하지 않은 동물 상태입니다. | 존재하지 않는 상태값으로 변경 시도 |
+| **Adoption** | `AD001` (`ADOPTION_NOT_FOUND`) | 404 | 존재하지 않는 입양 신청입니다. | 요청한 입양 신청 ID 부재 |
+| | `AD002` (`ADOPTION_ALREADY_EXISTS`) | 400 | 이미 입양 신청한 동물입니다. | 동일 회원이 동일 동물에 중복 신청 제출 |
+| | `AD003` (`NOT_PROTECTED_ANIMAL`) | 400 | 보호 중인 동물만 입양 신청이 가능합니다. | 대기 중이거나 이미 입양된 동물에 신청 시도 |
+| | `AD004` (`INVALID_ADOPTION_STATUS_TRANSITION`) | 400 | 대기 중(PENDING)인 신청만 승인 또는 반려 처리가 가능합니다. | 입양 상태 머신 상태 전이 규칙 위반 |
+| **Post/Comment** | `P001` (`POST_NOT_FOUND`) | 404 | 존재하지 않는 게시글입니다. | 요청한 게시글 ID 부재 |
+| | `CM001` (`COMMENT_NOT_FOUND`) | 404 | 존재하지 않는 댓글입니다. | 요청한 댓글 ID 부재 |
+| **Lock** | `L001` (`LOCK_ACQUISITION_FAILED`) | 409 | 요청이 집중되어 처리에 실패했습니다. 잠시 후 다시 시도해주세요. | Redisson 분산 락 대기 타임아웃 초과 |
+| | `L002` (`CONCURRENT_UPDATE_CONFLICT`) | 409 | 다른 요청에 의해 데이터가 이미 변경되었습니다. 최신 정보를 확인 후 다시 시도해주세요. | JPA 낙관적 락(@Version) 동시 수정 충돌 |
+| **Email** | `E001` (`EMAIL_VERIFICATION_CODE_EXPIRED`) | 400 | 인증 코드가 만료되었습니다. 다시 전송해주세요. | 이메일 인증 코드 유효 시간(3분) 경과 |
+| | `E002` (`EMAIL_VERIFICATION_CODE_MISMATCH`) | 400 | 인증 코드가 일치하지 않습니다. | 6자리 난수 불일치 (잔여 시도 횟수 안내) |
+| | `E003` (`EMAIL_VERIFICATION_BLOCKED`) | 429 | 5회 이상 인증에 실패하여 차단된 상태입니다. 30분 후 다시 시도해주세요. | 무차별 대입(Brute-Force) 방어 30분 차단 |
+| | `E004` (`EMAIL_NOT_VERIFIED`) | 401 | 이메일 인증이 완료되지 않았습니다. 인증을 먼저 진행해주세요. | 인증 완료 토큰 없이 회원가입/비밀번호 변경 시도 |
+| | `E005` (`EMAIL_SEND_FAILED`) | 500 | 이메일 발송 중 오류가 발생했습니다. | SMTP 서버 발송 실패 (네트워크/인증 오류) |
 
 ---
 

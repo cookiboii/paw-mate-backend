@@ -3,6 +3,7 @@ package com.kindtail.adoptmate.member.controller;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.SecurityUtil;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
+import com.kindtail.adoptmate.common.dto.SuccessCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.*;
 import com.kindtail.adoptmate.member.facade.MemberFacade;
@@ -31,73 +32,73 @@ public class MemberController implements MemberControllerDocs {
 
     @Override
     @PostMapping("/register")
-    public ResponseEntity<CommonResDto> registerMember(@RequestBody @Valid MemberRegisterRequestDto requestDto) {
+    public ResponseEntity<CommonResDto<MemberResponseDto>> registerMember(@RequestBody @Valid MemberRegisterRequestDto requestDto) {
         MemberResponseDto responseDto = memberFacade.registerMember(requestDto);
-        return ResponseEntity.status(CREATED).body(new CommonResDto(CREATED, "회원가입 성공", responseDto));
+        return CommonResDto.toResponseEntity(SuccessCode.MEMBER_REGISTER_SUCCESS, responseDto);
     }
 
     @Override
     @PostMapping("/login")
-    public ResponseEntity<CommonResDto> login(@RequestBody @Valid MemberLoginRequestDto dto) {
+    public ResponseEntity<CommonResDto<MemberLoginResultDto>> login(@RequestBody @Valid MemberLoginRequestDto dto) {
         MemberLoginResultDto result = memberService.login(dto);
-        return ResponseEntity.ok(new CommonResDto(OK, "Login Success", result));
+        return CommonResDto.toResponseEntity(SuccessCode.LOGIN_SUCCESS, result);
     }
 
     @Override
     @PostMapping("/refresh-token")
-    public ResponseEntity<CommonResDto> refreshToken(@RequestBody Map<String, String> request) {
+    public ResponseEntity<CommonResDto<Map<String, Object>>> refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
         String newToken = memberService.refreshAccessToken(refreshToken);
 
         Map<String, Object> result = new HashMap<>();
         result.put("token", newToken);
 
-        return ResponseEntity.ok(new CommonResDto(OK, "토큰 재발급 성공", result));
+        return CommonResDto.toResponseEntity(SuccessCode.TOKEN_REISSUE_SUCCESS, result);
     }
 
     @Override
     @PostMapping("/logout")
-    public ResponseEntity<CommonResDto> logout(HttpServletRequest request) {
+    public ResponseEntity<CommonResDto<Void>> logout(HttpServletRequest request) {
         String accessToken = SecurityUtil.resolveToken(request);
         if (accessToken != null) {
             memberService.logout(accessToken);
         }
-        return ResponseEntity.ok(new CommonResDto(OK, "로그아웃 성공", null));
+        return CommonResDto.toResponseEntity(SuccessCode.LOGOUT_SUCCESS);
     }
 
     @Override
     @GetMapping("/myInfo")
-    public ResponseEntity<CommonResDto> getMyInfo() {
+    public ResponseEntity<CommonResDto<MemberInfoResponseDto>> getMyInfo() {
         MemberInfoResponseDto dto = memberService.getMemberInfo();
-        return ResponseEntity.ok(new CommonResDto(OK, "내 정보 조회 성공", dto));
+        return CommonResDto.toResponseEntity(SuccessCode.MEMBER_INFO_SUCCESS, dto);
     }
 
     @Override
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto> getAllMembers() {
+    public ResponseEntity<CommonResDto<List<MemberInfoResponseDto>>> getAllMembers() {
         List<MemberInfoResponseDto> dtoList = memberService.getMembers();
-        return ResponseEntity.ok(new CommonResDto(OK, "전체조회", dtoList));
+        return CommonResDto.toResponseEntity(SuccessCode.MEMBER_ALL_SUCCESS, dtoList);
     }
 
     @Override
     @PostMapping("/password")
-    public ResponseEntity<CommonResDto> changePassword(
+    public ResponseEntity<CommonResDto<Void>> changePassword(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody @Valid PasswordChangeRequestDto dto
     ) {
         memberService.changePassword(userDetails.getEmail(), dto);
-        return ResponseEntity.ok(new CommonResDto(OK, "비밀번호 변경 완료", null));
+        return CommonResDto.toResponseEntity(SuccessCode.PASSWORD_CHANGE_SUCCESS);
     }
 
     @Override
     @DeleteMapping("/delete")
-    public ResponseEntity<CommonResDto> deleteMember(
+    public ResponseEntity<CommonResDto<Void>> deleteMember(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest request
     ) {
         String accessToken = SecurityUtil.resolveToken(request);
         memberService.deleteUser(userDetails.getEmail(), accessToken);
-        return ResponseEntity.ok(new CommonResDto(OK, "회원 탈퇴 완료", null));
+        return CommonResDto.toResponseEntity(SuccessCode.MEMBER_DELETE_SUCCESS);
     }
 }

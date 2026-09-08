@@ -50,7 +50,7 @@ public class Animal extends BaseTimeEntity {
 
     private Long age;
 
-    @Lob
+    @Column(length = 2048)
     private String image;
 
     @ManyToOne(fetch = FetchType.LAZY)

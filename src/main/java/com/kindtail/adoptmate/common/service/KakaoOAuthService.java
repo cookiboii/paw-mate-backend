@@ -34,7 +34,7 @@ public class KakaoOAuthService {
     @Value("${KAKAO_REDIRECT_URI:https://port-0-paw-mate-backend-msiq1pqe2aa00cb9.sel3.cloudtype.app/adoptmate/kakao}")
     private String kakaoRedirectUri;
 
-    @Value("${KAKAO_CLIENT_SECRET:QKusibOT6eZblB1r9klNGruBOgkkQoII}")
+    @Value("${spring.security.oauth2.client.registration.kakao.client-secret:${KAKAO_CLIENT_SECRET:}}")
     private String kakaoClientSecret;
 
     public KakaoOAuthService(MemberRepository memberRepository) {

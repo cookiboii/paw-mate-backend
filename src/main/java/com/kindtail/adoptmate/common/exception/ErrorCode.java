@@ -37,7 +37,14 @@ public enum ErrorCode {
 
     // Lock
     LOCK_ACQUISITION_FAILED(HttpStatus.CONFLICT, "L001", "요청이 집중되어 처리에 실패했습니다. 잠시 후 다시 시도해주세요."),
-    CONCURRENT_UPDATE_CONFLICT(HttpStatus.CONFLICT, "L002", "다른 요청에 의해 데이터가 이미 변경되었습니다. 최신 정보를 확인 후 다시 시도해주세요.");
+    CONCURRENT_UPDATE_CONFLICT(HttpStatus.CONFLICT, "L002", "다른 요청에 의해 데이터가 이미 변경되었습니다. 최신 정보를 확인 후 다시 시도해주세요."),
+
+    // Email Verification
+    EMAIL_VERIFICATION_CODE_EXPIRED(HttpStatus.BAD_REQUEST, "E001", "인증 코드가 만료되었습니다. 다시 전송해주세요."),
+    EMAIL_VERIFICATION_CODE_MISMATCH(HttpStatus.BAD_REQUEST, "E002", "인증 코드가 일치하지 않습니다."),
+    EMAIL_VERIFICATION_BLOCKED(HttpStatus.TOO_MANY_REQUESTS, "E003", "5회 이상 인증에 실패하여 차단된 상태입니다. 30분 후 다시 시도해주세요."),
+    EMAIL_NOT_VERIFIED(HttpStatus.UNAUTHORIZED, "E004", "이메일 인증이 완료되지 않았습니다. 인증을 먼저 진행해주세요."),
+    EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "E005", "이메일 발송 중 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

@@ -23,13 +23,13 @@ public interface AnimalControllerDocs {
             @ApiResponse(responseCode = "201", description = "동물 등록 성공"),
             @ApiResponse(responseCode = "403", description = "관리자 권한 없음")
     })
-    ResponseEntity<CommonResDto> adoptAnimal(@Valid @RequestBody AnimalCreateRequest animalCreateRequest);
+    ResponseEntity<CommonResDto<com.kindtail.adoptmate.animal.dto.AnimalResponse>> adoptAnimal(@Valid @RequestBody AnimalCreateRequest animalCreateRequest);
 
     @Operation(summary = "보호 동물 전체 목록 조회 (페이징)", description = "등록된 전체 보호 동물 목록을 페이징하여 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "동물 목록 조회 성공")
     })
-    ResponseEntity<CommonResDto> getAnimalList(
+    ResponseEntity<CommonResDto<org.springframework.data.domain.Page<com.kindtail.adoptmate.animal.dto.AnimalResponse>>> getAnimalList(
             @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size
     );
@@ -38,7 +38,7 @@ public interface AnimalControllerDocs {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "동물 목록 조회 성공")
     })
-    ResponseEntity<CommonResDto> getAnimalsByCursor(
+    ResponseEntity<CommonResDto<org.springframework.data.domain.Slice<com.kindtail.adoptmate.animal.dto.AnimalResponse>>> getAnimalsByCursor(
             @Parameter(description = "마지막으로 조회된 동물 ID (첫 페이지 요청 시 생략 또는 null)", example = "10")
             @RequestParam(required = false) Long lastAnimalId,
             @Parameter(description = "조회할 동물 수 (기본값: 10)", example = "10")
@@ -49,7 +49,7 @@ public interface AnimalControllerDocs {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "종별 동물 목록 조회 성공")
     })
-    ResponseEntity<CommonResDto> getAnimalsBySpecies(
+    ResponseEntity<CommonResDto<org.springframework.data.domain.Page<com.kindtail.adoptmate.animal.dto.AnimalResponse>>> getAnimalsBySpecies(
             @Parameter(description = "동물 종 (DOG, CAT, OTHER)", example = "DOG") @RequestParam Species species,
             @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size
@@ -60,7 +60,7 @@ public interface AnimalControllerDocs {
             @ApiResponse(responseCode = "200", description = "상세 조회 성공"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 동물")
     })
-    ResponseEntity<CommonResDto> getAnimalById(
+    ResponseEntity<CommonResDto<com.kindtail.adoptmate.animal.dto.AnimalResponse>> getAnimalById(
             @Parameter(description = "동물 ID", example = "1") @PathVariable Long id
     );
 
@@ -70,7 +70,7 @@ public interface AnimalControllerDocs {
             @ApiResponse(responseCode = "403", description = "관리자 권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 동물")
     })
-    ResponseEntity<CommonResDto> updateAnimal(
+    ResponseEntity<CommonResDto<com.kindtail.adoptmate.animal.dto.AnimalResponse>> updateAnimal(
             @Parameter(description = "동물 ID", example = "1") @PathVariable Long id,
             @Valid @RequestBody AnimalStatusUpdateRequest request
     );
@@ -81,7 +81,7 @@ public interface AnimalControllerDocs {
             @ApiResponse(responseCode = "403", description = "관리자 권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 동물")
     })
-    ResponseEntity<CommonResDto> deleteAnimal(
+    ResponseEntity<CommonResDto<Void>> deleteAnimal(
             @Parameter(description = "동물 ID", example = "1") @PathVariable Long id
     );
 }

@@ -7,6 +7,7 @@ import com.kindtail.adoptmate.adoption.facade.AdoptionFacade;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
+import com.kindtail.adoptmate.common.dto.SuccessCode;
 import com.kindtail.adoptmate.member.service.MemberService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class AdoptionController implements AdoptionControllerDocs {
 
     @Override
     @PostMapping("/animals/{animalId}")
-    public ResponseEntity<CommonResDto> registerAdoption(
+    public ResponseEntity<CommonResDto<AdoptionResponseDto>> registerAdoption(
             @PathVariable("animalId") Long animalId,
             @Valid @RequestBody AdoptionCreateRequest adoptionCreateRequest,
             @AuthenticationPrincipal CustomUserDetails userDetails
@@ -39,58 +40,43 @@ public class AdoptionController implements AdoptionControllerDocs {
         Long memberId = (userDetails.getId() != null) ? userDetails.getId() : memberService.getMemberIdByEmail(userDetails.getEmail());
         AdoptionResponseDto adoptionResponse = adoptionFacade.applyAdoption(adoptionCreateRequest, memberId, animalId);
 
-        CommonResDto response = new CommonResDto(
-                HttpStatus.CREATED,
-                "입양 신청이 완료되었습니다.",
-                adoptionResponse
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return CommonResDto.toResponseEntity(SuccessCode.ADOPTION_APPLY_SUCCESS, adoptionResponse);
     }
 
     @Override
     @GetMapping("/myAdoption")
-    public ResponseEntity<CommonResDto> myAdoption(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<CommonResDto<List<AdoptionResponseDto>>> myAdoption(@AuthenticationPrincipal CustomUserDetails userDetails) {
         Long memberId = (userDetails.getId() != null) ? userDetails.getId() : memberService.getMemberIdByEmail(userDetails.getEmail());
         List<AdoptionResponseDto> adoptions = adoptionService.getAdoptions(memberId);
 
-        CommonResDto response = new CommonResDto(
-                HttpStatus.OK,
-                "내 입양 내역 조회 성공",
-                adoptions
-        );
-
-        return ResponseEntity.ok(response);
+        return CommonResDto.toResponseEntity(SuccessCode.ADOPTION_MY_LIST_SUCCESS, adoptions);
     }
 
     @Override
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto> allAdoptions() {
+    public ResponseEntity<CommonResDto<List<AdoptionResponseDto>>> allAdoptions() {
         List<AdoptionResponseDto> adoptions = adoptionService.getAllAdoptions();
-        CommonResDto response = new CommonResDto(HttpStatus.OK, "전체조회", adoptions);
-        return ResponseEntity.ok(response);
+        return CommonResDto.toResponseEntity(SuccessCode.ADOPTION_ALL_SUCCESS, adoptions);
     }
 
     @Override
     @GetMapping("/list")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto> getAdoptionList(Pageable pageable) {
+    public ResponseEntity<CommonResDto<Page<AdoptionResponseDto>>> getAdoptionList(Pageable pageable) {
         Page<AdoptionResponseDto> adoptions = adoptionService.getAllAdoptions(pageable);
-        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "전체 입양 목록 조회 성공", adoptions));
+        return CommonResDto.toResponseEntity(SuccessCode.ADOPTION_PAGE_SUCCESS, adoptions);
     }
 
     @Override
     @PutMapping("/{adoptionId}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto> updateStatus(
+    public ResponseEntity<CommonResDto<AdoptionResponseDto>> updateStatus(
             @PathVariable Long adoptionId,
             @Valid @RequestBody AdoptionUpdateRequestDto requestDto
     ) {
         AdoptionResponseDto adoptionResponse = adoptionFacade.updateStatus(adoptionId, requestDto.adoptionStatus());
 
-        return ResponseEntity.ok(
-                new CommonResDto(HttpStatus.OK, "상태변경완료", adoptionResponse)
-        );
+        return CommonResDto.toResponseEntity(SuccessCode.ADOPTION_STATUS_UPDATE_SUCCESS, adoptionResponse);
     }
 }

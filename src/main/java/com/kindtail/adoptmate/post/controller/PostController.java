@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.post.controller;
 
 import com.kindtail.adoptmate.common.dto.CommonResDto;
+import com.kindtail.adoptmate.common.dto.SuccessCode;
 import com.kindtail.adoptmate.post.domain.Post;
 import com.kindtail.adoptmate.post.dto.PostCreateRequestDto;
 import com.kindtail.adoptmate.post.dto.PostResponseDto;
@@ -24,52 +25,46 @@ public class PostController implements PostControllerDocs {
 
     @Override
     @PostMapping("/create")
-    public ResponseEntity<CommonResDto> createPost(@Valid @RequestBody PostCreateRequestDto dto) {
+    public ResponseEntity<CommonResDto<PostResponseDto>> createPost(@Valid @RequestBody PostCreateRequestDto dto) {
         PostResponseDto responseDto = postService.createPost(dto);
-        CommonResDto commonResDto = new CommonResDto(HttpStatus.CREATED, "글쓰기완료", responseDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(commonResDto);
+        return CommonResDto.toResponseEntity(SuccessCode.POST_CREATE_SUCCESS, responseDto);
     }
 
     @Override
     @GetMapping("/list")
-    public ResponseEntity<CommonResDto> getPostList(Pageable pageable) {
+    public ResponseEntity<CommonResDto<Page<PostResponseDto>>> getPostList(Pageable pageable) {
         Page<PostResponseDto> postPage = postService.getAllPosts(pageable);
-        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "조회완료", postPage);
-        return ResponseEntity.ok(commonResDto);
+        return CommonResDto.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postPage);
     }
 
     @Override
     @GetMapping("/cursor")
-    public ResponseEntity<CommonResDto> getPostsByCursor(
+    public ResponseEntity<CommonResDto<Slice<PostResponseDto>>> getPostsByCursor(
             @RequestParam(required = false) Long lastPostId,
             @RequestParam(defaultValue = "10") int size
     ) {
         Slice<PostResponseDto> postSlice = postService.getPostsByCursor(lastPostId, size);
-        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "조회완료", postSlice);
-        return ResponseEntity.ok(commonResDto);
+        return CommonResDto.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postSlice);
     }
 
     @Override
     @GetMapping("/{postId}")
-    public ResponseEntity<CommonResDto> getPostById(@PathVariable Long postId) {
+    public ResponseEntity<CommonResDto<PostResponseDto>> getPostById(@PathVariable Long postId) {
         PostResponseDto post = postService.getPost(postId);
-        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "조회완료", post);
-        return ResponseEntity.ok(commonResDto);
+        return CommonResDto.toResponseEntity(SuccessCode.POST_DETAIL_SUCCESS, post);
     }
 
     @Override
     @DeleteMapping("/{postId}")
-    public ResponseEntity<CommonResDto> deletePostById(@PathVariable Long postId) {
+    public ResponseEntity<CommonResDto<Void>> deletePostById(@PathVariable Long postId) {
         postService.deletePost(postId);
-        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "삭제완료", null);
-        return ResponseEntity.ok(commonResDto);
+        return CommonResDto.toResponseEntity(SuccessCode.POST_DELETE_SUCCESS);
     }
 
     @Override
     @PutMapping("/{postId}")
-    public ResponseEntity<CommonResDto> updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequestDto dto) {
+    public ResponseEntity<CommonResDto<PostResponseDto>> updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequestDto dto) {
         PostResponseDto post = postService.updatePost(postId, dto);
-        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "글수정완료", post);
-        return ResponseEntity.ok(commonResDto);
+        return CommonResDto.toResponseEntity(SuccessCode.POST_UPDATE_SUCCESS, post);
     }
 }

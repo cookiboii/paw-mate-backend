@@ -5,6 +5,7 @@ import com.kindtail.adoptmate.comment.dto.CommentResponseDto;
 import com.kindtail.adoptmate.comment.dto.CommentUpdateDto;
 import com.kindtail.adoptmate.comment.service.CommentService;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
+import com.kindtail.adoptmate.common.dto.SuccessCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,31 +23,29 @@ public class CommentController implements CommentControllerDocs {
 
     @Override
     @PostMapping("/{postId}")
-    public ResponseEntity<CommonResDto> addComment(@PathVariable Long postId, @Valid @RequestBody CommentDto commentDto) {
+    public ResponseEntity<CommonResDto<CommentResponseDto>> addComment(@PathVariable Long postId, @Valid @RequestBody CommentDto commentDto) {
         CommentResponseDto savedComment = commentService.addComment(postId, commentDto);
-        CommonResDto commonResDto = new CommonResDto(HttpStatus.CREATED, "댓글등록성공", savedComment);
-        return ResponseEntity.status(HttpStatus.CREATED).body(commonResDto);
+        return CommonResDto.toResponseEntity(SuccessCode.COMMENT_CREATE_SUCCESS, savedComment);
     }
 
     @Override
     @GetMapping("/{postId}")
-    public ResponseEntity<CommonResDto> getComments(@PathVariable Long postId) {
+    public ResponseEntity<CommonResDto<List<CommentResponseDto>>> getComments(@PathVariable Long postId) {
         List<CommentResponseDto> comments = commentService.getComments(postId);
-        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "보기성공", comments));
+        return CommonResDto.toResponseEntity(SuccessCode.COMMENT_LIST_SUCCESS, comments);
     }
 
     @Override
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<CommonResDto> deleteComment(@PathVariable Long commentId) {
+    public ResponseEntity<CommonResDto<Void>> deleteComment(@PathVariable Long commentId) {
         commentService.deleteComment(commentId);
-        return ResponseEntity.ok(new CommonResDto(HttpStatus.OK, "댓글삭제성공", null));
+        return CommonResDto.toResponseEntity(SuccessCode.COMMENT_DELETE_SUCCESS);
     }
 
     @Override
     @PutMapping(value = {"/{commentId}", "/update/{commentId}"})
-    public ResponseEntity<CommonResDto> updateComment(@PathVariable Long commentId, @Valid @RequestBody CommentUpdateDto dto) {
+    public ResponseEntity<CommonResDto<CommentResponseDto>> updateComment(@PathVariable Long commentId, @Valid @RequestBody CommentUpdateDto dto) {
         CommentResponseDto comment = commentService.updateComment(commentId, dto);
-        CommonResDto commonResDto = new CommonResDto(HttpStatus.OK, "수정성공", comment);
-        return ResponseEntity.ok(commonResDto);
+        return CommonResDto.toResponseEntity(SuccessCode.COMMENT_UPDATE_SUCCESS, comment);
     }
 }

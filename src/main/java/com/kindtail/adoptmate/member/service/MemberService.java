@@ -10,6 +10,8 @@ import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.auth.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -72,18 +74,30 @@ public class MemberService {
         return jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString());
     }
 
+    @Value("${app.email-verification.required:false}")
+    private boolean emailVerificationRequired;
+
     @Transactional
     public MemberResponseDto registerMember(MemberRegisterRequestDto memberRegisterRequestDto) {
         String email = memberRegisterRequestDto.email();
         String password = memberRegisterRequestDto.password();
         String username = memberRegisterRequestDto.name();
 
-        password = passwordEncoder.encode(password);
+        // 1. 이메일 중복 검사를 먼저 수행하여 불필요한 BCrypt 연산 비용(CPU 리소스) 낭비 방어
         Optional<Member> findMember = memberRepository.findByEmail(email);
         if (findMember.isPresent()) {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
+        // 2. 이메일 인증 완료 상태(signup_verified) 검증 및 1회성 토큰 소비
+        Boolean isVerified = redisTemplate.hasKey("signup_verified:" + email);
+        if (Boolean.TRUE.equals(isVerified)) {
+            redisTemplate.delete("signup_verified:" + email);
+        } else if (emailVerificationRequired) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED, "이메일 인증이 완료되지 않았습니다. 인증을 먼저 진행해주세요.");
+        }
+
+        password = passwordEncoder.encode(password);
         Role role = memberRegisterRequestDto.role() != null ? memberRegisterRequestDto.role() : Role.USER;
         Member member = Member.builder()
                 .email(email)
@@ -147,11 +161,13 @@ public class MemberService {
                 .toList();
     }
 
+    @org.springframework.cache.annotation.CacheEvict(value = "userDetails", key = "#email")
     @Transactional
     public void deleteUser(String email) {
         deleteUser(email, null);
     }
 
+   @CacheEvict(value = "userDetails", key = "#email")
     @Transactional
     public void deleteUser(String email, String accessToken) {
         Member member = memberRepository.findByEmail(email)
@@ -167,6 +183,7 @@ public class MemberService {
         }
     }
 
+    @CacheEvict(value = "userDetails", key = "#email")
     @Transactional
     public void changePassword(String email, PasswordChangeRequestDto dto) {
         Member member = memberRepository.findByEmail(email)
