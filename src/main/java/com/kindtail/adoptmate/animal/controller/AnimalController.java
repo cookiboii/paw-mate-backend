@@ -5,7 +5,11 @@ import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
+import com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto;
+import com.kindtail.adoptmate.animal.service.AnimalFavoriteService;
 import com.kindtail.adoptmate.animal.service.AnimalService;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
+import com.kindtail.adoptmate.auth.SecurityUtil;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import jakarta.validation.Valid;
@@ -16,6 +20,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 public class AnimalController implements AnimalControllerDocs {
 
     private final AnimalService animalService;
+    private final AnimalFavoriteService animalFavoriteService;
 
     @Override
     @PostMapping("/register")
@@ -88,5 +94,28 @@ public class AnimalController implements AnimalControllerDocs {
     public ResponseEntity<CommonResDto<Void>> deleteAnimal(@PathVariable Long id) {
         animalService.deleteAnimal(id);
         return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_DELETE_SUCCESS);
+    }
+
+    @Override
+    @PostMapping("/{id}/favorite")
+    public ResponseEntity<CommonResDto<FavoriteToggleResponseDto>> toggleFavorite(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long memberId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
+        FavoriteToggleResponseDto response = animalFavoriteService.toggleFavorite(id, memberId);
+        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_TOGGLE_SUCCESS, response);
+    }
+
+    @Override
+    @GetMapping("/favorites/my")
+    public ResponseEntity<CommonResDto<Page<AnimalResponse>>> getMyFavoriteAnimals(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long memberId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
+        Page<AnimalResponse> response = animalFavoriteService.getMyFavoriteAnimals(memberId, PageRequest.of(page, size));
+        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_LIST_SUCCESS, response);
     }
 }

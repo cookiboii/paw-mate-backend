@@ -21,6 +21,7 @@ public enum SuccessCode {
     MEMBER_ALL_SUCCESS(HttpStatus.OK, "M106", "전체조회"),
     PASSWORD_CHANGE_SUCCESS(HttpStatus.OK, "M107", "비밀번호 변경 완료"),
     MEMBER_DELETE_SUCCESS(HttpStatus.OK, "M108", "회원 탈퇴 완료"),
+    ADMIN_MEMBER_DELETE_SUCCESS(HttpStatus.OK, "M109", "관리자에 의해 회원이 삭제되었습니다."),
 
     // Email & Password Reset
     EMAIL_SEND_SUCCESS(HttpStatus.OK, "E101", "인증 코드가 이메일로 전송되었습니다."),
@@ -36,6 +37,8 @@ public enum SuccessCode {
     ANIMAL_DETAIL_SUCCESS(HttpStatus.OK, "A104", "상세 조회 성공"),
     ANIMAL_STATUS_UPDATE_SUCCESS(HttpStatus.OK, "A105", "상태가 성공적으로 변경되었습니다."),
     ANIMAL_DELETE_SUCCESS(HttpStatus.OK, "A106", "삭제 성공"),
+    ANIMAL_FAVORITE_TOGGLE_SUCCESS(HttpStatus.OK, "A107", "관심 동물 상태가 성공적으로 변경되었습니다."),
+    ANIMAL_FAVORITE_LIST_SUCCESS(HttpStatus.OK, "A108", "관심 동물 목록 조회 성공"),
 
     // Adoption
     ADOPTION_APPLY_SUCCESS(HttpStatus.CREATED, "AD101", "입양 신청이 완료되었습니다."),

@@ -3,6 +3,7 @@ package com.kindtail.adoptmate.animal.controller;
 import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -83,5 +85,27 @@ public interface AnimalControllerDocs {
     })
     ResponseEntity<CommonResDto<Void>> deleteAnimal(
             @Parameter(description = "동물 ID", example = "1") @PathVariable Long id
+    );
+
+    @Operation(summary = "관심 동물 찜하기 토글 (회원 전용)", description = "특정 보호 동물을 찜(즐겨찾기) 목록에 추가하거나 취소합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "관심 동물 상태가 성공적으로 변경되었습니다."),
+            @ApiResponse(responseCode = "401", description = "로그인 필요"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 동물")
+    })
+    ResponseEntity<CommonResDto<com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto>> toggleFavorite(
+            @Parameter(description = "동물 ID", example = "1") @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    );
+
+    @Operation(summary = "내가 찜한 동물 목록 조회 (회원 전용)", description = "현재 로그인된 회원이 찜한 보호 동물 목록을 최신순 페이징으로 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "관심 동물 목록 조회 성공"),
+            @ApiResponse(responseCode = "401", description = "로그인 필요")
+    })
+    ResponseEntity<CommonResDto<org.springframework.data.domain.Page<com.kindtail.adoptmate.animal.dto.AnimalResponse>>> getMyFavoriteAnimals(
+            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUserDetails userDetails
     );
 }

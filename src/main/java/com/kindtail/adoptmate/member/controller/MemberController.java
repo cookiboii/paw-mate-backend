@@ -101,4 +101,16 @@ public class MemberController implements MemberControllerDocs {
         memberService.deleteUser(userDetails.getEmail(), accessToken);
         return CommonResDto.toResponseEntity(SuccessCode.MEMBER_DELETE_SUCCESS);
     }
+
+    @Override
+    @DeleteMapping({"/admin/{memberId}", "/admin/member/{memberId}"})
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CommonResDto<Void>> deleteMemberByAdmin(
+            @PathVariable Long memberId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long adminId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
+        memberService.deleteMemberByAdmin(memberId, adminId);
+        return CommonResDto.toResponseEntity(SuccessCode.ADMIN_MEMBER_DELETE_SUCCESS);
+    }
 }

@@ -47,6 +47,9 @@ class MemberServiceTest {
     @Mock
     private ValueOperations<String, Object> valueOperations;
 
+    @Mock
+    private org.springframework.cache.CacheManager cacheManager;
+
     @InjectMocks
     private MemberService memberService;
 
@@ -237,5 +240,84 @@ class MemberServiceTest {
 
         // then
         assertThat(result).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("관리자가 일반 회원을 강제 삭제할 수 있다")
+    void deleteMemberByAdmin_성공() {
+        // given
+        Long targetMemberId = 2L;
+        Long adminId = 1L;
+        Member targetMember = Member.builder()
+                .id(targetMemberId)
+                .email("user@example.com")
+                .name("일반회원")
+                .role(Role.USER)
+                .build();
+
+        given(memberRepository.findById(targetMemberId)).willReturn(Optional.of(targetMember));
+        doNothing().when(memberRepository).delete(targetMember);
+
+        // when
+        memberService.deleteMemberByAdmin(targetMemberId, adminId);
+
+        // then
+        verify(memberRepository).delete(targetMember);
+        verify(redisTemplate).delete("refreshToken:user@example.com");
+    }
+
+    @Test
+    @DisplayName("관리자가 본인 계정을 관리자 회원 삭제 기능으로 삭제 시도 시 예외가 발생한다")
+    void deleteMemberByAdmin_본인_삭제_시도_예외() {
+        // given
+        Long adminId = 1L;
+        Member adminMember = Member.builder()
+                .id(adminId)
+                .email("admin@example.com")
+                .name("관리자")
+                .role(Role.ADMIN)
+                .build();
+
+        given(memberRepository.findById(adminId)).willReturn(Optional.of(adminMember));
+
+        // when & then
+        assertThatThrownBy(() -> memberService.deleteMemberByAdmin(adminId, adminId))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    @Test
+    @DisplayName("관리자가 다른 관리자 계정을 삭제 시도 시 권한 예외가 발생한다")
+    void deleteMemberByAdmin_관리자_계정_삭제_시도_예외() {
+        // given
+        Long targetAdminId = 2L;
+        Long currentAdminId = 1L;
+        Member targetAdmin = Member.builder()
+                .id(targetAdminId)
+                .email("otheradmin@example.com")
+                .name("다른관리자")
+                .role(Role.ADMIN)
+                .build();
+
+        given(memberRepository.findById(targetAdminId)).willReturn(Optional.of(targetAdmin));
+
+        // when & then
+        assertThatThrownBy(() -> memberService.deleteMemberByAdmin(targetAdminId, currentAdminId))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 회원을 관리자가 삭제 시도 시 예외가 발생한다")
+    void deleteMemberByAdmin_회원_없음_예외() {
+        // given
+        Long nonExistentId = 999L;
+        Long adminId = 1L;
+        given(memberRepository.findById(nonExistentId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> memberService.deleteMemberByAdmin(nonExistentId, adminId))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
     }
 }

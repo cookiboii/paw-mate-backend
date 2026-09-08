@@ -11,6 +11,8 @@ import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.auth.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,6 +33,7 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheManager cacheManager;
 
     public void logout(String accessToken) {
         try {
@@ -161,7 +164,7 @@ public class MemberService {
                 .toList();
     }
 
-    @org.springframework.cache.annotation.CacheEvict(value = "userDetails", key = "#email")
+    @CacheEvict(value = "userDetails", key = "#email")
     @Transactional
     public void deleteUser(String email) {
         deleteUser(email, null);
@@ -181,6 +184,49 @@ public class MemberService {
         if (accessToken != null && !accessToken.isBlank()) {
             logout(accessToken);
         }
+
+        if (cacheManager != null) {
+            Cache cache = cacheManager.getCache("userDetails");
+            if (cache != null) {
+                cache.evict(email);
+            }
+        }
+    }
+
+    /**
+     * 관리자에 의한 회원 강제 삭제 (Soft Delete 및 토큰/캐시 무효화)
+     */
+    @Transactional
+    public void deleteMemberByAdmin(Long memberId, Long adminId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+
+        if (adminId != null && member.getId().equals(adminId)) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "관리자 본인 계정은 관리자 회원 삭제 기능으로 삭제할 수 없습니다.");
+        }
+
+        if (member.getRole() == Role.ADMIN) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED_AUTHOR, "관리자 계정은 삭제할 수 없습니다.");
+        }
+
+        String email = member.getEmail();
+        memberRepository.delete(member);
+
+        // Redis RefreshToken 무효화
+        redisTemplate.delete("refreshToken:" + email);
+
+        // userDetails 캐시 무효화
+        if (cacheManager != null) {
+            Cache cache = cacheManager.getCache("userDetails");
+            if (cache != null) {
+                cache.evict(email);
+            }
+        }
+    }
+
+    @Transactional
+    public void deleteMemberByAdmin(Long memberId) {
+        deleteMemberByAdmin(memberId, SecurityUtil.getCurrentUserId());
     }
 
     @CacheEvict(value = "userDetails", key = "#email")

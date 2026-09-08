@@ -12,12 +12,18 @@ import com.kindtail.adoptmate.animal.service.AnimalService;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.common.exception.CustomException;
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
+import com.kindtail.adoptmate.member.domain.Member;
+import com.kindtail.adoptmate.member.domain.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -54,6 +60,9 @@ class AnimalControllerTest {
     private AnimalService animalService;
 
     @MockitoBean
+    private com.kindtail.adoptmate.animal.service.AnimalFavoriteService animalFavoriteService;
+
+    @MockitoBean
     private JwtAuthFilter jwtAuthFilter;
 
     @MockitoBean
@@ -73,6 +82,19 @@ class AnimalControllerTest {
                 .image("http://example.com/image.jpg")
                 .status(Status.PROTECTED)
                 .build();
+
+        Member testMember = Member.builder()
+                .id(1L)
+                .email("test@example.com")
+                .name("테스트 사용자")
+                .role(Role.USER)
+                .build();
+
+        CustomUserDetails userDetails = new CustomUserDetails(testMember);
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                userDetails, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     @Test
@@ -239,5 +261,57 @@ class AnimalControllerTest {
         resultActions.andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.statusMessage").value("삭제 성공"));
+    }
+
+    @Test
+    @DisplayName("관심 동물 찜하기를 토글할 수 있다")
+    void toggleFavorite_성공 () throws Exception {
+        // given
+        Long animalId = 1L;
+        com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto responseDto =
+                new com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto(animalId, true, 1L);
+
+        given(animalFavoriteService.toggleFavorite(eq(animalId), any())).willReturn(responseDto);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(post("/animals/{id}/favorite", animalId));
+
+        // then
+        resultActions.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value(200))
+                .andExpect(jsonPath("$.statusMessage").value("관심 동물 상태가 성공적으로 변경되었습니다."))
+                .andExpect(jsonPath("$.result.isFavorite").value(true))
+                .andExpect(jsonPath("$.result.favoriteCount").value(1));
+    }
+
+    @Test
+    @DisplayName("내가 찜한 동물 목록을 조회할 수 있다")
+    void getMyFavoriteAnimals_성공 () throws Exception {
+        // given
+        Animal animal = Animal.builder()
+                .id(1L)
+                .species(Species.DOG)
+                .breed("말티즈")
+                .color("흰색")
+                .status(Status.PROTECTED)
+                .age(2L)
+                .gender(Gender.MALE)
+                .image("image.jpg")
+                .build();
+        AnimalResponse animalResponse = AnimalResponse.from(animal);
+        Page<AnimalResponse> page = new PageImpl<>(List.of(animalResponse), PageRequest.of(0, 10), 1);
+
+        given(animalFavoriteService.getMyFavoriteAnimals(any(), any())).willReturn(page);
+
+        // when
+        ResultActions resultActions = mockMvc.perform(get("/animals/favorites/my"));
+
+        // then
+        resultActions.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value(200))
+                .andExpect(jsonPath("$.statusMessage").value("관심 동물 목록 조회 성공"))
+                .andExpect(jsonPath("$.result.content[0].breed").value("말티즈"));
     }
 }

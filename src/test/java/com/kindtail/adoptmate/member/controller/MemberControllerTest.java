@@ -251,4 +251,21 @@ class MemberControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.statusMessage").value("로그아웃 성공"));
     }
+
+    @Test
+    @DisplayName("ADMIN 이 회원을 강제 삭제할 수 있다")
+    void deleteMemberByAdmin_성공 () throws Exception {
+        // given
+        Long targetMemberId = 2L;
+        doNothing().when(memberService).deleteMemberByAdmin(ArgumentMatchers.eq(targetMemberId), ArgumentMatchers.any());
+
+        // when
+        ResultActions resultActions = mockMvc.perform(delete("/adoptmate/admin/{memberId}", targetMemberId));
+
+        // then
+        resultActions.andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusCode").value(200))
+                .andExpect(jsonPath("$.statusMessage").value("관리자에 의해 회원이 삭제되었습니다."));
+    }
 }

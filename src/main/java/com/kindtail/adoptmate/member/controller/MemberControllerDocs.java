@@ -81,4 +81,16 @@ public interface MemberControllerDocs {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest request
     );
+
+    @Operation(summary = "관리자 회원 강제 삭제 (관리자 전용)", description = "관리자 권한으로 특정 회원을 강제 탈퇴(Soft Delete) 처리하고 리프레시 토큰 및 캐시를 무효화합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "관리자에 의해 회원이 삭제되었습니다."),
+            @ApiResponse(responseCode = "400", description = "관리자 본인 계정 삭제 시도 또는 유효하지 않은 요청"),
+            @ApiResponse(responseCode = "403", description = "관리자 권한 없음 또는 다른 관리자 계정 삭제 시도"),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 회원")
+    })
+    ResponseEntity<CommonResDto<Void>> deleteMemberByAdmin(
+            @Parameter(description = "삭제할 회원 ID", required = true) Long memberId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    );
 }

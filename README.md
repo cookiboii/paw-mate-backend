@@ -89,10 +89,12 @@ com.kindtail.adoptmate
 │   ├── facade          # AdoptionFacade (Redisson 분산 락 & 트랜잭션 분리)
 │   ├── repository      # AdoptionRepository
 │   └── service         # AdoptionService (입양 심사 및 연쇄 상태 전이 비즈니스 로직)
-├── 📂 animal           # 보호 동물 등록, 조회, 종별 필터링
+├── 📂 animal           # 보호 동물 등록, 조회, 종별 필터링, 관심 동물(찜하기)
 │   ├── controller      # AnimalController & AnimalControllerDocs
-│   ├── domain          # Animal (순수 도메인 상태 변경 updateStatus), Species, Status, Gender
-│   └── service         # AnimalService (SecurityUtil 기반 안전한 인증 정보 조회)
+│   ├── domain          # Animal, AnimalFavorite (찜하기 매핑 엔티티), Species, Status, Gender
+│   ├── dto             # AnimalResponse, FavoriteToggleResponseDto 등 (Record)
+│   ├── repository      # AnimalRepository, AnimalFavoriteRepository
+│   └── service         # AnimalService, AnimalFavoriteService (찜하기 토글 & 내 찜 목록)
 ├── 📂 auth             # Spring Security 표준 인증, JWT 토큰 관리, OAuth2 소셜 로그인
 │   ├── CustomUserDetails # Spring Security 표준 UserDetails 구현체 (Role, ID, Email 캡슐화)
 │   ├── CustomUserDetailsService # 이메일 기반 회원 로드 및 실시간 탈퇴/권한 상태 검증
@@ -156,6 +158,10 @@ com.kindtail.adoptmate
 - 보호 동물 등록, 상세 조회 및 페이징 목록 조회 (기본 `page=0, size=10` 안전 폴백)
 - 종별(강아지/고양이/기타) 필터링 조회
 - 보호 상태 변경(`PROTECTED` ➡️ `WAITING` ➡️ `ADOPTED`) 및 안전한 논리 삭제 (관리자 권한 `@PreAuthorize("hasRole('ADMIN')")` 제어)
+- **관심 동물 찜하기 (Favorite / Bookmark)**:
+  - 회원과 보호 동물 간 1:N 매핑 및 복합 유니크 제약(`uk_animal_favorite_member_animal`) 기반 중복 찜 방어
+  - 원클릭 찜 등록/취소(Toggle) API (`POST /animals/{id}/favorite`) 및 실시간 총 찜 수 카운트 반환
+  - "내가 찜한 동물 목록" 최신순 페이징 조회 API (`GET /animals/favorites/my`)
 
 ### 🏡 4. 입양 신청 & 상태 머신 관리
 - 입양 신청서 제출 (연락처, 주거 형태, 반려동물 유무, 입양 사유 등 세분화된 정보 수집)
@@ -412,9 +418,19 @@ erDiagram
     MEMBER ||--o{ POST : "writes (1:N)"
     MEMBER ||--o{ ADOPTION : "applies (1:N)"
     MEMBER ||--o{ COMMENT : "writes (1:N)"
+    MEMBER ||--o{ ANIMAL_FAVORITE : "bookmarks (1:N)"
     ANIMAL ||--o{ ADOPTION : "targeted_by (1:N)"
+    ANIMAL ||--o{ ANIMAL_FAVORITE : "is_bookmarked_by (1:N)"
     POST ||--o{ COMMENT : "has (1:N)"
     COMMENT ||--o{ COMMENT : "replies_to (1:N parent-child)"
+
+    ANIMAL_FAVORITE {
+        bigint animal_favorite_id PK "관심 동물 고유 식별자"
+        bigint member_id FK "찜한 회원 ID (UK_member_animal)"
+        bigint animal_id FK "대상 동물 ID (UK_member_animal)"
+        datetime created_at "찜한 일시"
+        datetime updated_at "수정 일시"
+    }
 
     MEMBER {
         bigint member_id PK "회원 고유 식별자"
@@ -542,6 +558,23 @@ erDiagram
 > - `idx_animal_deleted_species` (`is_deleted`, `species`, `animal_id DESC`)  
 > - `idx_animal_deleted_status` (`is_deleted`, `status`, `animal_id DESC`)  
 > ➡️ 논리 삭제(`is_deleted = false`) 필터링과 종별/상태별 정렬 조건에 최적화된 복합 인덱스로 Full Table Scan 방지 및 No-Offset 페이징 조회 속도 극대화
+
+<br />
+
+#### ⭐ `animal_favorite` (관심 동물 찜하기 매핑 테이블)
+> 회원이 찜(즐겨찾기)한 관심 보호 동물 정보를 관리합니다.
+
+| 컬럼명 | 데이터 타입 | Nullable | Key / Default | 설명 |
+| :--- | :--- | :---: | :---: | :--- |
+| `animal_favorite_id` | `BIGINT` | NO | **PK** (AI) | 관심 동물 고유 식별자 |
+| `member_id` | `BIGINT` | NO | **FK, UK** | 찜한 회원 (`member.member_id`) |
+| `animal_id` | `BIGINT` | NO | **FK, UK** | 대상 보호 동물 (`animal.animal_id`) |
+| `created_at` | `DATETIME` | NO | `BaseTime` | 찜 등록 일시 |
+| `updated_at` | `DATETIME` | NO | `BaseTime` | 수정 일시 |
+
+> 🔑 **복합 유니크 제약조건 (Unique Constraint)**:  
+> `uk_animal_favorite_member_animal` (`member_id`, `animal_id`)  
+> ➡️ 동일 회원이 동일 보호 동물에게 중복으로 찜을 등록하는 것을 DB 레벨에서 원천 방어
 
 <br />
 
@@ -700,6 +733,7 @@ return CommonResDto.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
 | `GET` | `/adoptmate/all` | Admin | 전체 회원 목록 조회 | - | `List<MemberInfoResponseDto>` |
 | `POST` | `/adoptmate/password` | User | 로그인 상태에서 비밀번호 변경 | `PasswordChangeRequestDto` | `null` |
 | `DELETE` | `/adoptmate/delete` | User | 회원 탈퇴 (토큰 즉시 무효화 및 Soft Delete) | Header: `Authorization: Bearer <token>` | `null` |
+| `DELETE` | `/adoptmate/admin/{memberId}` | Admin | 관리자 회원 강제 삭제 (Soft Delete & 토큰/캐시 무효화) | Path: `memberId`, Header: `Authorization: Bearer <token>` | `null` |
 
 ---
 
@@ -735,6 +769,21 @@ return CommonResDto.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
 | `GET` | `/animals/{id}` | Public | 보호 동물 상세 조회 | Path: `id` | `AnimalResponse` |
 | `PUT` | `/animals/{id}/status` | Admin | 보호 동물 상태 변경 (`PROTECTED`/`WAITING`/`ADOPTED`) | Path: `id`, Body: `AnimalStatusUpdateRequest` | `AnimalResponse` |
 | `DELETE` | `/animals/{id}`, `/animals/delete/{id}` | Admin | 보호 동물 삭제 | Path: `id` | `null` (HTTP 200) |
+| `POST` | `/animals/{id}/favorite` | User | 관심 동물 찜하기 토글 (등록/취소) | Path: `id`, Header: `Authorization: Bearer <token>` | `FavoriteToggleResponseDto` |
+| `GET` | `/animals/favorites/my` | User | 내가 찜한 보호 동물 목록 조회 (페이징) | Header: `Authorization: Bearer <token>`, `?page=0&size=10` | `Page<AnimalResponse>` |
+
+> 💡 **관심 동물 찜하기 토글 응답 규격 (`FavoriteToggleResponseDto`)**:
+> ```json
+> {
+>   "statusCode": 200,
+>   "statusMessage": "관심 동물 상태가 성공적으로 변경되었습니다.",
+>   "result": {
+>     "animalId": 1,
+>     "isFavorite": true,
+>     "favoriteCount": 12
+>   }
+> }
+> ```
 
 ---
 
