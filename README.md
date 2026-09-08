@@ -21,7 +21,7 @@
 - [🔧 기술 스택 (Tech Stack)](#-기술-스택-tech-stack)
 - [📁 프로젝트 구조 (Package Structure)](#-프로젝트-구조-package-structure)
 - [🚀 주요 기능 및 핵심 아키텍처](#-주요-기능-및-핵심-아키텍처)
-- [⚡ Spring Batch 대용량 데이터 최적화 & 라이프사이클 자동화](#-spring-batch-대용량-데이터-최적화--도메인-자동화)
+- [⚡ API 레벨 대용량 페이징 최적화 (Page vs Slice & No-Offset)](#-api-레벨-대용량-페이징-최적화-page-vs-slice--no-offset-커서-페이징)
 - [📊 인증 아키텍처 실측 벤치마크 및 Trade-off 분석 (JWT vs Session)](#-인증-아키텍처-실측-벤치마크-및-trade-off-분석-jwt-vs-session)
 - [🛡️ 동시성 제어 & 데이터 무결성 아키텍처](#️-동시성-제어--데이터-무결성-아키텍처-concurrency--integrity)
 - [⚙️ 환경 설정 및 실행 가이드 (Getting Started)](#️-환경-설정-및-실행-가이드-getting-started)
@@ -35,7 +35,6 @@
 ### Backend Framework & Language
 - **Language**: Java 17 (OpenJDK 17)
 - **Framework**: Spring Boot 3.5.3
-- **Batch Processing**: **Spring Batch 5.x** (Chunk-oriented Processing, Keyset Pagination, Job/Step Scope)
 - **Build Tool**: Gradle 8.x
 - **Config Management**: Dotenv (`io.github.cdimascio:dotenv-java 3.0.0`) 기반 `.env` 환경변수 자동 로드
 
@@ -74,7 +73,7 @@
 - **State Machine**: 입양 상태 전이 유효성 검증 및 다중 신청 연쇄 처리 (승인 시 타 신청 자동 반려)
 - **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce 최신 클라이언트 구성, JSON/Hash 직렬화, SSL 지원)
 - **Mail**: JavaMailSender (Gmail SMTP 이메일 인증 및 비밀번호 재설정)
-- **Testing & Productivity**: JUnit 5, `@SpringBatchTest`, AssertJ, Mockito (153개 테스트 100% 통과, `@Tag("benchmark")` 태깅 및 전용 태스크 분리로 빌드 및 CI 속도 극대화)
+- **Testing & Productivity**: JUnit 5, AssertJ, Mockito (`@Tag("benchmark")` 태깅 및 전용 태스크 분리로 빌드 및 CI 속도 극대화)
 - **API Documentation**: SpringDoc OpenAPI UI (Swagger 3) + **Swagger Docs Interface 분리 패턴** (`*Docs.java`)
 
 ---
@@ -195,50 +194,7 @@ com.kindtail.adoptmate
 
 ---
 
-## ⚡ Spring Batch 대용량 데이터 최적화 & 도메인 자동화
-
-Spring Batch 5.x를 도입하여 **대용량 입양 데이터 처리의 $O(N)$ I/O 병목을 해결**하고, **방치된 입양 신청 건의 도메인 라이프사이클을 자동화**했습니다.
-
-### 1. No-Offset(Zero-Offset) 커서 페이징을 통한 9.9배 I/O 성능 개선
-
-#### 📌 문제 정의 (Why No-Offset?)
-* **Limit-Offset 방식의 $O(N)$ 디스크 I/O 병목**:
-  - 기본 `JpaPagingItemReader`는 `OFFSET 50000 LIMIT 1000` 쿼리를 실행하여 앞선 50,000건을 디스크에서 모두 읽고 버리는(Skip) 심각한 성능 저하가 발생합니다.
-* **Page Drift (데이터 누락 및 중복 현상)**:
-  - 배치 처리 중 레코드 상태가 변경(`PENDING` $\rightarrow$ `REJECTED`)되면 인덱스 위치가 밀려 특정 데이터가 누락되거나 중복 처리되는 데이터 정합성 결함이 발생합니다.
-
-#### 🛠️ 해결 전략 (How?)
-* **Keyset Pagination 커스텀 `ZeroOffsetAdoptionReader` 개발**:
-  - `OFFSET`을 완전히 제거하고 Clustered Index(`id`) 기반의 `WHERE a.id > :lastId ORDER BY a.id ASC LIMIT :pageSize` 쿼리를 적용했습니다.
-  - B-Tree 인덱스를 통해 다음 읽을 레코드 위치를 $O(\log N)$으로 즉시 탐색하며, 내부 큐(Queue) 버퍼링을 통해 Spring Batch `ItemStreamReader` 규격에 맞게 1건씩 스트리밍 소비합니다.
-
-#### 📊 10만 건 실측 벤치마크 결과 (`BatchReaderPerformanceTest.java`)
-| 페이징 방식 | 1회차 실행 | 2회차 실행 | 3회차 실행 | **3회 평균 소요 시간** | **성능 개선율** |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Limit-Offset (`JpaPagingItemReader`)** | 2,284 ms | 2,190 ms | 2,171 ms | **2,215 ms** | 기준 (1.0x) |
-| **Zero-Offset (`ZeroOffsetAdoptionReader`)** | 231 ms | 221 ms | 217 ms | **223 ms** | **🚀 9.90배 (990%) 향상** |
-
----
-
-### 2. 장기 미처리 입양 신청 자동 만료 및 상태 복구 배치 (`ExpiredAdoptionBatchConfig.java`)
-
-#### 📌 비즈니스 문제 정의 및 페이징 건너뜀(Page Skipping) 결함 해결
-* **비즈니스 문제 정의**:
-  - 입양 신청 시 대상 동물은 `WAITING`(입양 대기) 상태로 잠겨 다른 사용자의 신청이 제한됩니다.
-  - 하지만 신청자 또는 보호소 측에서 장기간(14일 이상) 방치(`PENDING`)할 경우 **동물이 영구히 대기 상태에 갇혀 다른 입양 희망자가 신청하지 못하는 비즈니스 병목**이 발생합니다.
-* **`JpaPagingItemReader` Page-Skipping 결함 해결**:
-  - `WHERE a.status = 'PENDING'` 조건으로 데이터를 청크 단위로 조회한 뒤 상태를 변경(`REJECTED`)할 때, 기본 `JpaPagingItemReader`의 오프셋 증가 방식(`firstResult = page * pageSize`)을 사용하면 **이미 상태가 변경된 데이터가 뷰에서 사라져 후속 데이터의 절반 이상을 건너뛰는(Skip) 심각한 누락 버그**가 발생합니다.
-  - 이를 방지하기 위해 `getPage() { return 0; }` 오버라이딩을 적용하여, 처리된 레코드가 사라져도 **항상 첫 번째 페이지(Offset 0)를 소비하도록 보정함으로써 단 1건의 누락도 없이 전체 만료 대상을 완벽하게 처리**하도록 데이터 무결성을 보장했습니다.
-
-#### 🛠️ 배치 파이프라인 아키텍처
-* **Reader (`expiredAdoptionReader`)**: `@StepScope` 파라미터(`thresholdDate`)와 `Fetch Join`을 적용하여 14일 경과된 `PENDING` 건을 N+1 없이 청크 단위로 조회 (`getPage() { return 0; }` 무결성 페이징 적용)
-* **Processor (`expiredAdoptionProcessor`)**: 입양 신청 상태를 `REJECTED`(자동 반려)로 전이하고, 연관 동물의 상태를 `PROTECTED`(입양 가능)로 복구
-* **Writer (`expiredAdoptionWriter`)**: 단일 트랜잭션 내에서 `Adoption` 및 `Animal` 변경 사항을 일괄 영속화
-* **트랜잭션 격리**: `Chunk(100)` 단위 트랜잭션 분할로 롱 트랜잭션 및 Undo Log 폭증을 방지하고 결함 격리(Fault Isolation) 보장
-
----
-
-### 3. API 레벨 대용량 페이징 최적화: `Page` vs `Slice` & No-Offset 커서 페이징
+## ⚡ API 레벨 대용량 페이징 최적화: `Page` vs `Slice` & No-Offset 커서 페이징
 
 대용량 트래픽 및 데이터 증가 환경에서 목록 조회 API(`/animals/cursor`, `/post/cursor`)의 성능 병목을 해결하기 위해 **`Slice`와 No-Offset(Keyset) 커서 페이징 아키텍처**를 도입했습니다.
 
@@ -430,7 +386,7 @@ docker compose up -d --build
 # 1) 일반 단위/통합 테스트 실행 (대용량 벤치마크 제외로 빠른 빌드 & CI 루프 보장)
 ./gradlew test
 
-# 2) 대용량 벤치마크 테스트 단독 실행 (10만 건 배치 및 1만 건 세션 vs JWT 부하 측정)
+# 2) 대용량 벤치마크 테스트 단독 실행 (1만 건 세션 vs JWT 부하 측정)
 ./gradlew benchmarkTest
 ```
 
