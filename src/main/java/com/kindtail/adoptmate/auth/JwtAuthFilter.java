@@ -53,7 +53,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     log.warn("User not found during JWT authentication: {}", e.getMessage());
                     request.setAttribute("exception", ErrorCode.MEMBER_NOT_FOUND);
                 } catch (Exception e) {
-                    log.warn("Invalid JWT token: {}", e.getMessage());
+                    // Keep the original cause visible.  This catch also covers
+                    // user lookup/serialization failures, which are not JWT
+                    // parsing failures but previously appeared as the same 401.
+                    log.warn("JWT authentication failed for {}: {} ({})",
+                            request.getRequestURI(), e.getMessage(), e.getClass().getSimpleName(), e);
                     request.setAttribute("exception", ErrorCode.UNAUTHORIZED);
                 }
             }
