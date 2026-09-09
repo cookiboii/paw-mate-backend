@@ -120,6 +120,20 @@ Copy-Item .env.example .env
 | Kakao | `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_REDIRECT_URI` |
 | Mail | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` |
 | Client | `CLIENT_URL` |
+| JPA schema | `JPA_DDL_AUTO` (`update` for local migration, `validate` for production) |
+
+이미 운영 중인 데이터베이스에서는 `JPA_DDL_AUTO=create`를 사용하지 않습니다. `create`는 기존 스키마와 데이터를 삭제할 수 있습니다. 운영 환경은 `validate`로 두고, 필요한 스키마 변경은 SQL 마이그레이션으로 적용하세요.
+
+`animal.image`와 `post.image`는 이미지 URL 또는 Base64/data URL이 2,048자를 넘을 수 있으므로 MySQL `LONGTEXT`로 저장합니다. 기존 데이터베이스에서 다음 변경을 한 번 적용한 뒤 애플리케이션을 재배포하세요.
+
+```sql
+ALTER TABLE animal MODIFY COLUMN image LONGTEXT;
+ALTER TABLE post MODIFY COLUMN image LONGTEXT;
+```
+
+이 변경을 적용하지 않은 상태에서 Hibernate가 `VARCHAR(2048)`로 컬럼을 축소하려 하면 기존 긴 데이터 때문에 `Data truncation` 오류가 발생합니다.
+
+컨트롤러가 Swagger 문서 인터페이스를 구현하는 경우 Bean Validation 제약(`@NotBlank`, `@Email`, `@Valid` 등)은 인터페이스와 구현체 중 한 곳에만 선언하고 동일하게 유지해야 합니다. 구현체 메서드에만 제약을 추가하면 `OverridingMethodMustNotAlterParameterConstraints` 오류가 발생합니다.
 
 > `.env`에는 비밀값이 포함되므로 Git에 커밋하지 않습니다.
 
