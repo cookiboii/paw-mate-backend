@@ -57,26 +57,26 @@ class PostServiceTest {
     @BeforeEach
     void setUp() {
         author = Member.builder()
-                .id(1L)
-                .email("author@example.com")
-                .name("작성자")
-                .role(Role.USER)
-                .build();
+            .id(1L)
+            .email("author@example.com")
+            .name("작성자")
+            .role(Role.USER)
+            .build();
 
         anotherUser = Member.builder()
-                .id(2L)
-                .email("other@example.com")
-                .name("다른사용자")
-                .role(Role.USER)
-                .build();
+            .id(2L)
+            .email("other@example.com")
+            .name("다른사용자")
+            .role(Role.USER)
+            .build();
 
         testPost = Post.builder()
-                .id(10L)
-                .title("테스트 제목")
-                .content("테스트 내용")
-                .image("http://example.com/image.jpg")
-                .member(author)
-                .build();
+            .id(10L)
+            .title("테스트 제목")
+            .content("테스트 내용")
+            .image("http://example.com/image.jpg")
+            .member(author)
+            .build();
     }
 
     @AfterEach
@@ -87,14 +87,14 @@ class PostServiceTest {
     private void setupSecurityContext(String email, Role role) {
         Long memberId = "other@example.com".equals(email) ? 2L : 1L;
         Member member = Member.builder()
-                .id(memberId)
-                .email(email)
-                .name("테스트유저")
-                .role(role)
-                .build();
+            .id(memberId)
+            .email(email)
+            .name("테스트유저")
+            .role(role)
+            .build();
         CustomUserDetails userDetails = new CustomUserDetails(member);
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                userDetails, null, List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
+            userDetails, null, List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -105,7 +105,7 @@ class PostServiceTest {
         // given
         setupSecurityContext("author@example.com", Role.USER);
         PostCreateRequestDto request = new PostCreateRequestDto(
-                "테스트 제목", "테스트 내용", "http://example.com/image.jpg"
+            "테스트 제목", "테스트 내용", "http://example.com/image.jpg"
         );
 
         given(memberRepository.findByEmail("author@example.com")).willReturn(Optional.of(author));
@@ -126,15 +126,15 @@ class PostServiceTest {
         // given
         setupSecurityContext("notfound@example.com", Role.USER);
         PostCreateRequestDto request = new PostCreateRequestDto(
-                "제목", "내용", "img.jpg"
+            "제목", "내용", "img.jpg"
         );
 
         given(memberRepository.findByEmail("notfound@example.com")).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> postService.createPost(request))
-                .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
+            .isInstanceOf(CustomException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
     }
 
     @Test
@@ -191,8 +191,8 @@ class PostServiceTest {
 
         // when & then
         assertThatThrownBy(() -> postService.getPost(999L))
-                .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
+            .isInstanceOf(CustomException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
     }
 
     @Test
@@ -239,8 +239,8 @@ class PostServiceTest {
 
         // when & then
         assertThatThrownBy(() -> postService.updatePost(10L, updateDto))
-                .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
+            .isInstanceOf(CustomException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
     }
 
     @Test
@@ -266,7 +266,7 @@ class PostServiceTest {
 
         // when & then
         assertThatThrownBy(() -> postService.deletePost(10L))
-                .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
+            .isInstanceOf(CustomException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
     }
 }
