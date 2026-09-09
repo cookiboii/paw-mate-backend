@@ -440,6 +440,23 @@ erDiagram
 
 기준 URL은 `http://localhost:8000`이며, 요청과 응답 본문은 `application/json`입니다. 아래 표에는 **권장 경로만 한 번씩** 기재합니다. 인증 API에는 `Authorization: Bearer <accessToken>` 헤더를 사용합니다. 모든 응답 데이터는 공통 응답 객체의 `result`에 담깁니다.
 
+### 문서 바로가기
+
+| 먼저 확인할 내용 | 이동 |
+| --- | --- |
+| 공통 응답·인증 규칙 | [공통 규칙](#공통-규칙) |
+| 회원가입·로그인 | [회원·인증·이메일](#회원--인증--이메일) |
+| 동물·찜하기 | [보호 동물](#보호-동물) |
+| 입양 신청·심사 | [입양 신청](#입양-신청) |
+| 게시글·댓글 | [게시글·댓글](#게시글--댓글) |
+| 바로 호출해 보기 | [요청·응답 상세 예시](#요청응답-상세-예시) |
+
+> **빠른 시작**
+>
+> 1. `POST /adoptmate/login`으로 토큰을 발급합니다.
+> 2. 보호 동물·게시글 목록은 토큰 없이 조회할 수 있습니다.
+> 3. 생성·수정·삭제 요청에는 `Authorization: Bearer <accessToken>`을 추가합니다.
+
 ### 공통 규칙
 
 | 항목 | 규칙 |
@@ -531,3 +548,155 @@ erDiagram
 | `GET /api/v1/posts` | `GET /post/list` |
 | `PUT /comment/{commentId}` | `PUT /comment/update/{commentId}` |
 | `DELETE /adoptmate/admin/{memberId}` | `DELETE /adoptmate/admin/member/{memberId}` |
+
+### 요청·응답 상세 예시
+
+아래 예시는 실제 DTO의 필드명과 타입을 그대로 사용한 예시입니다. `result`가 없는 성공 응답은 `null`입니다.
+
+<details>
+<summary>요청·응답 예시 펼치기</summary>
+
+#### 공통 응답
+
+성공 응답은 HTTP 상태 코드와 업무 코드가 함께 반환됩니다.
+
+```json
+{
+  "statusCode": 200,
+  "code": "A104",
+  "statusMessage": "상세 조회 성공",
+  "result": {}
+}
+```
+
+검증·인증·권한·리소스 오류도 같은 레벨의 오류 객체로 반환되며 `result`는 없습니다.
+
+```json
+{
+  "statusCode": 401,
+  "code": "M004",
+  "statusMessage": "인증 정보가 유효하지 않습니다."
+}
+```
+
+주요 오류 코드는 `C001`(입력값 오류), `M004`(인증 실패), `C004`(권한 없음), `A001`(동물 없음), `AD001`(입양 신청 없음), `P001`(게시글 없음), `CM001`(댓글 없음), `L001`·`L002`(동시성 충돌), `E001`·`E002`(인증 코드 만료·불일치)입니다.
+
+#### 회원가입·로그인
+
+```http
+POST /adoptmate/register
+Content-Type: application/json
+
+{
+  "name": "홍길동",
+  "email": "user@example.com",
+  "password": "password123",
+  "role": "USER"
+}
+```
+
+```json
+{
+  "statusCode": 201,
+  "code": "M101",
+  "statusMessage": "회원가입 성공",
+  "result": {
+    "id": 1,
+    "name": "홍길동",
+    "email": "user@example.com",
+    "password": "...",
+    "role": "USER",
+    "profileImage": null,
+    "authProvider": "LOCAL",
+    "socialId": null
+  }
+}
+```
+
+> 보안 주의: 현재 `MemberResponseDto` 구현에는 `password` 필드가 포함되어 있습니다. 비밀번호(해시 포함)는 응답으로 노출하지 않는 것이 원칙이므로, 운영 전 회원가입 응답 DTO에서 해당 필드를 제거해야 합니다.
+
+```http
+POST /adoptmate/login
+Content-Type: application/json
+
+{"email":"user@example.com","password":"password123"}
+```
+
+로그인 성공의 `result`는 `{ "token": "<accessToken>", "refreshToken": "<refreshToken>", "email": "user@example.com", "role": "USER" }`입니다. 이후 인증 요청에는 `Authorization: Bearer <accessToken>`을 사용합니다.
+
+#### 동물 등록·조회
+
+```http
+POST /api/v1/animals
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{
+  "species": "DOG",
+  "breed": "믹스견",
+  "color": "갈색",
+  "image": "/uploads/dog-1.jpg",
+  "age": 3,
+  "gender": "MALE",
+  "status": "PROTECTED"
+}
+```
+
+동물 1건의 `result`는 다음 구조입니다.
+
+```json
+{"id":1,"species":"DOG","breed":"믹스견","color":"갈색","status":"PROTECTED","age":3,"gender":"MALE","image":"/uploads/dog-1.jpg"}
+```
+
+오프셋 목록은 `GET /api/v1/animals?page=0&size=10`, 커서 목록은 `GET /api/v1/animals/cursor?size=10`으로 호출합니다. `Page`의 목록은 `result.content`, 전체 건수는 `result.totalElements`에서 읽습니다. `Slice`는 `result.content`와 `result.hasNext`를 사용합니다.
+
+#### 입양 신청
+
+```http
+POST /adoptions/animals/1
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{
+  "phone": "010-1234-5678",
+  "housingType": "APARTMENT",
+  "hasPet": "없음",
+  "reason": "반려동물과 오래 함께할 준비가 되어 신청합니다."
+}
+```
+
+`reason`은 10자 이상이어야 하며, 신청 대상 동물의 상태가 `PROTECTED`일 때만 신청할 수 있습니다. 신청 생성 성공은 HTTP 201과 업무 코드 `AD101`입니다.
+
+#### 게시글·댓글
+
+```http
+POST /api/v1/posts
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"title":"입양 후기","content":"우리 아이를 만난 이야기입니다.","img":"/uploads/review.jpg"}
+```
+
+```http
+POST /comment/1
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{"parentId":null,"content":"따뜻한 후기 감사합니다."}
+```
+
+대댓글은 같은 요청에서 `parentId`에 부모 댓글 ID를 지정합니다. 댓글 목록의 각 항목은 `id`, `authorName`, `authorId`, `authorEmail`, `content`, `createdAt`, `children`을 포함합니다.
+
+</details>
+
+### 상태 코드 및 재시도
+
+| HTTP | 처리 방법 |
+| --- | --- |
+| 400 | 응답의 `code`와 `statusMessage`를 입력 폼에 표시합니다. 이메일·인증 코드·enum·필수값을 먼저 확인합니다. |
+| 401 | Access Token을 재발급한 뒤 원 요청을 한 번만 재시도합니다. Refresh Token도 실패하면 로그인 화면으로 이동합니다. |
+| 403 | 현재 사용자의 소유권 또는 `ADMIN` 역할을 확인합니다. 같은 요청을 반복하지 않습니다. |
+| 404 | 경로 ID에 해당하는 리소스가 삭제됐거나 존재하지 않는 상태입니다. 목록 화면을 갱신합니다. |
+| 409 | `L001` 또는 `L002`인 경우 최신 데이터를 다시 조회한 뒤 사용자가 다시 시도하도록 안내합니다. |
+| 429 | 이메일 인증 요청 제한입니다. 제한 시간이 지난 후 재요청합니다. |
+| 500 | 사용자에게 일반 오류를 표시하고 서버 로그의 요청 시각과 API 경로를 함께 기록합니다. |
