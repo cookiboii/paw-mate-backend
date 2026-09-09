@@ -11,9 +11,6 @@ import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.auth.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,7 +30,6 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final CacheManager cacheManager;
 
     public void logout(String accessToken) {
         try {
@@ -165,13 +161,11 @@ public class MemberService {
                 .toList();
     }
 
-    @CacheEvict(value = "userDetails", key = "#email")
     @Transactional
     public void deleteUser(String email) {
         deleteUser(email, null);
     }
 
-   @CacheEvict(value = "userDetails", key = "#email")
     @Transactional
     public void deleteUser(String email, String accessToken) {
         Member member = memberRepository.findByEmail(email)
@@ -186,12 +180,6 @@ public class MemberService {
             logout(accessToken);
         }
 
-        if (cacheManager != null) {
-            Cache cache = cacheManager.getCache("userDetails");
-            if (cache != null) {
-                cache.evict(email);
-            }
-        }
     }
 
     /**
@@ -217,12 +205,6 @@ public class MemberService {
         redisTemplate.delete("refreshToken:" + email);
 
         // userDetails 캐시 무효화
-        if (cacheManager != null) {
-            Cache cache = cacheManager.getCache("userDetails");
-            if (cache != null) {
-                cache.evict(email);
-            }
-        }
     }
 
     @Transactional
@@ -230,7 +212,6 @@ public class MemberService {
         deleteMemberByAdmin(memberId, SecurityUtil.getCurrentUserId());
     }
 
-    @CacheEvict(value = "userDetails", key = "#email")
     @Transactional
     public void changePassword(String email, PasswordChangeRequestDto dto) {
         Member member = memberRepository.findByEmail(email)

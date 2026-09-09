@@ -27,8 +27,15 @@ public class AdoptmateApplication {
             loadDotenvFile(".env." + activeProfile.trim().toLowerCase());
         }
 
-        // 4. 로컬 및 시크릿 환경 파일이 별도 존재하는 경우 추가 로드
-        loadDotenvFile(".env.local");
+        // Do not load the local profile after the active profile.  Loading it
+        // unconditionally overwrote the production OAuth redirect URI with
+        // http://localhost:8000, so Kakao sent the authorization code to the
+        // user's machine and the backend could not issue a JWT.
+        if ("local".equalsIgnoreCase(activeProfile)) {
+            loadDotenvFile(".env.local");
+        }
+
+        // Local secrets are optional and are loaded last for either profile.
         loadDotenvFile(".env.secret");
     }
 

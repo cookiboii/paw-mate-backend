@@ -127,7 +127,6 @@ public class EmailVerificationService {
         return count != null ? count.intValue() : 1;
     }
 
-    @org.springframework.cache.annotation.CacheEvict(value = "userDetails", key = "#updateDto.email()")
     @Transactional
     public void updatePassword(PasswordResetRequestDto updateDto) {
         String email = updateDto.email();

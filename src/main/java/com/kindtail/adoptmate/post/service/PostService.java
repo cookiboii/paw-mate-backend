@@ -12,8 +12,6 @@ import com.kindtail.adoptmate.post.dto.PostResponseDto;
 import com.kindtail.adoptmate.post.dto.PostUpdateRequestDto;
 import com.kindtail.adoptmate.post.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +26,6 @@ public class PostService {
     private final PostRepository postRepository;
     private final MemberRepository memberRepository;
 
-    @CacheEvict(value = "posts", allEntries = true)
     @Transactional
     public PostResponseDto createPost(PostCreateRequestDto dto) {
         String email = SecurityUtil.getCurrentUserEmail();
@@ -46,14 +43,12 @@ public class PostService {
         return PostResponseDto.from(saved);
     }
 
-    @Cacheable(value = "posts", key = "'page-' + #pageable.pageNumber + '-' + #pageable.pageSize")
     @Transactional(readOnly = true)
     public Page<PostResponseDto> getAllPosts(Pageable pageable) {
         Page<Post> posts = postRepository.findAll(pageable);
         return posts.map(PostResponseDto::from);
     }
 
-    @Cacheable(value = "posts", key = "'cursor-' + (#lastPostId == null ? 0 : #lastPostId) + '-' + #size")
     @Transactional(readOnly = true)
     public Slice<PostResponseDto> getPostsByCursor(Long lastPostId, int size) {
         Pageable pageable = PageRequest.of(0, size);
@@ -61,7 +56,6 @@ public class PostService {
         return posts.map(PostResponseDto::from);
     }
 
-    @CacheEvict(value = "posts", allEntries = true)
     @Transactional
     public void deletePost(Long postId) {
         CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
@@ -80,7 +74,6 @@ public class PostService {
         return PostResponseDto.from(post);
     }
 
-    @CacheEvict(value = "posts", allEntries = true)
     @Transactional
     public PostResponseDto updatePost(Long postId, PostUpdateRequestDto dto) {
         CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
