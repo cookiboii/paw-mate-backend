@@ -45,7 +45,13 @@ public class SecurityConfig {
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable);
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
-        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        // OAuth2 authorization code flow stores the authorization request (state,
+        // redirect URI, etc.) in the HTTP session between the initial redirect and
+        // the callback.  STATELESS drops that session and makes the callback fail
+        // with an unauthenticated/401 response.  IF_REQUIRED still avoids creating
+        // sessions for ordinary JWT requests while allowing the OAuth2 handshake to
+        // complete.
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
 
         http.userDetailsService(customUserDetailsService);
 
