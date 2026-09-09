@@ -317,40 +317,6 @@ npx openapi-typescript http://localhost:8000/v3/api-docs -o src/api/schema.d.ts
 }
 ```
 
-## API 개요
-
-모든 상세 스키마와 인증 요구 사항은 Swagger UI를 기준으로 합니다.
-
-| 도메인 | 대표 경로 | 설명 |
-| --- | --- | --- |
-| 회원·인증 | `/adoptmate/register`, `/adoptmate/login`, `/adoptmate/refresh-token` | 가입, 로그인, 토큰 재발급 |
-| 이메일 | `/adoptmate/verify-email`, `/adoptmate/verify-code` | 이메일 인증 및 비밀번호 재설정 |
-| OAuth2 | `/oauth2/authorization/kakao`, `/adoptmate/kakao` | 카카오 로그인 |
-| 보호 동물 | `/animals`, `/api/v1/animals` | 목록, 상세, 상태 변경, 찜하기 |
-| 입양 | `/adoptions` | 입양 신청, 내역 조회, 관리자 심사 |
-| 게시글 | `/post`, `/api/v1/posts` | 게시글 CRUD와 커서 페이징 |
-| 댓글 | `/comment` | 댓글·대댓글 CRUD |
-
-### 보호 동물·게시글 v1 경로
-
-보호 동물과 게시글은 리소스 중심의 v1 경로를 추가로 지원합니다.
-
-| 작업 | 권장 경로 | 기존 호환 경로 |
-| --- | --- | --- |
-| 동물 등록 | `POST /api/v1/animals` | `POST /animals/register` |
-| 동물 목록 | `GET /api/v1/animals` | `GET /animals/list` |
-| 게시글 작성 | `POST /api/v1/posts` | `POST /post/create` |
-| 게시글 목록 | `GET /api/v1/posts` | `GET /post/list` |
-
-기존 경로는 기존 클라이언트 호환을 위해 유지합니다. 신규 클라이언트는 v1 경로를 사용하세요.
-
-### 인증 규칙
-
-- 회원가입, 로그인, 이메일 인증, 토큰 재발급, 카카오 OAuth2는 공개 API입니다.
-- 보호 동물·게시글·댓글의 기존 GET 조회 API는 공개입니다.
-- 생성·수정·삭제, 찜하기, 입양 신청, 내 정보 조회는 인증이 필요합니다.
-- 관리자 API는 `ADMIN` 역할이 필요합니다.
-
 ## 데이터베이스
 
 운영·개발 환경은 MySQL 8을 사용하고, 테스트 프로필은 H2의 MySQL 호환 모드를 사용합니다. 연결 정보는 `DB_*` 환경 변수로 설정합니다.
@@ -469,3 +435,99 @@ erDiagram
 ## 라이선스
 
 이 저장소의 라이선스 정책은 별도로 정의되어 있지 않습니다.
+
+## API 상세 명세
+
+기준 URL은 `http://localhost:8000`이며, 요청과 응답 본문은 `application/json`입니다. 아래 표에는 **권장 경로만 한 번씩** 기재합니다. 인증 API에는 `Authorization: Bearer <accessToken>` 헤더를 사용합니다. 모든 응답 데이터는 공통 응답 객체의 `result`에 담깁니다.
+
+### 공통 규칙
+
+| 항목 | 규칙 |
+| --- | --- |
+| 권한 표기 | `공개`: 토큰 불필요 · `인증`: 로그인 필요 · `ADMIN`: 관리자 역할 필요 |
+| 페이지 조회 | `page`는 0부터 시작하며 기본값은 0, `size` 기본값은 10, 최대값은 100입니다. `result`는 `Page` 형식입니다. |
+| 커서 조회 | 최초 요청은 커서를 생략하고, 다음 요청에는 직전 `content` 마지막 항목의 ID를 전달합니다. `hasNext=false`이면 종료합니다. |
+| 시간 | `LocalDateTime`은 ISO-8601 문자열로 반환됩니다. |
+
+### 회원 · 인증 · 이메일
+
+| 메서드 | 경로 | 권한 | 요청 | `result` |
+| --- | --- | --- | --- | --- |
+| POST | `/adoptmate/register` | 공개 | `name`, `email`, `password`(6자 이상), `role`(`USER`/`ADMIN`) | `id`, `name`, `email`, `password`, `role`, `profileImage`, `authProvider`, `socialId` |
+| POST | `/adoptmate/login` | 공개 | `email`, `password` | `token`, `refreshToken`, `email`, `role` |
+| POST | `/adoptmate/refresh-token` | 공개 | `refreshToken` | `token` |
+| POST | `/adoptmate/logout` | 인증 | 없음 | `null` |
+| GET | `/adoptmate/myInfo` | 인증 | 없음 | `id`, `name`, `email`, `role` |
+| GET | `/adoptmate/all` | ADMIN | 없음 | 회원 정보 배열 |
+| POST | `/adoptmate/password` | 인증 | `currentPassword`, `newPassword`(6자 이상) | `null` |
+| DELETE | `/adoptmate/delete` | 인증 | 없음 | `null` |
+| DELETE | `/adoptmate/admin/{memberId}` | ADMIN | 경로: `memberId` | `null` |
+| POST | `/adoptmate/verify-email` | 공개 | `email` | `null` |
+| POST | `/adoptmate/verify-code` | 공개 | `email`, `code` | `email`, `code` |
+| POST | `/adoptmate/send-reset-code?email={email}` | 공개 | 쿼리: `email` | `null` |
+| POST | `/adoptmate/verify-reset-code?email={email}&code={code}` | 공개 | 쿼리: `email`, `code` | `null` |
+| PATCH | `/adoptmate/password` | 공개 | `email`, `password`(6자 이상) | `null` |
+| GET | `/oauth2/authorization/kakao` | 공개 | 없음 | Kakao 로그인 화면으로 리다이렉트 |
+| GET | `/adoptmate/kakao?code={code}` | 공개 | 쿼리: Kakao 인가 코드 | 팝업 완료 HTML 및 `OAUTH_SUCCESS` postMessage |
+
+`POST /adoptmate/password`는 로그인한 사용자의 비밀번호 변경이고, `PATCH /adoptmate/password`는 이메일 인증 후 비밀번호 재설정입니다.
+
+### 보호 동물
+
+`species`: `DOG`, `CAT`, `ETC` · `gender`: `MALE`, `FEMALE` · `status`: `WAITING`, `PROTECTED`, `ADOPTED`입니다. 동물 응답은 `id`, `species`, `breed`, `color`, `status`, `age`, `gender`, `image`를 반환합니다.
+
+| 메서드 | 경로 | 권한 | 요청 | `result` |
+| --- | --- | --- | --- | --- |
+| POST | `/api/v1/animals` | 인증 | `species`, `breed`, `color`, `image`(선택), `age`(0 이상), `gender`, `status` | 동물 1건 |
+| GET | `/api/v1/animals` | 공개 | 쿼리: `page`, `size` | 동물 `Page` |
+| GET | `/api/v1/animals/cursor` | 공개 | 쿼리: `lastAnimalId`(선택), `size` | 동물 `Slice` |
+| GET | `/api/v1/animals/species` | 공개 | 쿼리: `species`(필수), `page`, `size` | 동물 `Page` |
+| GET | `/api/v1/animals/{id}` | 공개 | 경로: `id` | 동물 1건 |
+| PUT | `/api/v1/animals/{id}/status` | ADMIN | `status` | 변경된 동물 1건 |
+| DELETE | `/api/v1/animals/{id}` | ADMIN | 경로: `id` | `null` |
+| POST | `/api/v1/animals/{id}/favorite` | 인증 | 경로: `id` | `animalId`, `isFavorite`, `favoriteCount` |
+| DELETE | `/api/v1/animals/{id}/favorite` | 인증 | 경로: `id` | `animalId`, `isFavorite`, `favoriteCount` |
+| GET | `/api/v1/animals/favorites/my` | 인증 | 쿼리: `page`, `size` | 동물 `Page` |
+
+### 입양 신청
+
+`housingType`: `APARTMENT`, `DETACHED_HOUSE`, `VILLA`, `ONE_ROOM`, `ETC` · 상태: `PENDING`, `APPROVED`, `REJECTED`입니다. 응답은 `adoptionId`, `animalId`, `animalBreed`, `animalImage`, `userName`, `phone`, `housingType`, `hasPet`, `reason`, `status`, `applyDate`를 반환합니다.
+
+| 메서드 | 경로 | 권한 | 요청 | `result` |
+| --- | --- | --- | --- | --- |
+| POST | `/adoptions/animals/{animalId}` | 인증 | `phone`(휴대폰 형식), `housingType`, `hasPet`, `reason`(10자 이상) | 입양 신청 1건 |
+| GET | `/adoptions/myAdoption` | 인증 | 없음 | 입양 신청 배열 |
+| GET | `/adoptions/all` | ADMIN | 없음 | 입양 신청 배열 |
+| GET | `/adoptions/list` | ADMIN | 쿼리: `page`, `size`, `sort` | 입양 신청 `Page` |
+| PUT | `/adoptions/{adoptionId}/status` | ADMIN | `adoptionStatus` | 변경된 입양 신청 1건 |
+
+### 게시글 · 댓글
+
+게시글 작성·수정은 `title`, `content`가 필수이고 `img`는 선택입니다. 게시글 응답은 `id`, `title`, `content`, `email`, `name`, `createAt`, `img`입니다. 댓글 작성은 `content`와 `parentId`(대댓글일 때만)를 사용하며, 댓글 응답의 `children`에는 하위 댓글 배열이 포함됩니다.
+
+| 메서드 | 경로 | 권한 | 요청 | `result` |
+| --- | --- | --- | --- | --- |
+| POST | `/api/v1/posts` | 인증 | `title`, `content`, `img`(선택) | 게시글 1건 |
+| GET | `/api/v1/posts` | 공개 | 쿼리: `page`, `size`, `sort` | 게시글 `Page` |
+| GET | `/api/v1/posts/cursor` | 공개 | 쿼리: `lastPostId`(선택), `size` | 게시글 `Slice` |
+| GET | `/api/v1/posts/{postId}` | 공개 | 경로: `postId` | 게시글 1건 |
+| PUT | `/api/v1/posts/{postId}` | 인증 | `title`, `content`, `img`(선택) | 변경된 게시글 1건 |
+| DELETE | `/api/v1/posts/{postId}` | 인증 | 경로: `postId` | `null` |
+| POST | `/comment/{postId}` | 인증 | `content`, `parentId`(선택) | 댓글 1건 |
+| GET | `/comment/{postId}` | 공개 | 경로: `postId` | 댓글 트리 배열 |
+| PUT | `/comment/{commentId}` | 인증 | `commentId`, `content` | 변경된 댓글 1건 |
+| DELETE | `/comment/{commentId}` | 인증 | 경로: `commentId` | `null` |
+
+### 호환 경로
+
+기존 클라이언트용 별칭은 기능이 중복된 API가 아니므로 위 표에 별도 행으로 반복하지 않았습니다. 새 클라이언트는 상세 명세의 경로를 사용합니다.
+
+| 정규 경로 | 호환 경로 |
+| --- | --- |
+| `POST /api/v1/animals` | `POST /animals/register` |
+| `GET /api/v1/animals` | `GET /animals/list` |
+| `DELETE /api/v1/animals/{id}` | `DELETE /animals/delete/{id}` |
+| `POST /api/v1/posts` | `POST /post/create` |
+| `GET /api/v1/posts` | `GET /post/list` |
+| `PUT /comment/{commentId}` | `PUT /comment/update/{commentId}` |
+| `DELETE /adoptmate/admin/{memberId}` | `DELETE /adoptmate/admin/member/{memberId}` |
