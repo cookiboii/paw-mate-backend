@@ -13,8 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.annotation.Validated;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 
 import java.util.Map;
 
@@ -43,7 +41,7 @@ public class EmailVerificationController implements EmailVerificationControllerD
 
     @Override
     @PostMapping("/send-reset-code")
-    public ResponseEntity<CommonResDto<Void>> sendResetCode(@RequestParam @NotBlank @Email String email) {
+    public ResponseEntity<CommonResDto<Void>> sendResetCode(@RequestParam String email) {
         emailVerificationService.sendPasswordResetEmail(email);
         return CommonResDto.toResponseEntity(SuccessCode.RESET_CODE_SEND_SUCCESS);
     }
@@ -51,8 +49,8 @@ public class EmailVerificationController implements EmailVerificationControllerD
     @Override
     @PostMapping("/verify-reset-code")
     public ResponseEntity<CommonResDto<Void>> verifyResetCode(
-            @RequestParam @NotBlank @Email String email,
-            @RequestParam @NotBlank String code
+            @RequestParam String email,
+            @RequestParam String code
     ) {
         boolean verified = emailVerificationService.verifyPassword(email, code);
         if (verified) {

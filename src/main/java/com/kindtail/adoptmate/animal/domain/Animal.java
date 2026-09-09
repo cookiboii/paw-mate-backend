@@ -50,7 +50,10 @@ public class Animal extends BaseTimeEntity {
 
     private Long age;
 
-    @Column(length = 2048)
+    // Image values may be data URLs/Base64 strings and can exceed VARCHAR(2048).
+    // Keep existing data when Hibernate updates the schema by widening this column.
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String image;
 
     @ManyToOne(fetch = FetchType.LAZY)
