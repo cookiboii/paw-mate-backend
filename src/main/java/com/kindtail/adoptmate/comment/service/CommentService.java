@@ -40,6 +40,9 @@ public class CommentService {
         if (commentDto.parentId() != null) {
             parent = commentRepository.findById(commentDto.parentId())
                     .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
+            if (!parent.getPost().getId().equals(post.getId())) {
+                throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "Parent comment belongs to a different post.");
+            }
         }
 
         Comment comment = Comment.builder()

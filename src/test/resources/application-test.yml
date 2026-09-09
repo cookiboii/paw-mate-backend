@@ -21,12 +21,12 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:resolved-drake-197654.upstash.io}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      username: ${REDIS_USERNAME:default}
-      password: ${REDIS_PASSWORD:gQAAAAAAAwQWAAIgcDFkNmIwZGNmYmQ1NjA0MmUyYjE5ZWExNjkxOWMxOWFkZA}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
       ssl:
-        enabled: true
+        enabled: false
 
   security:
     oauth2:

@@ -101,7 +101,8 @@ public class MemberService {
         }
 
         password = passwordEncoder.encode(password);
-        Role role = memberRegisterRequestDto.role() != null ? memberRegisterRequestDto.role() : Role.USER;
+        // Public registration must never be able to select a privileged role.
+        Role role = Role.USER;
         Member member = Member.builder()
                 .email(email)
                 .name(username)

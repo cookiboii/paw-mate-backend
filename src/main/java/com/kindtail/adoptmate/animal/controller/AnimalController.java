@@ -13,6 +13,8 @@ import com.kindtail.adoptmate.auth.SecurityUtil;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,10 +24,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
 
 @RestController
 @RequestMapping("/animals")
 @RequiredArgsConstructor
+@Validated
 public class AnimalController implements AnimalControllerDocs {
 
     private final AnimalService animalService;
@@ -42,8 +46,8 @@ public class AnimalController implements AnimalControllerDocs {
     @Override
     @GetMapping("/list")
     public ResponseEntity<CommonResDto<Page<AnimalResponse>>> getAnimalList(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
     ) {
         Page<AnimalResponse> animalList = animalService.getAllAnimals(PageRequest.of(page, size));
         return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_LIST_SUCCESS, animalList);
@@ -53,7 +57,7 @@ public class AnimalController implements AnimalControllerDocs {
     @GetMapping("/cursor")
     public ResponseEntity<CommonResDto<Slice<AnimalResponse>>> getAnimalsByCursor(
             @RequestParam(required = false) Long lastAnimalId,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
     ) {
         Slice<AnimalResponse> animalSlice = animalService.getAnimalsByCursor(lastAnimalId, size);
         return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_LIST_SUCCESS, animalSlice);
@@ -63,8 +67,8 @@ public class AnimalController implements AnimalControllerDocs {
     @GetMapping("/species")
     public ResponseEntity<CommonResDto<Page<AnimalResponse>>> getAnimalsBySpecies(
             @RequestParam Species species,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
     ) {
         Page<AnimalResponse> animalList = animalService.getAnimalsBySpecies(species, PageRequest.of(page, size));
         return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_SPECIES_LIST_SUCCESS, animalList);
@@ -110,8 +114,8 @@ public class AnimalController implements AnimalControllerDocs {
     @Override
     @GetMapping("/favorites/my")
     public ResponseEntity<CommonResDto<Page<AnimalResponse>>> getMyFavoriteAnimals(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long memberId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();

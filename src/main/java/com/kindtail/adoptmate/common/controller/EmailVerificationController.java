@@ -12,12 +12,16 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
 import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/adoptmate")
+@Validated
 public class EmailVerificationController implements EmailVerificationControllerDocs {
 
     private final EmailVerificationService emailVerificationService;
@@ -39,14 +43,17 @@ public class EmailVerificationController implements EmailVerificationControllerD
 
     @Override
     @PostMapping("/send-reset-code")
-    public ResponseEntity<CommonResDto<Void>> sendResetCode(@RequestParam String email) {
+    public ResponseEntity<CommonResDto<Void>> sendResetCode(@RequestParam @NotBlank @Email String email) {
         emailVerificationService.sendPasswordResetEmail(email);
         return CommonResDto.toResponseEntity(SuccessCode.RESET_CODE_SEND_SUCCESS);
     }
 
     @Override
     @PostMapping("/verify-reset-code")
-    public ResponseEntity<CommonResDto<Void>> verifyResetCode(@RequestParam String email, @RequestParam String code) {
+    public ResponseEntity<CommonResDto<Void>> verifyResetCode(
+            @RequestParam @NotBlank @Email String email,
+            @RequestParam @NotBlank String code
+    ) {
         boolean verified = emailVerificationService.verifyPassword(email, code);
         if (verified) {
             return CommonResDto.toResponseEntity(SuccessCode.RESET_CODE_VERIFY_SUCCESS);

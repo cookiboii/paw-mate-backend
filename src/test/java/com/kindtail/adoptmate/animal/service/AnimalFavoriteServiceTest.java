@@ -10,6 +10,7 @@ import com.kindtail.adoptmate.animal.repository.AnimalFavoriteRepository;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
+import com.kindtail.adoptmate.common.lock.DistributedLockTemplate;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
@@ -23,9 +24,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -45,6 +48,12 @@ class AnimalFavoriteServiceTest {
     @Mock
     private MemberRepository memberRepository;
 
+    @Mock
+    private DistributedLockTemplate distributedLockTemplate;
+
+    @Mock
+    private TransactionTemplate transactionTemplate;
+
     @InjectMocks
     private AnimalFavoriteService animalFavoriteService;
 
@@ -53,6 +62,11 @@ class AnimalFavoriteServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().doAnswer(invocation -> ((Supplier<?>) invocation.getArgument(1)).get())
+                .when(distributedLockTemplate).execute(anyString(), any());
+        lenient().doAnswer(invocation -> invocation.getArgument(0, org.springframework.transaction.support.TransactionCallback.class)
+                        .doInTransaction(null))
+                .when(transactionTemplate).execute(any());
         testMember = Member.builder()
                 .id(1L)
                 .email("user@example.com")

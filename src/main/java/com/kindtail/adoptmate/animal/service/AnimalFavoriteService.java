@@ -8,6 +8,7 @@ import com.kindtail.adoptmate.animal.repository.AnimalFavoriteRepository;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
+import com.kindtail.adoptmate.common.lock.DistributedLockTemplate;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Optional;
 
@@ -28,9 +30,17 @@ public class AnimalFavoriteService {
     private final AnimalFavoriteRepository animalFavoriteRepository;
     private final AnimalRepository animalRepository;
     private final MemberRepository memberRepository;
+    private final DistributedLockTemplate distributedLockTemplate;
+    private final TransactionTemplate transactionTemplate;
 
-    @Transactional
     public FavoriteToggleResponseDto toggleFavorite(Long animalId, Long memberId) {
+        return distributedLockTemplate.execute(
+                "favorite:" + memberId + ":" + animalId,
+                () -> transactionTemplate.execute(status -> toggleFavoriteWithinLock(animalId, memberId))
+        );
+    }
+
+    private FavoriteToggleResponseDto toggleFavoriteWithinLock(Long animalId, Long memberId) {
         Animal animal = animalRepository.findById(animalId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
 

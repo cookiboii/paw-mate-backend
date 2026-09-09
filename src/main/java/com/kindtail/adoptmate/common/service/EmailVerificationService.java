@@ -31,6 +31,10 @@ public class EmailVerificationService {
     private static final String VERIFICATION_CODE_KEY = "email_verify:code:";
     private static final String VERIFICATION_ATTEMPT_KEY = "email_verify:attempt:";
     private static final String VERIFICATION_BLOCK_KEY = "email_verify:block:";
+    private static final String RESET_CODE_KEY = "reset:";
+    private static final String RESET_ATTEMPT_KEY = "reset:attempt:";
+    private static final String RESET_BLOCK_KEY = "reset:block:";
+    private static final String RESET_SEND_KEY = "reset:send:";
     private final SecureRandom secureRandom = new SecureRandom();
 
     public String mailCheck(String email) {
@@ -45,7 +49,7 @@ public class EmailVerificationService {
         String authNum;
         try {
             authNum = mailSenderService.joinMail(email);
-            log.debug("Verification code generated for {}: {}", email, authNum);
+            log.debug("Verification code generated for {}", email);
         } catch (MessagingException e) {
             log.error("Failed to send verification email to: {}", email, e);
             throw new CustomException(ErrorCode.EMAIL_SEND_FAILED);
@@ -154,7 +158,12 @@ public class EmailVerificationService {
     public void sendPasswordResetEmail(String email) {
         Optional<Member> byEmail = memberRepository.findByEmail(email);
         if (byEmail.isEmpty()) {
-            throw new CustomException(ErrorCode.MEMBER_NOT_FOUND, "존재하지 않는 회원 이메일입니다!");
+            // Return normally so callers cannot discover whether this email has an account.
+            return;
+        }
+
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(RESET_SEND_KEY + email))) {
+            throw new CustomException(ErrorCode.EMAIL_VERIFICATION_BLOCKED);
         }
 
         String authCode;
@@ -167,18 +176,44 @@ public class EmailVerificationService {
             throw new CustomException(ErrorCode.EMAIL_SEND_FAILED);
         }
 
-        redisTemplate.opsForValue().set("reset:" + email, authCode, Duration.ofMinutes(5));
+        redisTemplate.opsForValue().set(RESET_CODE_KEY + email, authCode, Duration.ofMinutes(5));
+        redisTemplate.opsForValue().set(RESET_SEND_KEY + email, "sent", Duration.ofMinutes(1));
     }
 
     public boolean verifyPassword(String email, String code) {
-        String key = "reset:" + email;
+        if (isResetBlocked(email)) {
+            throw new CustomException(ErrorCode.EMAIL_VERIFICATION_BLOCKED);
+        }
+
+        String key = RESET_CODE_KEY + email;
         String stored = redisTemplate.opsForValue().get(key);
-        if (stored == null || !stored.equals(code)) {
+        if (stored == null) {
+            return false;
+        }
+        if (!stored.equals(code)) {
+            if (incrementResetAttemptCount(email) >= 5) {
+                redisTemplate.delete(key);
+                redisTemplate.opsForValue().set(RESET_BLOCK_KEY + email, "blocked", Duration.ofMinutes(30));
+                throw new CustomException(ErrorCode.EMAIL_VERIFICATION_BLOCKED);
+            }
             return false;
         }
         redisTemplate.delete(key);
+        redisTemplate.delete(RESET_ATTEMPT_KEY + email);
         redisTemplate.opsForValue().set("reset_verified:" + email, "true", Duration.ofMinutes(10));
         log.info("Password reset verified successfully for: {}", email);
         return true;
+    }
+
+    private boolean isResetBlocked(String email) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(RESET_BLOCK_KEY + email));
+    }
+
+    private int incrementResetAttemptCount(String email) {
+        Long count = redisTemplate.opsForValue().increment(RESET_ATTEMPT_KEY + email);
+        if (count != null && count == 1L) {
+            redisTemplate.expire(RESET_ATTEMPT_KEY + email, Duration.ofMinutes(5));
+        }
+        return count != null ? count.intValue() : 1;
     }
 }

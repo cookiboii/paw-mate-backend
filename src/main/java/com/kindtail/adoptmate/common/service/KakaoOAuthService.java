@@ -53,13 +53,12 @@ public class KakaoOAuthService {
         formData.add("redirect_uri", kakaoRedirectUri);
         formData.add("client_secret", kakaoClientSecret);
 
-        log.info("Requesting Kakao Token with code={}, client_id={}", code, kakaoClientId);
+        log.info("Requesting Kakao access token");
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(formData, headers);
         ResponseEntity<Map> responseEntity = restTemplate.exchange(requestUrl, HttpMethod.POST, request, Map.class);
 
         Map<String, Object> responseJSON = (Map<String, Object>) responseEntity.getBody();
-        log.debug("Response from Kakao: {}", responseJSON);
         return (String) responseJSON.get("access_token");
     }
 

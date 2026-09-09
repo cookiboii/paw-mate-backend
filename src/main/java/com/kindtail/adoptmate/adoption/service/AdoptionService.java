@@ -42,7 +42,7 @@ public class AdoptionService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
         // 입양 가능한 임시보호(PROTECTED) 상태인지 검증
-        if (animal.getStatus() != Status.PROTECTED) {
+        if (animal.getStatus() != Status.PROTECTED && animal.getStatus() != Status.WAITING) {
             throw new CustomException(ErrorCode.NOT_PROTECTED_ANIMAL);
         }
         // 중복 신청 방지
