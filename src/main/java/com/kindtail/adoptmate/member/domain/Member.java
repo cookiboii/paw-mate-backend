@@ -5,6 +5,7 @@ import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.comment.domain.Comment;
 import com.kindtail.adoptmate.common.domain.BaseTimeEntity;
 import com.kindtail.adoptmate.post.domain.Post;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
@@ -54,18 +55,22 @@ public class Member extends BaseTimeEntity {
     private AuthProvider authProvider = AuthProvider.EMAIL;
 
     @Builder.Default
+    @JsonIgnore
     @OneToMany(mappedBy = "member")
     private List<Animal> animals = new ArrayList<>();
 
     @Builder.Default
+    @JsonIgnore
     @OneToMany(mappedBy = "member")
     private List<Post> posts = new ArrayList<>();
 
     @Builder.Default
+    @JsonIgnore
     @OneToMany(mappedBy = "member")
     private List<Adoption> adoptions = new ArrayList<>();
 
     @Builder.Default
+    @JsonIgnore
     @OneToMany(mappedBy = "member")
     private List<Comment> comments = new ArrayList<>();
 
