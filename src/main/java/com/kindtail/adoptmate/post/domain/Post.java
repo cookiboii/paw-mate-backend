@@ -34,9 +34,11 @@ public class Post extends BaseTimeEntity {
     private String title;
 
     @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String content;
 
-    @Column(length = 2048)
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String image;
 
     @ManyToOne(fetch = FetchType.LAZY)
