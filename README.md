@@ -17,6 +17,15 @@
 
 ---
 
+## ✨ 최근 변경 사항
+
+- **응답 계약 보강**: 모든 성공 응답의 `CommonResDto`에 업무 코드(`code`)를 포함합니다. 에러 응답과 동일하게 클라이언트가 HTTP 상태와 업무 상태를 함께 처리할 수 있습니다.
+- **토큰 재발급 DTO화**: `POST /adoptmate/refresh-token`은 `TokenRefreshRequest`와 `TokenRefreshResponse`를 사용합니다. JSON 필드명은 기존과 동일하게 `refreshToken`, `token`입니다.
+- **REST API v1 경로 추가**: 보호 동물과 게시글은 각각 `/api/v1/animals`, `/api/v1/posts`의 리소스 중심 경로를 지원합니다. 기존 `/animals`, `/post` 경로와 `/register`, `/create`, `/list` 경로는 하위 호환을 위해 유지됩니다.
+- **검증 규칙 정합성**: Swagger 문서 인터페이스와 컨트롤러 구현체의 파라미터 검증 위치를 일치시켜, Hibernate Validator의 메서드 재정의 오류를 제거했습니다.
+- **테스트 경계 분리**: 기본 `test`는 외부 Redis 없이 실행합니다. 실제 Redis 분산 락이 필요한 검증은 `integrationTest`로 분리했습니다.
+- **컨벤션 문서화**: [.editorconfig](.editorconfig)와 [CONTRIBUTING.md](CONTRIBUTING.md)에 인코딩, 들여쓰기, DTO·API·테스트 규칙을 정리했습니다.
+
 ## 📑 목차 (Table of Contents)
 - [🔧 기술 스택 (Tech Stack)](#-기술-스택-tech-stack)
 - [📁 프로젝트 구조 (Package Structure)](#-프로젝트-구조-package-structure)
@@ -404,12 +413,15 @@ CLIENT_URL=http://localhost:5173
 docker compose up -d --build
 ```
 
-### 5. 전체 테스트 실행 (153개 단위/통합/동시성 테스트 100% 통과)
+### 5. 테스트 실행
 ```bash
-# 1) 일반 단위/통합 테스트 실행 (대용량 벤치마크 제외로 빠른 빌드 & CI 루프 보장)
+# 1) 기본 테스트: 외부 Redis 없이 실행 (benchmark, integration 제외)
 ./gradlew test
 
-# 2) 대용량 벤치마크 테스트 단독 실행 (1만 건 세션 vs JWT 부하 측정)
+# 2) Redis가 실행 중인 환경에서 분산 락 통합 테스트 실행
+./gradlew integrationTest
+
+# 3) 대용량 벤치마크 테스트 단독 실행
 ./gradlew benchmarkTest
 ```
 
@@ -670,7 +682,18 @@ erDiagram
 ## 📋 REST API 명세서
 
 ### 📦 공통 응답 포맷 (`CommonResDto` & `SuccessCode`)
-> 모든 API 응답은 가변 `@Setter`가 완전히 제거된 불변 `record CommonResDto<T>(int statusCode, String statusMessage, T result)` 표준 규격을 준수하며, `SuccessCode` Enum을 통한 정적 팩토리 메서드로 일관되게 생성됩니다.
+
+성공 응답은 HTTP 상태 코드와 업무 코드 모두를 포함합니다. `code`는 도메인별 성공 코드(`A101`, `P101`, `M103` 등)이며, 클라이언트는 표시 메시지 대신 이 값을 기준으로 분기할 수 있습니다.
+
+```json
+{
+  "statusCode": 200,
+  "code": "A102",
+  "statusMessage": "동물 목록 조회 성공",
+  "result": {}
+}
+```
+> 모든 API 응답은 가변 `@Setter`가 완전히 제거된 불변 `record CommonResDto<T>(int statusCode, String code, String statusMessage, T result)` 표준 규격을 준수하며, `SuccessCode` Enum을 통한 정적 팩토리 메서드로 일관되게 생성됩니다.
 
 ```json
 {
@@ -765,7 +788,7 @@ return CommonResDto.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
 
 ---
 
-### 🐶 4. 보호 동물 관리 API (`/animals`)
+### 🐶 4. 보호 동물 관리 API (`/api/v1/animals`, 기존 `/animals` 호환)
 
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -779,6 +802,8 @@ return CommonResDto.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
 | `POST` | `/animals/{id}/favorite` | User | 관심 동물 찜하기 토글 (등록/취소) | Path: `id`, Header: `Authorization: Bearer <token>` | `FavoriteToggleResponseDto` |
 | `DELETE` | `/animals/{id}/favorite` | User | 관심 동물 찜 명시적 삭제/취소 | Path: `id`, Header: `Authorization: Bearer <token>` | `FavoriteToggleResponseDto` |
 | `GET` | `/animals/favorites/my` | User | 내가 찜한 보호 동물 목록 조회 (페이징) | Header: `Authorization: Bearer <token>`, `?page=0&size=10` | `Page<AnimalResponse>` |
+
+> 새 클라이언트는 `POST /api/v1/animals`, `GET /api/v1/animals`를 사용하세요. `/animals/register`, `/animals/list`는 기존 클라이언트 호환 경로입니다.
 
 > 💡 **관심 동물 찜하기 토글 응답 규격 (`FavoriteToggleResponseDto`)**:
 > ```json
@@ -807,7 +832,7 @@ return CommonResDto.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
 
 ---
 
-### 📝 6. 커뮤니티 게시글 API (`/post`)
+### 📝 6. 커뮤니티 게시글 API (`/api/v1/posts`, 기존 `/post` 호환)
 
 | 메서드 | URL | 권한 | 설명 | Request Body / Params | Response Data |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -817,6 +842,8 @@ return CommonResDto.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
 | `GET` | `/post/{postId}` | Public | 게시글 상세 조회 | Path: `postId` | `PostResponseDto` |
 | `PUT` | `/post/{postId}` | Author/Admin | 게시글 수정 (작성자 또는 관리자) | Path: `postId`, Body: `PostUpdateRequestDto` | `PostResponseDto` |
 | `DELETE` | `/post/{postId}` | Author/Admin | 게시글 삭제 (작성자 또는 관리자) | Path: `postId` | `null` |
+
+> 새 클라이언트는 `POST /api/v1/posts`, `GET /api/v1/posts`를 사용하세요. `/post/create`, `/post/list`는 기존 클라이언트 호환 경로입니다.
 
 ---
 
