@@ -42,15 +42,21 @@
 - **Security**: Spring Security 6+ (Method Security `@PreAuthorize`, `@AuthenticationPrincipal` 적용)
 - **표준 인증 아키텍처**: `CustomUserDetailsService` 및 `CustomUserDetails`를 통한 Spring Security 표준 인증 일원화 (불필요한 별도 인증 DTO를 제거하고 토큰 발급 이후의 실시간 회원 탈퇴, 계정 정지 및 권한 변경을 즉각 반영)
 - **인증 제공자 엄격 분리 (`AuthProvider`)**: `EMAIL`(자체 이메일), `KAKAO`(카카오 OAuth2), `GOOGLE` 구분을 위한 Enum 도입 및 DB `auth_provider` 컬럼 `nullable = false` 강제로 결함 원천 차단
-- **CORS**: Spring Security 필터 체인 레벨 `CorsConfigurationSource` 표준 빈 등록 (Preflight & 에러 응답 헤더 보장)
+- **권한 상승(Privilege Escalation) 원천 차단**: 일반 회원가입(`registerMember`) 시 클라이언트 요청 본문과 무관하게 `Role.USER`로 권한을 강제 할당하여 자가 관리자 권한 획득 취약점 방어
+- **비밀번호 재설정 보안 고도화**:
+  - **계정 열거(Account Enumeration) 방어**: 등록되지 않은 이메일로 요청 시에도 성공 응답을 동일하게 반환하여 가입 여부 탐색 방지
+  - **Rate Limiting & Brute-Force 방어**: Redis 기반 1분 내 재전송 제한(`reset:send:{email}`) 및 5회 불일치 시 코드 즉시 파기 및 30분간 시도 차단(`reset:block:{email}`)
+- **CORS**: Spring Security 필터 체인 레벨 `CorsConfigurationSource` 표준 빈 등록 및 프론트엔드 실 배포 도메인(`https://paw-mate-frontend.vercel.app`)과 로컬 환경 엄격 화이트리스트 제한
 - **Security Utilities**: `SecurityUtil` (NPE 및 ClassCastException 방어, `getCurrentUserDetails()`, `getCurrentUserId()` 제공, `resolveToken` 토큰 추출 공통화)
-- **OAuth2**: Spring Security OAuth2 Client (Kakao) & `OAuthResponseUtil` 팝업 연동 템플릿 통합
-- **Token**: JWT (`jjwt 0.11.5` HMAC-SHA512), Redis 기반 Refresh Token 관리 및 Blacklist 로그아웃 / 탈퇴 무효화 (`ErrorCode.LOGOUT_TOKEN` 401 매핑)
+- **OAuth2**: Spring Security OAuth2 Client (Kakao) & `OAuthResponseUtil` 팝업 연동 템플릿 통합 (운영 로그 내 인가 코드/액세스 토큰 마스킹 처리)
+- **Token**: JWT (`jjwt 0.11.5` HMAC-SHA512, 환경변수 필수 주입으로 보안 강화), Redis 기반 Refresh Token 관리 및 Blacklist 로그아웃 / 탈퇴 무효화 (`ErrorCode.LOGOUT_TOKEN` 401 매핑)
 - **Password**: BCryptPasswordEncoder
 
 ### Database & Persistence
 - **ORM**: Spring Data JPA, Hibernate 6
 - **Database**: MySQL 8.0 (운영/개발), H2 (테스트 인메모리)
+- **페이징 DoS 공격 방어 (`PaginationConfig`)**: `PageableHandlerMethodArgumentResolver` 커스텀 등록으로 전역 `maxPageSize: 100` 강제 적용 및 컨트롤러 파라미터 `@Min(1) @Max(100)` 유효성 검증
+- **댓글 계층 도메인 무결성 검증**: 대댓글(자식 댓글) 등록 시 부모 댓글의 게시글 소속 일치 여부를 검증하여 타 게시글 간 댓글 참조 오염 차단
 - **Connection Pool (HikariCP) & Thread Pool 최적화**:
   - **Fixed Pool 전략**: 운영 환경 `maximum-pool-size: 50`, `minimum-idle: 50` 고정 풀 운영으로 트래픽 급증 시 풀 확장 지연(Latency Spike) 제거
   - **Fail-Fast 타임아웃**: `connection-timeout: 5000ms` (5초) 설정으로 장애 전파 방지 및 빠른 실패 유도
@@ -69,9 +75,10 @@
 ### Cache & Concurrency Control
 - **Distributed Lock**: Redisson (`RLock`, Pub/Sub 기반 분산 락)
 - **Lock Architecture**: `Facade` 및 `DistributedLockTemplate` 패턴 (Template-Callback 패턴 적용, Redisson Watchdog 기반 자동 락 갱신 지원 `leaseTime <= 0`, 트랜잭션 지연 시 락 조기 만료 및 동시성 붕괴 원천 차단)
+- **관심 동물(찜하기) 동시성 제어**: `favorite:{memberId}:{animalId}` 분산 락 및 `TransactionTemplate` 결합으로 다중 클릭에 의한 데이터 정합성 결함 방어
 - **Optimistic Lock**: JPA `@Version` (엔티티 동시 수정 및 Lost Update 방지)
-- **State Machine**: 입양 상태 전이 유효성 검증 및 다중 신청 연쇄 처리 (승인 시 타 신청 자동 반려)
-- **Cache / In-Memory DB**: Redis (Spring Data Redis, Lettuce 최신 클라이언트 구성, JSON/Hash 직렬화, SSL 지원)
+- **State Machine**: 입양 상태 전이 유효성 검증 및 다중 신청 연쇄 처리 (`PROTECTED` & `WAITING` 동물 대상 신청 지원, 승인 시 타 신청 자동 반려)
+- **Global Distributed Cache**: Redis (`RedisCacheManager`, `GenericJackson2JsonRedisSerializer` JSON 직렬화, 기본 TTL 5분 적용으로 조회 성능 극대화)
 - **Mail**: JavaMailSender (Gmail SMTP 이메일 인증 및 비밀번호 재설정)
 - **Testing & Productivity**: JUnit 5, AssertJ, Mockito (`@Tag("benchmark")` 태깅 및 전용 태스크 분리로 빌드 및 CI 속도 극대화)
 - **API Documentation**: SpringDoc OpenAPI UI (Swagger 3) + **Swagger Docs Interface 분리 패턴** (`*Docs.java`)

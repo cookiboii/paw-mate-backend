@@ -11,6 +11,9 @@ public record CommonResDto<T>(
         @Schema(description = "HTTP 상태 코드", example = "200")
         int statusCode,
 
+        @Schema(description = "업무 성공 코드", example = "A101")
+        String code,
+
         @Schema(description = "응답 상태 메시지", example = "성공")
         String statusMessage,
 
@@ -19,7 +22,7 @@ public record CommonResDto<T>(
 ) {
 
     public CommonResDto(HttpStatus httpStatus, String statusMessage, T result) {
-        this(httpStatus.value(), statusMessage, result);
+        this(httpStatus.value(), httpStatus.name(), statusMessage, result);
     }
 
     public static <T> CommonResDto<T> ok(String statusMessage, T result) {
@@ -35,11 +38,11 @@ public record CommonResDto<T>(
     }
 
     public static <T> CommonResDto<T> of(SuccessCode successCode, T result) {
-        return new CommonResDto<>(successCode.getHttpStatus().value(), successCode.getMessage(), result);
+        return new CommonResDto<>(successCode.getHttpStatus().value(), successCode.getCode(), successCode.getMessage(), result);
     }
 
     public static <T> CommonResDto<T> of(SuccessCode successCode) {
-        return new CommonResDto<>(successCode.getHttpStatus().value(), successCode.getMessage(), null);
+        return new CommonResDto<>(successCode.getHttpStatus().value(), successCode.getCode(), successCode.getMessage(), null);
     }
 
     public static <T> org.springframework.http.ResponseEntity<CommonResDto<T>> toResponseEntity(SuccessCode successCode, T result) {

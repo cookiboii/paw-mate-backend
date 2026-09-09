@@ -8,19 +8,16 @@ import com.kindtail.adoptmate.post.dto.PostResponseDto;
 import com.kindtail.adoptmate.post.dto.PostUpdateRequestDto;
 import com.kindtail.adoptmate.post.service.PostService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.annotation.Validated;
 
 @RestController
-@RequestMapping("/post")
+@RequestMapping({"/api/v1/posts", "/post"})
 @RequiredArgsConstructor
 @Validated
 public class PostController implements PostControllerDocs {
@@ -28,14 +25,14 @@ public class PostController implements PostControllerDocs {
     private final PostService postService;
 
     @Override
-    @PostMapping("/create")
+    @PostMapping({"", "/create"})
     public ResponseEntity<CommonResDto<PostResponseDto>> createPost(@Valid @RequestBody PostCreateRequestDto dto) {
         PostResponseDto responseDto = postService.createPost(dto);
         return CommonResDto.toResponseEntity(SuccessCode.POST_CREATE_SUCCESS, responseDto);
     }
 
     @Override
-    @GetMapping("/list")
+    @GetMapping({"", "/list"})
     public ResponseEntity<CommonResDto<Page<PostResponseDto>>> getPostList(Pageable pageable) {
         Page<PostResponseDto> postPage = postService.getAllPosts(pageable);
         return CommonResDto.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postPage);
@@ -45,7 +42,7 @@ public class PostController implements PostControllerDocs {
     @GetMapping("/cursor")
     public ResponseEntity<CommonResDto<Slice<PostResponseDto>>> getPostsByCursor(
             @RequestParam(required = false) Long lastPostId,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
+            @RequestParam(defaultValue = "10") int size
     ) {
         Slice<PostResponseDto> postSlice = postService.getPostsByCursor(lastPostId, size);
         return CommonResDto.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postSlice);

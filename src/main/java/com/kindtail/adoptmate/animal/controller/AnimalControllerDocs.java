@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,8 +34,8 @@ public interface AnimalControllerDocs {
             @ApiResponse(responseCode = "200", description = "동물 목록 조회 성공")
     })
     ResponseEntity<CommonResDto<org.springframework.data.domain.Page<com.kindtail.adoptmate.animal.dto.AnimalResponse>>> getAnimalList(
-            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size
+            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
+            @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
     );
 
     @Operation(summary = "보호 동물 전체 목록 조회 (No-Offset 커서 / 무한 스크롤)", description = "lastAnimalId를 기준으로 다음 페이지의 동물 목록을 No-Offset 방식으로 조회하여 count 쿼리 오버헤드 없이 고속 페이징합니다.")
@@ -44,7 +46,7 @@ public interface AnimalControllerDocs {
             @Parameter(description = "마지막으로 조회된 동물 ID (첫 페이지 요청 시 생략 또는 null)", example = "10")
             @RequestParam(required = false) Long lastAnimalId,
             @Parameter(description = "조회할 동물 수 (기본값: 10)", example = "10")
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
     );
 
     @Operation(summary = "종별 보호 동물 목록 조회 (페이징)", description = "종(DOG, CAT, OTHER)별로 보호 동물 목록을 페이징하여 조회합니다.")
@@ -53,8 +55,8 @@ public interface AnimalControllerDocs {
     })
     ResponseEntity<CommonResDto<org.springframework.data.domain.Page<com.kindtail.adoptmate.animal.dto.AnimalResponse>>> getAnimalsBySpecies(
             @Parameter(description = "동물 종 (DOG, CAT, OTHER)", example = "DOG") @RequestParam Species species,
-            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size
+            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
+            @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
     );
 
     @Operation(summary = "보호 동물 상세 조회", description = "동물 ID로 상세 프로필 정보를 조회합니다.")
@@ -104,8 +106,8 @@ public interface AnimalControllerDocs {
             @ApiResponse(responseCode = "401", description = "로그인 필요")
     })
     ResponseEntity<CommonResDto<org.springframework.data.domain.Page<com.kindtail.adoptmate.animal.dto.AnimalResponse>>> getMyFavoriteAnimals(
-            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "페이지 번호 (0부터 시작)", example = "0") @RequestParam(defaultValue = "0") @Min(0) int page,
+            @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             @AuthenticationPrincipal CustomUserDetails userDetails
     );
 

@@ -4,7 +4,6 @@ import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.SecurityUtil;
 import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
-import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.dto.*;
 import com.kindtail.adoptmate.member.facade.MemberFacade;
 import com.kindtail.adoptmate.member.service.MemberService;
@@ -16,11 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import static org.springframework.http.HttpStatus.*;
 
 @RestController
 @RequestMapping("/adoptmate")
@@ -46,14 +41,14 @@ public class MemberController implements MemberControllerDocs {
 
     @Override
     @PostMapping("/refresh-token")
-    public ResponseEntity<CommonResDto<Map<String, Object>>> refreshToken(@RequestBody Map<String, String> request) {
-        String refreshToken = request.get("refreshToken");
-        String newToken = memberService.refreshAccessToken(refreshToken);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("token", newToken);
-
-        return CommonResDto.toResponseEntity(SuccessCode.TOKEN_REISSUE_SUCCESS, result);
+    public ResponseEntity<CommonResDto<TokenRefreshResponse>> refreshToken(
+            @Valid @RequestBody TokenRefreshRequest request
+    ) {
+        String newToken = memberService.refreshAccessToken(request.refreshToken());
+        return CommonResDto.toResponseEntity(
+                SuccessCode.TOKEN_REISSUE_SUCCESS,
+                new TokenRefreshResponse(newToken)
+        );
     }
 
     @Override

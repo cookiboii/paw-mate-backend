@@ -6,6 +6,7 @@ import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 
 @Configuration
 public class RedissonConfig {
@@ -29,6 +30,7 @@ public class RedissonConfig {
     private static final String REDISSON_SSL_HOST_PREFIX = "rediss://";
 
     @Bean
+    @Lazy
     public RedissonClient redissonClient() {
         Config config = new Config();
         String prefix = sslEnabled ? REDISSON_SSL_HOST_PREFIX : REDISSON_HOST_PREFIX;

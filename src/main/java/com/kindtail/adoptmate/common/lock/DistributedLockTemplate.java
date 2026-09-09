@@ -2,10 +2,10 @@ package com.kindtail.adoptmate.common.lock;
 
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -13,7 +13,6 @@ import java.util.function.Supplier;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class DistributedLockTemplate {
 
     private static final String LOCK_PREFIX = "LOCK:";
@@ -22,6 +21,10 @@ public class DistributedLockTemplate {
     private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.SECONDS;
 
     private final RedissonClient redissonClient;
+
+    public DistributedLockTemplate(@Lazy RedissonClient redissonClient) {
+        this.redissonClient = redissonClient;
+    }
 
     public <T> T execute(String key, Supplier<T> task) {
         return execute(key, DEFAULT_WAIT_TIME, DEFAULT_LEASE_TIME, DEFAULT_TIME_UNIT, task);

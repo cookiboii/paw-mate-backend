@@ -5,6 +5,8 @@ import com.kindtail.adoptmate.common.dto.CommonResDto;
 import com.kindtail.adoptmate.member.dto.MemberLoginRequestDto;
 import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
 import com.kindtail.adoptmate.member.dto.PasswordChangeRequestDto;
+import com.kindtail.adoptmate.member.dto.TokenRefreshRequest;
+import com.kindtail.adoptmate.member.dto.TokenRefreshResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,8 +17,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestBody;
-
-import java.util.Map;
 
 @Tag(name = "1. 회원 및 인증 API", description = "회원가입, 로그인, 토큰 재발급, 로그아웃, 회원 정보 조회 및 탈퇴 API")
 public interface MemberControllerDocs {
@@ -40,7 +40,7 @@ public interface MemberControllerDocs {
             @ApiResponse(responseCode = "200", description = "토큰 재발급 성공"),
             @ApiResponse(responseCode = "401", description = "유효하지 않거나 만료된 Refresh Token")
     })
-    ResponseEntity<CommonResDto<Map<String, Object>>> refreshToken(@RequestBody Map<String, String> request);
+    ResponseEntity<CommonResDto<TokenRefreshResponse>> refreshToken(@Valid @RequestBody TokenRefreshRequest request);
 
     @Operation(summary = "로그아웃", description = "Redis에서 Refresh Token을 삭제하고, 현재 Access Token을 Blacklist에 등록합니다.")
     @ApiResponses({
