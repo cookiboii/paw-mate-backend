@@ -147,6 +147,138 @@ Compose는 MySQL, Redis, backend 컨테이너를 함께 실행합니다.
 http://localhost:8000/swagger-ui/index.html
 ```
 
+OpenAPI JSON 문서는 아래 주소에서 제공합니다. 프론트엔드 타입 생성의 기준으로 사용하세요.
+
+```text
+http://localhost:8000/v3/api-docs
+```
+
+## 프론트엔드 연동 가이드
+
+### 환경 변수와 API 클라이언트
+
+Vite 기준으로 프론트엔드 `.env`에 백엔드 주소를 설정합니다.
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+`fetch` 또는 Axios 인스턴스의 base URL로 사용합니다. 인증이 필요한 요청에는 Access Token을 Bearer 헤더로 전달합니다.
+
+```ts
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+});
+
+api.interceptors.request.use((config) => {
+  const token = authStore.getState().accessToken;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+```
+
+서버는 토큰을 쿠키가 아닌 JSON 본문으로 반환합니다. Access Token은 메모리 상태에 보관하고, Refresh Token의 브라우저 저장 방식은 서비스 보안 정책에 맞춰 결정하세요.
+
+### 로그인과 토큰 재발급
+
+```http
+POST /adoptmate/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "password"
+}
+```
+
+성공 시 `result.token`, `result.refreshToken`, `result.email`, `result.role`을 받습니다. Access Token 만료로 `401`이 발생하면 아래 API로 새 Access Token을 받고, 실패하면 로그인 화면으로 이동합니다.
+
+```http
+POST /adoptmate/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "..."
+}
+```
+
+재발급 성공 응답의 Access Token은 `result.token`입니다. 로그아웃은 `POST /adoptmate/logout`에 현재 Access Token을 담아 요청합니다.
+
+### 공통 응답 처리
+
+모든 성공 응답은 `CommonResDto`의 `result`에 실제 데이터를 담습니다. 프론트 API 래퍼에서 공통으로 언래핑하면 화면 코드가 단순해집니다.
+
+```ts
+type ApiResponse<T> = {
+  statusCode: number;
+  code: string;
+  statusMessage: string;
+  result: T;
+};
+
+const { data } = await api.get<ApiResponse<AnimalResponse>>('/api/v1/animals/1');
+const animal = data.result;
+```
+
+오류는 `statusCode`, `code`, `statusMessage`을 반환합니다. 권장 처리 기준은 다음과 같습니다.
+
+| 상태 | 대표 코드 | 프론트 처리 |
+| --- | --- | --- |
+| `400` | `C001`, `M003`, `E001` | 입력 항목 또는 안내 메시지 표시 |
+| `401` | `M004`, `M005`, `E004` | 토큰 재발급 시도 후 실패하면 로그인 이동 |
+| `403` | `C004` | 권한 없음 화면 또는 알림 표시 |
+| `404` | `A001`, `P001`, `CM001` | 존재하지 않는 리소스 안내 |
+| `409` | `L001`, `L002` | 최신 데이터 새로고침 후 재시도 안내 |
+| `429` | `E003` | 재시도 가능 시간 안내 |
+
+### 목록과 무한 스크롤
+
+Offset 방식은 `page`, `size`를 사용하고 `result.content`에서 목록을 읽습니다.
+
+```text
+GET /api/v1/animals?page=0&size=10
+GET /api/v1/posts?page=0&size=10
+```
+
+무한 스크롤은 커서 엔드포인트를 사용합니다. 첫 요청에는 `lastAnimalId` 또는 `lastPostId`를 생략하고, 다음 요청에는 이전 응답 `result.content`의 마지막 항목 ID를 전달합니다. `result.hasNext`가 `false`이면 더 이상 요청하지 않습니다.
+
+```text
+GET /animals/cursor?size=10
+GET /animals/cursor?lastAnimalId=42&size=10
+GET /post/cursor?size=10
+GET /post/cursor?lastPostId=42&size=10
+```
+
+### 카카오 OAuth2 팝업 연동
+
+1. 팝업에서 `${VITE_API_BASE_URL}/oauth2/authorization/kakao`로 이동합니다.
+2. 로그인 성공 시 백엔드는 opener 창으로 `postMessage`를 보내고 팝업을 닫습니다.
+3. 프론트는 반드시 백엔드 주소를 `event.origin`과 비교한 뒤 메시지를 처리합니다.
+
+```ts
+window.addEventListener('message', (event) => {
+  if (event.origin !== import.meta.env.VITE_API_BASE_URL) return;
+  if (event.data?.type !== 'OAUTH_SUCCESS') return;
+
+  const { token, refreshToken, id, role, provider } = event.data;
+  // 인증 상태 저장 후 원하는 페이지로 이동
+});
+```
+
+메시지 데이터는 `type`, `token`, `refreshToken`, `id`, `role`, `provider` 필드를 포함합니다. 백엔드의 `CLIENT_URL`은 프론트 앱의 origin과 정확히 일치해야 합니다.
+
+### OpenAPI 타입 생성
+
+프론트 프로젝트에서 OpenAPI 스키마로 타입을 생성하면 DTO 변경 누락을 줄일 수 있습니다.
+
+```bash
+npx openapi-typescript http://localhost:8000/v3/api-docs -o src/api/schema.d.ts
+```
+
+생성 파일은 직접 수정하지 않고, 백엔드 DTO나 API가 변경된 뒤 다시 생성합니다.
+
 ## 테스트
 
 ```bash

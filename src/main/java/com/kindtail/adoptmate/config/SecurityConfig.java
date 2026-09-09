@@ -70,7 +70,14 @@ public class SecurityConfig {
                         "/swagger-ui.html",
                         "/uploads/**"
                 ).permitAll()
-                .requestMatchers(HttpMethod.GET, "/animals/**", "/post/**", "/comment/**").permitAll()
+                .requestMatchers(
+                        HttpMethod.GET,
+                        "/animals/**",
+                        "/post/**",
+                        "/comment/**",
+                        "/api/v1/animals/**",
+                        "/api/v1/posts/**"
+                ).permitAll()
                 .anyRequest().authenticated());
 
         http.exceptionHandling(exception -> exception
