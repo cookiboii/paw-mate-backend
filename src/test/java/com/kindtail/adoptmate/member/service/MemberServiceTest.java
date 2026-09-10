@@ -47,9 +47,6 @@ class MemberServiceTest {
     @Mock
     private ValueOperations<String, Object> valueOperations;
 
-    @Mock
-    private org.springframework.cache.CacheManager cacheManager;
-
     @InjectMocks
     private MemberService memberService;
 

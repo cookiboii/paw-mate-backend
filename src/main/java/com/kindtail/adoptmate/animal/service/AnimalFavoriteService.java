@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -33,6 +34,9 @@ public class AnimalFavoriteService {
     private final DistributedLockTemplate distributedLockTemplate;
     private final TransactionTemplate transactionTemplate;
 
+    // 클래스의 읽기 전용 트랜잭션을 중단하고, 분산 락을 획득한 뒤 내부 TransactionTemplate에서
+    // 쓰기 트랜잭션을 시작한다. 락보다 트랜잭션이 먼저 시작되면 읽기 전용 연결을 재사용할 수 있다.
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public FavoriteToggleResponseDto toggleFavorite(Long animalId, Long memberId) {
         return distributedLockTemplate.execute(
                 "favorite:" + memberId + ":" + animalId,
