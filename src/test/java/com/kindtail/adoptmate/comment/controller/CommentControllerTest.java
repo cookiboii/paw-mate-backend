@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
-import com.kindtail.adoptmate.comment.dto.CommentDto;
-import com.kindtail.adoptmate.comment.dto.CommentResponseDto;
-import com.kindtail.adoptmate.comment.dto.CommentUpdateDto;
+import com.kindtail.adoptmate.comment.dto.CommentCreateRequest;
+import com.kindtail.adoptmate.comment.dto.CommentResponse;
+import com.kindtail.adoptmate.comment.dto.CommentUpdateRequest;
 import com.kindtail.adoptmate.comment.service.CommentService;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
@@ -56,11 +56,11 @@ class CommentControllerTest {
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
-    private CommentResponseDto responseDto;
+    private CommentResponse response;
 
     @BeforeEach
     void setUp() {
-        responseDto = new CommentResponseDto(
+        response = new CommentResponse(
                 1L, "댓글작성자", 10L, "commenter@example.com", "댓글 내용입니다.", LocalDateTime.now(), new ArrayList<>()
         );
 
@@ -79,16 +79,16 @@ class CommentControllerTest {
 
     @Test
     @DisplayName("댓글을 등록할 수 있다 (200 OK)")
-    void addComment_성공() throws Exception {
+    void createComment_성공() throws Exception {
         // given
         Long postId = 1L;
-        CommentDto requestDto = new CommentDto(null, "댓글 내용입니다.");
-        given(commentService.addComment(eq(postId), any(CommentDto.class))).willReturn(responseDto);
+        CommentCreateRequest request = new CommentCreateRequest(null, "댓글 내용입니다.");
+        given(commentService.createComment(eq(postId), any(CommentCreateRequest.class))).willReturn(response);
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/comment/{postId}", postId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)));
+                .content(objectMapper.writeValueAsString(request)));
 
         // then
         resultActions.andDo(print())
@@ -104,7 +104,7 @@ class CommentControllerTest {
     void getComments_성공() throws Exception {
         // given
         Long postId = 1L;
-        given(commentService.getComments(postId)).willReturn(List.of(responseDto));
+        given(commentService.getComments(postId)).willReturn(List.of(response));
 
         // when
         ResultActions resultActions = mockMvc.perform(get("/comment/{postId}", postId));
@@ -122,17 +122,17 @@ class CommentControllerTest {
     void updateComment_성공() throws Exception {
         // given
         Long commentId = 1L;
-        CommentUpdateDto updateDto = new CommentUpdateDto(1L, "수정된 댓글");
-        CommentResponseDto updatedResponse = new CommentResponseDto(
+        CommentUpdateRequest request = new CommentUpdateRequest(1L, "수정된 댓글");
+        CommentResponse updatedResponse = new CommentResponse(
                 1L, "댓글작성자", 10L, "commenter@example.com", "수정된 댓글", LocalDateTime.now(), new ArrayList<>()
         );
 
-        given(commentService.updateComment(eq(commentId), any(CommentUpdateDto.class))).willReturn(updatedResponse);
+        given(commentService.updateComment(eq(commentId), any(CommentUpdateRequest.class))).willReturn(updatedResponse);
 
         // when
         ResultActions resultActions = mockMvc.perform(put("/comment/update/{commentId}", commentId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)));
+                .content(objectMapper.writeValueAsString(request)));
 
         // then
         resultActions.andDo(print())

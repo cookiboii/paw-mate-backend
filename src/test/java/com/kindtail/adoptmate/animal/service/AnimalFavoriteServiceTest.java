@@ -5,7 +5,7 @@ import com.kindtail.adoptmate.animal.domain.AnimalFavorite;
 import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
-import com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto;
+import com.kindtail.adoptmate.animal.dto.FavoriteToggleResponse;
 import com.kindtail.adoptmate.animal.repository.AnimalFavoriteRepository;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
@@ -96,7 +96,7 @@ class AnimalFavoriteServiceTest {
         given(animalFavoriteRepository.countByAnimalId(animalId)).willReturn(1L);
 
         // when
-        FavoriteToggleResponseDto response = animalFavoriteService.toggleFavorite(animalId, memberId);
+        FavoriteToggleResponse response = animalFavoriteService.toggleFavorite(animalId, memberId);
 
         // then
         assertThat(response.animalId()).isEqualTo(animalId);
@@ -123,7 +123,7 @@ class AnimalFavoriteServiceTest {
         given(animalFavoriteRepository.countByAnimalId(animalId)).willReturn(0L);
 
         // when
-        FavoriteToggleResponseDto response = animalFavoriteService.toggleFavorite(animalId, memberId);
+        FavoriteToggleResponse response = animalFavoriteService.toggleFavorite(animalId, memberId);
 
         // then
         assertThat(response.animalId()).isEqualTo(animalId);
@@ -196,7 +196,7 @@ class AnimalFavoriteServiceTest {
         given(animalFavoriteRepository.countByAnimalId(animalId)).willReturn(0L);
 
         // when
-        FavoriteToggleResponseDto response = animalFavoriteService.removeFavorite(animalId, memberId);
+        FavoriteToggleResponse response = animalFavoriteService.removeFavorite(animalId, memberId);
 
         // then
         assertThat(response.isFavorite()).isFalse();

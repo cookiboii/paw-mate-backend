@@ -4,7 +4,7 @@ import com.kindtail.adoptmate.member.domain.Role;
 import lombok.Builder;
 
 @Builder
-public record MemberInfoResponseDto(
+public record MemberInfoResponse(
         Long id,
         String name,
         String email,

@@ -98,7 +98,7 @@ class AnimalServiceTest {
 
     @Test
     @DisplayName("동물을 등록할 수 있다")
-    void registerAnimal_성공 () {
+    void createAnimal_성공 () {
         // given
         setupSecurityContext();
         AnimalCreateRequest request = new AnimalCreateRequest(
@@ -115,7 +115,7 @@ class AnimalServiceTest {
         given(animalRepository.save(any(Animal.class))).willReturn(testAnimal);
 
         // when
-        AnimalResponse result = animalService.registerAnimal(request);
+        AnimalResponse result = animalService.createAnimal(request);
 
         // then
         assertThat(result).isNotNull();
@@ -127,7 +127,7 @@ class AnimalServiceTest {
 
     @Test
     @DisplayName("사용자가 존재하지 않으면 예외가 발생한다")
-    void registerAnimal_사용자_없음_예외 () {
+    void createAnimal_사용자_없음_예외 () {
         // given
         setupSecurityContext();
         AnimalCreateRequest request = new AnimalCreateRequest(
@@ -143,7 +143,7 @@ class AnimalServiceTest {
         given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> animalService.registerAnimal(request))
+        assertThatThrownBy(() -> animalService.createAnimal(request))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
     }

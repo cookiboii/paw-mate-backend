@@ -2,7 +2,7 @@ package com.kindtail.adoptmate.comment.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record CommentDto(
+public record CommentCreateRequest(
         Long parentId,
 
         @NotBlank(message = "댓글 내용을 입력해주세요.")

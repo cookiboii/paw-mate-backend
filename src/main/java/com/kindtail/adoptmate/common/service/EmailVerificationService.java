@@ -3,7 +3,7 @@ package com.kindtail.adoptmate.common.service;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
-import com.kindtail.adoptmate.member.dto.PasswordResetRequestDto;
+import com.kindtail.adoptmate.member.dto.PasswordResetRequest;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
@@ -128,9 +128,9 @@ public class EmailVerificationService {
     }
 
     @Transactional
-    public void updatePassword(PasswordResetRequestDto updateDto) {
-        String email = updateDto.email();
-        if (email == null || updateDto.password() == null) {
+    public void updatePassword(PasswordResetRequest request) {
+        String email = request.email();
+        if (email == null || request.password() == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "이메일과 새 비밀번호를 모두 입력해주세요.");
         }
 
@@ -142,7 +142,7 @@ public class EmailVerificationService {
         Member member = memberRepository.findByEmail(email).orElseThrow(
                 () -> new CustomException(ErrorCode.MEMBER_NOT_FOUND)
         );
-        String encryptedPassword = passwordEncoder.encode(updateDto.password());
+        String encryptedPassword = passwordEncoder.encode(request.password());
         member.updatePassword(encryptedPassword);
 
         redisTemplate.delete("reset:" + email);

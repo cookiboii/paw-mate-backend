@@ -3,9 +3,9 @@ package com.kindtail.adoptmate.comment.service;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.SecurityUtil;
 import com.kindtail.adoptmate.comment.domain.Comment;
-import com.kindtail.adoptmate.comment.dto.CommentDto;
-import com.kindtail.adoptmate.comment.dto.CommentResponseDto;
-import com.kindtail.adoptmate.comment.dto.CommentUpdateDto;
+import com.kindtail.adoptmate.comment.dto.CommentCreateRequest;
+import com.kindtail.adoptmate.comment.dto.CommentResponse;
+import com.kindtail.adoptmate.comment.dto.CommentUpdateRequest;
 import com.kindtail.adoptmate.comment.repository.CommentRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
@@ -29,16 +29,16 @@ public class CommentService {
     private final PostRepository postRepository;
 
     @Transactional
-    public CommentResponseDto addComment(Long id, CommentDto commentDto) {
+    public CommentResponse createComment(Long postId, CommentCreateRequest request) {
         String email = SecurityUtil.getCurrentUserEmail();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
-        Post post = postRepository.findById(id)
+        Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
         Comment parent = null;
-        if (commentDto.parentId() != null) {
-            parent = commentRepository.findById(commentDto.parentId())
+        if (request.parentId() != null) {
+            parent = commentRepository.findById(request.parentId())
                     .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
             if (!parent.getPost().getId().equals(post.getId())) {
                 throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "Parent comment belongs to a different post.");
@@ -46,22 +46,22 @@ public class CommentService {
         }
 
         Comment comment = Comment.builder()
-                .content(commentDto.content())
+                .content(request.content())
                 .parent(parent)
                 .post(post)
                 .member(member)
                 .build();
         commentRepository.save(comment);
-        return CommentResponseDto.fromComment(comment);
+        return CommentResponse.fromComment(comment);
     }
 
     @Transactional(readOnly = true)
-    public List<CommentResponseDto> getComments(Long id) {
+    public List<CommentResponse> getComments(Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
         List<Comment> rootComments = commentRepository.findByPostAndParentIsNull(post);
         return rootComments.stream()
-                .map(CommentResponseDto::fromComment)
+                .map(CommentResponse::fromComment)
                 .collect(Collectors.toList());
     }
 
@@ -77,7 +77,7 @@ public class CommentService {
     }
 
     @Transactional
-    public CommentResponseDto updateComment(Long commentId, CommentUpdateDto dto) {
+    public CommentResponse updateComment(Long commentId, CommentUpdateRequest dto) {
         CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
 
         Comment comment = commentRepository.findById(commentId)
@@ -85,6 +85,6 @@ public class CommentService {
 
         comment.validateAuthorOrAdmin(userDetails);
         comment.updateComment(dto.content());
-        return CommentResponseDto.fromComment(comment);
+        return CommentResponse.fromComment(comment);
     }
 }

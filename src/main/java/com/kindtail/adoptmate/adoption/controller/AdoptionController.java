@@ -1,12 +1,12 @@
 package com.kindtail.adoptmate.adoption.controller;
 
 import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
-import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
-import com.kindtail.adoptmate.adoption.dto.AdoptionUpdateRequestDto;
+import com.kindtail.adoptmate.adoption.dto.AdoptionResponse;
+import com.kindtail.adoptmate.adoption.dto.AdoptionStatusUpdateRequest;
 import com.kindtail.adoptmate.adoption.facade.AdoptionFacade;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
-import com.kindtail.adoptmate.common.dto.CommonResDto;
+import com.kindtail.adoptmate.common.dto.CommonResponse;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import com.kindtail.adoptmate.member.service.MemberService;
 import jakarta.validation.Valid;
@@ -32,51 +32,51 @@ public class AdoptionController implements AdoptionControllerDocs {
 
     @Override
     @PostMapping("/animals/{animalId}")
-    public ResponseEntity<CommonResDto<AdoptionResponseDto>> registerAdoption(
+    public ResponseEntity<CommonResponse<AdoptionResponse>> applyAdoption(
             @PathVariable("animalId") Long animalId,
             @Valid @RequestBody AdoptionCreateRequest adoptionCreateRequest,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long memberId = (userDetails.getId() != null) ? userDetails.getId() : memberService.getMemberIdByEmail(userDetails.getEmail());
-        AdoptionResponseDto adoptionResponse = adoptionFacade.applyAdoption(adoptionCreateRequest, memberId, animalId);
+        AdoptionResponse adoptionResponse = adoptionFacade.applyAdoption(adoptionCreateRequest, memberId, animalId);
 
-        return CommonResDto.toResponseEntity(SuccessCode.ADOPTION_APPLY_SUCCESS, adoptionResponse);
+        return CommonResponse.toResponseEntity(SuccessCode.ADOPTION_APPLY_SUCCESS, adoptionResponse);
     }
 
     @Override
     @GetMapping("/myAdoption")
-    public ResponseEntity<CommonResDto<List<AdoptionResponseDto>>> myAdoption(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<CommonResponse<List<AdoptionResponse>>> myAdoption(@AuthenticationPrincipal CustomUserDetails userDetails) {
         Long memberId = (userDetails.getId() != null) ? userDetails.getId() : memberService.getMemberIdByEmail(userDetails.getEmail());
-        List<AdoptionResponseDto> adoptions = adoptionService.getAdoptions(memberId);
+        List<AdoptionResponse> adoptions = adoptionService.getMemberAdoptions(memberId);
 
-        return CommonResDto.toResponseEntity(SuccessCode.ADOPTION_MY_LIST_SUCCESS, adoptions);
+        return CommonResponse.toResponseEntity(SuccessCode.ADOPTION_MY_LIST_SUCCESS, adoptions);
     }
 
     @Override
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto<List<AdoptionResponseDto>>> allAdoptions() {
-        List<AdoptionResponseDto> adoptions = adoptionService.getAllAdoptions();
-        return CommonResDto.toResponseEntity(SuccessCode.ADOPTION_ALL_SUCCESS, adoptions);
+    public ResponseEntity<CommonResponse<List<AdoptionResponse>>> allAdoptions() {
+        List<AdoptionResponse> adoptions = adoptionService.getAllAdoptions();
+        return CommonResponse.toResponseEntity(SuccessCode.ADOPTION_ALL_SUCCESS, adoptions);
     }
 
     @Override
     @GetMapping("/list")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto<Page<AdoptionResponseDto>>> getAdoptionList(Pageable pageable) {
-        Page<AdoptionResponseDto> adoptions = adoptionService.getAllAdoptions(pageable);
-        return CommonResDto.toResponseEntity(SuccessCode.ADOPTION_PAGE_SUCCESS, adoptions);
+    public ResponseEntity<CommonResponse<Page<AdoptionResponse>>> getAdoptionList(Pageable pageable) {
+        Page<AdoptionResponse> adoptions = adoptionService.getAllAdoptions(pageable);
+        return CommonResponse.toResponseEntity(SuccessCode.ADOPTION_PAGE_SUCCESS, adoptions);
     }
 
     @Override
     @PutMapping("/{adoptionId}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto<AdoptionResponseDto>> updateStatus(
+    public ResponseEntity<CommonResponse<AdoptionResponse>> updateStatus(
             @PathVariable Long adoptionId,
-            @Valid @RequestBody AdoptionUpdateRequestDto requestDto
+            @Valid @RequestBody AdoptionStatusUpdateRequest request
     ) {
-        AdoptionResponseDto adoptionResponse = adoptionFacade.updateStatus(adoptionId, requestDto.adoptionStatus());
+        AdoptionResponse adoptionResponse = adoptionFacade.updateStatus(adoptionId, request.adoptionStatus());
 
-        return CommonResDto.toResponseEntity(SuccessCode.ADOPTION_STATUS_UPDATE_SUCCESS, adoptionResponse);
+        return CommonResponse.toResponseEntity(SuccessCode.ADOPTION_STATUS_UPDATE_SUCCESS, adoptionResponse);
     }
 }

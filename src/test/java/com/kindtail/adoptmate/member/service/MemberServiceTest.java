@@ -67,7 +67,7 @@ class MemberServiceTest {
     @DisplayName("회원을 등록할 수 있다")
     void registerMember_성공 () {
         // given
-        MemberRegisterRequestDto request = new MemberRegisterRequestDto(
+        MemberRegisterRequest request = new MemberRegisterRequest(
                 "테스트 사용자",
                 "test@example.com",
                 "password123",
@@ -79,7 +79,7 @@ class MemberServiceTest {
         given(memberRepository.save(any(Member.class))).willReturn(testMember);
 
         // when
-        MemberResponseDto result = memberService.registerMember(request);
+        MemberResponse result = memberService.registerMember(request);
 
         // then
         assertThat(result).isNotNull();
@@ -91,7 +91,7 @@ class MemberServiceTest {
     @DisplayName("이미 존재하는 이메일로 등록하면 예외가 발생한다")
     void registerMember_이메일_중복_예외 () {
         // given
-        MemberRegisterRequestDto request = new MemberRegisterRequestDto(
+        MemberRegisterRequest request = new MemberRegisterRequest(
                 "테스트 사용자",
                 "test@example.com",
                 "password123",
@@ -110,7 +110,7 @@ class MemberServiceTest {
     @DisplayName("로그인 시 토큰을 발급받을 수 있다")
     void login_성공 () {
         // given
-        MemberLoginRequestDto loginRequest = new MemberLoginRequestDto("test@example.com", "password123");
+        MemberLoginRequest loginRequest = new MemberLoginRequest("test@example.com", "password123");
         String accessToken = "accessToken123";
         String refreshToken = "refreshToken123";
 
@@ -122,7 +122,7 @@ class MemberServiceTest {
         given(jwtTokenProvider.getExpirationRt()).willReturn(604800);
 
         // when
-        MemberLoginResultDto result = memberService.login(loginRequest);
+        MemberLoginResponse result = memberService.login(loginRequest);
 
         // then
         assertThat(result).isNotNull();
@@ -136,7 +136,7 @@ class MemberServiceTest {
     @DisplayName("잘못된 비밀번호로 로그인하면 예외가 발생한다")
     void login_비밀번호_불일치_예외 () {
         // given
-        MemberLoginRequestDto loginRequest = new MemberLoginRequestDto("test@example.com", "wrongPassword");
+        MemberLoginRequest loginRequest = new MemberLoginRequest("test@example.com", "wrongPassword");
 
         given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.of(testMember));
         given(passwordEncoder.matches("wrongPassword", "encodedPassword123")).willReturn(false);
@@ -151,7 +151,7 @@ class MemberServiceTest {
     @DisplayName("존재하지 않는 사용자로 로그인하면 예외가 발생한다")
     void login_사용자_없음_예외 () {
         // given
-        MemberLoginRequestDto loginRequest = new MemberLoginRequestDto("notexist@example.com", "password123");
+        MemberLoginRequest loginRequest = new MemberLoginRequest("notexist@example.com", "password123");
 
         given(memberRepository.findByEmail("notexist@example.com")).willReturn(Optional.empty());
 
@@ -169,7 +169,7 @@ class MemberServiceTest {
         given(memberRepository.findAll()).willReturn(members);
 
         // when
-        List<MemberInfoResponseDto> result = memberService.getMembers();
+        List<MemberInfoResponse> result = memberService.getMembers();
 
         // then
         assertThat(result).hasSize(1);
@@ -196,7 +196,7 @@ class MemberServiceTest {
     void changePassword_성공 () {
         // given
         String email = "test@example.com";
-        PasswordChangeRequestDto request = new PasswordChangeRequestDto("password123", "newPassword456");
+        PasswordChangeRequest request = new PasswordChangeRequest("password123", "newPassword456");
 
         given(memberRepository.findByEmail(email)).willReturn(Optional.of(testMember));
         given(passwordEncoder.matches("password123", "encodedPassword123")).willReturn(true);
@@ -214,7 +214,7 @@ class MemberServiceTest {
     void changePassword_현재_비밀번호_불일치_예외 () {
         // given
         String email = "test@example.com";
-        PasswordChangeRequestDto request = new PasswordChangeRequestDto("wrongPassword", "newPassword456");
+        PasswordChangeRequest request = new PasswordChangeRequest("wrongPassword", "newPassword456");
 
         given(memberRepository.findByEmail(email)).willReturn(Optional.of(testMember));
         given(passwordEncoder.matches("wrongPassword", "encodedPassword123")).willReturn(false);

@@ -1,11 +1,11 @@
 package com.kindtail.adoptmate.post.controller;
 
-import com.kindtail.adoptmate.common.dto.CommonResDto;
+import com.kindtail.adoptmate.common.dto.CommonResponse;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import com.kindtail.adoptmate.post.domain.Post;
-import com.kindtail.adoptmate.post.dto.PostCreateRequestDto;
-import com.kindtail.adoptmate.post.dto.PostResponseDto;
-import com.kindtail.adoptmate.post.dto.PostUpdateRequestDto;
+import com.kindtail.adoptmate.post.dto.PostCreateRequest;
+import com.kindtail.adoptmate.post.dto.PostResponse;
+import com.kindtail.adoptmate.post.dto.PostUpdateRequest;
 import com.kindtail.adoptmate.post.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,46 +26,46 @@ public class PostController implements PostControllerDocs {
 
     @Override
     @PostMapping({"", "/create"})
-    public ResponseEntity<CommonResDto<PostResponseDto>> createPost(@Valid @RequestBody PostCreateRequestDto dto) {
-        PostResponseDto responseDto = postService.createPost(dto);
-        return CommonResDto.toResponseEntity(SuccessCode.POST_CREATE_SUCCESS, responseDto);
+    public ResponseEntity<CommonResponse<PostResponse>> createPost(@Valid @RequestBody PostCreateRequest dto) {
+        PostResponse response = postService.createPost(dto);
+        return CommonResponse.toResponseEntity(SuccessCode.POST_CREATE_SUCCESS, response);
     }
 
     @Override
     @GetMapping({"", "/list"})
-    public ResponseEntity<CommonResDto<Page<PostResponseDto>>> getPostList(Pageable pageable) {
-        Page<PostResponseDto> postPage = postService.getAllPosts(pageable);
-        return CommonResDto.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postPage);
+    public ResponseEntity<CommonResponse<Page<PostResponse>>> getPostList(Pageable pageable) {
+        Page<PostResponse> postPage = postService.getAllPosts(pageable);
+        return CommonResponse.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postPage);
     }
 
     @Override
     @GetMapping("/cursor")
-    public ResponseEntity<CommonResDto<Slice<PostResponseDto>>> getPostsByCursor(
+    public ResponseEntity<CommonResponse<Slice<PostResponse>>> getPostsByCursor(
             @RequestParam(required = false) Long lastPostId,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Slice<PostResponseDto> postSlice = postService.getPostsByCursor(lastPostId, size);
-        return CommonResDto.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postSlice);
+        Slice<PostResponse> postSlice = postService.getPostsByCursor(lastPostId, size);
+        return CommonResponse.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postSlice);
     }
 
     @Override
     @GetMapping("/{postId}")
-    public ResponseEntity<CommonResDto<PostResponseDto>> getPostById(@PathVariable Long postId) {
-        PostResponseDto post = postService.getPost(postId);
-        return CommonResDto.toResponseEntity(SuccessCode.POST_DETAIL_SUCCESS, post);
+    public ResponseEntity<CommonResponse<PostResponse>> getPostById(@PathVariable Long postId) {
+        PostResponse post = postService.getPost(postId);
+        return CommonResponse.toResponseEntity(SuccessCode.POST_DETAIL_SUCCESS, post);
     }
 
     @Override
     @DeleteMapping("/{postId}")
-    public ResponseEntity<CommonResDto<Void>> deletePostById(@PathVariable Long postId) {
+    public ResponseEntity<CommonResponse<Void>> deletePostById(@PathVariable Long postId) {
         postService.deletePost(postId);
-        return CommonResDto.toResponseEntity(SuccessCode.POST_DELETE_SUCCESS);
+        return CommonResponse.toResponseEntity(SuccessCode.POST_DELETE_SUCCESS);
     }
 
     @Override
     @PutMapping("/{postId}")
-    public ResponseEntity<CommonResDto<PostResponseDto>> updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequestDto dto) {
-        PostResponseDto post = postService.updatePost(postId, dto);
-        return CommonResDto.toResponseEntity(SuccessCode.POST_UPDATE_SUCCESS, post);
+    public ResponseEntity<CommonResponse<PostResponse>> updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequest dto) {
+        PostResponse post = postService.updatePost(postId, dto);
+        return CommonResponse.toResponseEntity(SuccessCode.POST_UPDATE_SUCCESS, post);
     }
 }

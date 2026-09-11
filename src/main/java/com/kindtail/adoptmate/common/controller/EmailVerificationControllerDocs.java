@@ -1,7 +1,7 @@
 package com.kindtail.adoptmate.common.controller;
 
-import com.kindtail.adoptmate.common.dto.CommonResDto;
-import com.kindtail.adoptmate.member.dto.PasswordResetRequestDto;
+import com.kindtail.adoptmate.common.dto.CommonResponse;
+import com.kindtail.adoptmate.member.dto.PasswordResetRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,21 +22,21 @@ public interface EmailVerificationControllerDocs {
             @ApiResponse(responseCode = "200", description = "인증 코드 전송 완료"),
             @ApiResponse(responseCode = "400", description = "유효하지 않은 이메일")
     })
-    ResponseEntity<CommonResDto<Void>> sendVerificationEmail(@Valid @RequestBody com.kindtail.adoptmate.common.dto.EmailSendRequestDto request);
+    ResponseEntity<CommonResponse<Void>> sendVerificationEmail(@Valid @RequestBody com.kindtail.adoptmate.common.dto.EmailSendRequest request);
 
     @Operation(summary = "회원가입 이메일 인증 코드 확인", description = "전송받은 6자리 인증 코드를 검증합니다. (5회 연속 실패 시 30분간 차단)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "이메일 인증 성공"),
             @ApiResponse(responseCode = "400", description = "인증 코드 불일치 또는 만료")
     })
-    ResponseEntity<CommonResDto<Map<String, String>>> verifyCode(@Valid @RequestBody com.kindtail.adoptmate.common.dto.EmailVerifyRequestDto request);
+    ResponseEntity<CommonResponse<Map<String, String>>> verifyCode(@Valid @RequestBody com.kindtail.adoptmate.common.dto.EmailVerifyRequest request);
 
     @Operation(summary = "비밀번호 재설정 인증 코드 발송", description = "가입된 이메일 계정으로 비밀번호 재설정용 인증 코드를 발송합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "재설정 인증 코드 전송 완료"),
             @ApiResponse(responseCode = "404", description = "가입되지 않은 이메일")
     })
-    ResponseEntity<CommonResDto<Void>> sendResetCode(
+    ResponseEntity<CommonResponse<Void>> sendResetCode(
             @Parameter(description = "가입된 이메일 주소", example = "user@example.com") @RequestParam String email
     );
 
@@ -45,7 +45,7 @@ public interface EmailVerificationControllerDocs {
             @ApiResponse(responseCode = "200", description = "인증 성공"),
             @ApiResponse(responseCode = "400", description = "인증 코드 불일치 또는 만료")
     })
-    ResponseEntity<CommonResDto<Void>> verifyResetCode(
+    ResponseEntity<CommonResponse<Void>> verifyResetCode(
             @Parameter(description = "이메일 주소", example = "user@example.com") @RequestParam String email,
             @Parameter(description = "이메일로 수신한 인증 코드", example = "123456") @RequestParam String code
     );
@@ -55,5 +55,5 @@ public interface EmailVerificationControllerDocs {
             @ApiResponse(responseCode = "200", description = "비밀번호 재설정 성공"),
             @ApiResponse(responseCode = "400", description = "유효하지 않은 요청 또는 비밀번호 규칙 위반")
     })
-    ResponseEntity<CommonResDto<Void>> updatePassword(@RequestBody @Valid PasswordResetRequestDto dto);
+    ResponseEntity<CommonResponse<Void>> updatePassword(@RequestBody @Valid PasswordResetRequest dto);
 }

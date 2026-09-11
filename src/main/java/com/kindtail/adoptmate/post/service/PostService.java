@@ -7,9 +7,9 @@ import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.post.domain.Post;
-import com.kindtail.adoptmate.post.dto.PostCreateRequestDto;
-import com.kindtail.adoptmate.post.dto.PostResponseDto;
-import com.kindtail.adoptmate.post.dto.PostUpdateRequestDto;
+import com.kindtail.adoptmate.post.dto.PostCreateRequest;
+import com.kindtail.adoptmate.post.dto.PostResponse;
+import com.kindtail.adoptmate.post.dto.PostUpdateRequest;
 import com.kindtail.adoptmate.post.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,7 +27,7 @@ public class PostService {
     private final MemberRepository memberRepository;
 
     @Transactional
-    public PostResponseDto createPost(PostCreateRequestDto dto) {
+    public PostResponse createPost(PostCreateRequest dto) {
         String email = SecurityUtil.getCurrentUserEmail();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
@@ -40,20 +40,20 @@ public class PostService {
                 .build();
 
         Post saved = postRepository.save(post);
-        return PostResponseDto.from(saved);
+        return PostResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
-    public Page<PostResponseDto> getAllPosts(Pageable pageable) {
+    public Page<PostResponse> getAllPosts(Pageable pageable) {
         Page<Post> posts = postRepository.findAll(pageable);
-        return posts.map(PostResponseDto::from);
+        return posts.map(PostResponse::from);
     }
 
     @Transactional(readOnly = true)
-    public Slice<PostResponseDto> getPostsByCursor(Long lastPostId, int size) {
+    public Slice<PostResponse> getPostsByCursor(Long lastPostId, int size) {
         Pageable pageable = PageRequest.of(0, size);
         Slice<Post> posts = postRepository.findPostsByCursor(lastPostId, pageable);
-        return posts.map(PostResponseDto::from);
+        return posts.map(PostResponse::from);
     }
 
     @Transactional
@@ -68,14 +68,14 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PostResponseDto getPost(Long postId) {
+    public PostResponse getPost(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
-        return PostResponseDto.from(post);
+        return PostResponse.from(post);
     }
 
     @Transactional
-    public PostResponseDto updatePost(Long postId, PostUpdateRequestDto dto) {
+    public PostResponse updatePost(Long postId, PostUpdateRequest dto) {
         CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
 
         Post post = postRepository.findById(postId)
@@ -83,6 +83,6 @@ public class PostService {
 
         post.validateAuthorOrAdmin(userDetails);
         post.updatePost(dto.title(), dto.content(), dto.img());
-        return PostResponseDto.from(post);
+        return PostResponse.from(post);
     }
 }

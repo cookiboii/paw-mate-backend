@@ -7,9 +7,9 @@ import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.post.domain.Post;
-import com.kindtail.adoptmate.post.dto.PostCreateRequestDto;
-import com.kindtail.adoptmate.post.dto.PostResponseDto;
-import com.kindtail.adoptmate.post.dto.PostUpdateRequestDto;
+import com.kindtail.adoptmate.post.dto.PostCreateRequest;
+import com.kindtail.adoptmate.post.dto.PostResponse;
+import com.kindtail.adoptmate.post.dto.PostUpdateRequest;
 import com.kindtail.adoptmate.post.repository.PostRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -104,7 +104,7 @@ class PostServiceTest {
     void createPost_성공() {
         // given
         setupSecurityContext("author@example.com", Role.USER);
-        PostCreateRequestDto request = new PostCreateRequestDto(
+        PostCreateRequest request = new PostCreateRequest(
             "테스트 제목", "테스트 내용", "http://example.com/image.jpg"
         );
 
@@ -112,7 +112,7 @@ class PostServiceTest {
         given(postRepository.save(any(Post.class))).willReturn(testPost);
 
         // when
-        PostResponseDto result = postService.createPost(request);
+        PostResponse result = postService.createPost(request);
 
         // then
         assertThat(result).isNotNull();
@@ -125,7 +125,7 @@ class PostServiceTest {
     void createPost_회원없음_예외() {
         // given
         setupSecurityContext("notfound@example.com", Role.USER);
-        PostCreateRequestDto request = new PostCreateRequestDto(
+        PostCreateRequest request = new PostCreateRequest(
             "제목", "내용", "img.jpg"
         );
 
@@ -145,7 +145,7 @@ class PostServiceTest {
         given(postRepository.findAll(any(PageRequest.class))).willReturn(page);
 
         // when
-        Page<PostResponseDto> result = postService.getAllPosts(PageRequest.of(0, 10));
+        Page<PostResponse> result = postService.getAllPosts(PageRequest.of(0, 10));
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
@@ -161,7 +161,7 @@ class PostServiceTest {
         given(postRepository.findPostsByCursor(any(), any(PageRequest.class))).willReturn(slice);
 
         // when
-        Slice<PostResponseDto> result = postService.getPostsByCursor(10L, 10);
+        Slice<PostResponse> result = postService.getPostsByCursor(10L, 10);
 
         // then
         assertThat(result.getContent()).hasSize(1);
@@ -176,7 +176,7 @@ class PostServiceTest {
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when
-        PostResponseDto result = postService.getPost(10L);
+        PostResponse result = postService.getPost(10L);
 
         // then
         assertThat(result.id()).isEqualTo(10L);
@@ -200,12 +200,12 @@ class PostServiceTest {
     void updatePost_작성자_성공() {
         // given
         setupSecurityContext("author@example.com", Role.USER);
-        PostUpdateRequestDto updateDto = new PostUpdateRequestDto("수정 제목", "new.jpg", "수정 내용");
+        PostUpdateRequest request = new PostUpdateRequest("수정 제목", "new.jpg", "수정 내용");
 
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when
-        PostResponseDto result = postService.updatePost(10L, updateDto);
+        PostResponse result = postService.updatePost(10L, request);
 
         // then
         assertThat(result.title()).isEqualTo("수정 제목");
@@ -217,12 +217,12 @@ class PostServiceTest {
     void updatePost_관리자_성공() {
         // given
         setupSecurityContext("admin@example.com", Role.ADMIN);
-        PostUpdateRequestDto updateDto = new PostUpdateRequestDto("관리자 수정", "admin.jpg", "관리자 내용");
+        PostUpdateRequest request = new PostUpdateRequest("관리자 수정", "admin.jpg", "관리자 내용");
 
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when
-        PostResponseDto result = postService.updatePost(10L, updateDto);
+        PostResponse result = postService.updatePost(10L, request);
 
         // then
         assertThat(result.title()).isEqualTo("관리자 수정");
@@ -233,12 +233,12 @@ class PostServiceTest {
     void updatePost_권한없음_예외() {
         // given
         setupSecurityContext("other@example.com", Role.USER);
-        PostUpdateRequestDto updateDto = new PostUpdateRequestDto("수정 시도", "new.jpg", "수정 내용");
+        PostUpdateRequest request = new PostUpdateRequest("수정 시도", "new.jpg", "수정 내용");
 
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when & then
-        assertThatThrownBy(() -> postService.updatePost(10L, updateDto))
+        assertThatThrownBy(() -> postService.updatePost(10L, request))
             .isInstanceOf(CustomException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
     }

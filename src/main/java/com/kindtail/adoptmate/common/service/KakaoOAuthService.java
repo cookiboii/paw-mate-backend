@@ -3,8 +3,8 @@ package com.kindtail.adoptmate.common.service;
 import com.kindtail.adoptmate.member.domain.AuthProvider;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
-import com.kindtail.adoptmate.member.dto.KakaoUserDto;
-import com.kindtail.adoptmate.member.dto.MemberResponseDto;
+import com.kindtail.adoptmate.member.dto.KakaoUserResponse;
+import com.kindtail.adoptmate.member.dto.MemberResponse;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,22 +62,22 @@ public class KakaoOAuthService {
         return (String) responseJSON.get("access_token");
     }
 
-    public KakaoUserDto getKakaoUser(String kakaoAccessToken) {
+    public KakaoUserResponse getKakaoUser(String kakaoAccessToken) {
         String requestUrl = "https://kapi.kakao.com/v2/user/me";
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
         headers.add("Authorization", "Bearer " + kakaoAccessToken);
 
-        ResponseEntity<KakaoUserDto> response = restTemplate.exchange(
-                requestUrl, HttpMethod.GET, new HttpEntity<>(headers), KakaoUserDto.class
+        ResponseEntity<KakaoUserResponse> response = restTemplate.exchange(
+                requestUrl, HttpMethod.GET, new HttpEntity<>(headers), KakaoUserResponse.class
         );
 
         return response.getBody();
     }
 
     @Transactional
-    public MemberResponseDto findOrCreateKakaoUser(KakaoUserDto kakaoUser) {
+    public MemberResponse findOrCreateKakaoUser(KakaoUserResponse kakaoUser) {
         String socialId = kakaoUser.id().toString();
         String email = (kakaoUser.kakaoAccount() != null && kakaoUser.kakaoAccount().email() != null)
                 ? kakaoUser.kakaoAccount().email()
@@ -89,14 +89,14 @@ public class KakaoOAuthService {
 
         Optional<Member> existingUser = memberRepository.findByAuthProviderAndSocialId(AuthProvider.KAKAO, socialId);
         if (existingUser.isPresent()) {
-            return MemberResponseDto.from(existingUser.get());
+            return MemberResponse.from(existingUser.get());
         }
 
         Optional<Member> emailUser = memberRepository.findByEmail(email);
         if (emailUser.isPresent()) {
             Member member = emailUser.get();
             member.updateSocialInfo(AuthProvider.KAKAO, socialId, profileImage);
-            return MemberResponseDto.from(member);
+            return MemberResponse.from(member);
         }
 
         Member member = Member.builder()
@@ -109,6 +109,6 @@ public class KakaoOAuthService {
                 .password(null)
                 .build();
 
-        return MemberResponseDto.from(memberRepository.save(member));
+        return MemberResponse.from(memberRepository.save(member));
     }
 }

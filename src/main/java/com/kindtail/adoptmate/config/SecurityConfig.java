@@ -5,7 +5,7 @@ import com.kindtail.adoptmate.auth.CustomOAuth2UserService;
 import com.kindtail.adoptmate.auth.CustomUserDetailsService;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
 import com.kindtail.adoptmate.auth.OAuth2SuccessHandler;
-import com.kindtail.adoptmate.common.dto.CommonErrorDto;
+import com.kindtail.adoptmate.common.dto.ApiErrorResponse;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -129,8 +129,8 @@ public class SecurityConfig {
             response.setStatus(errorCode.getHttpStatus().value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
-            CommonErrorDto errorDto = CommonErrorDto.of(errorCode);
-            response.getWriter().write(objectMapper.writeValueAsString(errorDto));
+            ApiErrorResponse errorResponse = ApiErrorResponse.of(errorCode);
+            response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
         };
     }
 
@@ -139,8 +139,8 @@ public class SecurityConfig {
             response.setStatus(ErrorCode.UNAUTHORIZED_AUTHOR.getHttpStatus().value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
-            CommonErrorDto errorDto = CommonErrorDto.of(ErrorCode.UNAUTHORIZED_AUTHOR);
-            response.getWriter().write(objectMapper.writeValueAsString(errorDto));
+            ApiErrorResponse errorResponse = ApiErrorResponse.of(ErrorCode.UNAUTHORIZED_AUTHOR);
+            response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
         };
     }
 

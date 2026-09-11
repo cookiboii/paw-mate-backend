@@ -33,20 +33,20 @@ public class AnimalService {
     }
 
     @Transactional
-    public AnimalResponse registerAnimal(AnimalCreateRequest animalCreateRequest) {
+    public AnimalResponse createAnimal(AnimalCreateRequest request) {
         String email = SecurityUtil.getCurrentUserEmail();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         // 동물 엔티티 생성
         Animal animal = Animal.builder()
-                .species(animalCreateRequest.species())
-                .age(animalCreateRequest.age())
-                .breed(animalCreateRequest.breed())
-                .color(animalCreateRequest.color())
-                .status(animalCreateRequest.status())
-                .gender(animalCreateRequest.gender())
-                .image(animalCreateRequest.image())
+                .species(request.species())
+                .age(request.age())
+                .breed(request.breed())
+                .color(request.color())
+                .status(request.status())
+                .gender(request.gender())
+                .image(request.image())
                 .member(member)
                 .build();
 

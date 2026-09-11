@@ -1,10 +1,10 @@
 package com.kindtail.adoptmate.comment.controller;
 
-import com.kindtail.adoptmate.comment.dto.CommentDto;
-import com.kindtail.adoptmate.comment.dto.CommentResponseDto;
-import com.kindtail.adoptmate.comment.dto.CommentUpdateDto;
+import com.kindtail.adoptmate.comment.dto.CommentCreateRequest;
+import com.kindtail.adoptmate.comment.dto.CommentResponse;
+import com.kindtail.adoptmate.comment.dto.CommentUpdateRequest;
 import com.kindtail.adoptmate.comment.service.CommentService;
-import com.kindtail.adoptmate.common.dto.CommonResDto;
+import com.kindtail.adoptmate.common.dto.CommonResponse;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,29 +23,29 @@ public class CommentController implements CommentControllerDocs {
 
     @Override
     @PostMapping("/{postId}")
-    public ResponseEntity<CommonResDto<CommentResponseDto>> addComment(@PathVariable Long postId, @Valid @RequestBody CommentDto commentDto) {
-        CommentResponseDto savedComment = commentService.addComment(postId, commentDto);
-        return CommonResDto.toResponseEntity(SuccessCode.COMMENT_CREATE_SUCCESS, savedComment);
+    public ResponseEntity<CommonResponse<CommentResponse>> createComment(@PathVariable Long postId, @Valid @RequestBody CommentCreateRequest request) {
+        CommentResponse savedComment = commentService.createComment(postId, request);
+        return CommonResponse.toResponseEntity(SuccessCode.COMMENT_CREATE_SUCCESS, savedComment);
     }
 
     @Override
     @GetMapping("/{postId}")
-    public ResponseEntity<CommonResDto<List<CommentResponseDto>>> getComments(@PathVariable Long postId) {
-        List<CommentResponseDto> comments = commentService.getComments(postId);
-        return CommonResDto.toResponseEntity(SuccessCode.COMMENT_LIST_SUCCESS, comments);
+    public ResponseEntity<CommonResponse<List<CommentResponse>>> getComments(@PathVariable Long postId) {
+        List<CommentResponse> comments = commentService.getComments(postId);
+        return CommonResponse.toResponseEntity(SuccessCode.COMMENT_LIST_SUCCESS, comments);
     }
 
     @Override
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<CommonResDto<Void>> deleteComment(@PathVariable Long commentId) {
+    public ResponseEntity<CommonResponse<Void>> deleteComment(@PathVariable Long commentId) {
         commentService.deleteComment(commentId);
-        return CommonResDto.toResponseEntity(SuccessCode.COMMENT_DELETE_SUCCESS);
+        return CommonResponse.toResponseEntity(SuccessCode.COMMENT_DELETE_SUCCESS);
     }
 
     @Override
     @PutMapping(value = {"/{commentId}", "/update/{commentId}"})
-    public ResponseEntity<CommonResDto<CommentResponseDto>> updateComment(@PathVariable Long commentId, @Valid @RequestBody CommentUpdateDto dto) {
-        CommentResponseDto comment = commentService.updateComment(commentId, dto);
-        return CommonResDto.toResponseEntity(SuccessCode.COMMENT_UPDATE_SUCCESS, comment);
+    public ResponseEntity<CommonResponse<CommentResponse>> updateComment(@PathVariable Long commentId, @Valid @RequestBody CommentUpdateRequest dto) {
+        CommentResponse comment = commentService.updateComment(commentId, dto);
+        return CommonResponse.toResponseEntity(SuccessCode.COMMENT_UPDATE_SUCCESS, comment);
     }
 }

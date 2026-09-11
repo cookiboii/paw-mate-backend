@@ -4,12 +4,12 @@ import com.kindtail.adoptmate.animal.domain.Species;
 import com.kindtail.adoptmate.animal.dto.AnimalCreateRequest;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
 import com.kindtail.adoptmate.animal.dto.AnimalStatusUpdateRequest;
-import com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto;
+import com.kindtail.adoptmate.animal.dto.FavoriteToggleResponse;
 import com.kindtail.adoptmate.animal.service.AnimalFavoriteService;
 import com.kindtail.adoptmate.animal.service.AnimalService;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.auth.SecurityUtil;
-import com.kindtail.adoptmate.common.dto.CommonResDto;
+import com.kindtail.adoptmate.common.dto.CommonResponse;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,99 +34,99 @@ public class AnimalController implements AnimalControllerDocs {
     @Override
     @PostMapping({"", "/register"})
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto<AnimalResponse>> adoptAnimal(@Valid @RequestBody AnimalCreateRequest animalCreateRequest) {
-        AnimalResponse responseDto = animalService.registerAnimal(animalCreateRequest);
-        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_REGISTER_SUCCESS, responseDto);
+    public ResponseEntity<CommonResponse<AnimalResponse>> createAnimal(@Valid @RequestBody AnimalCreateRequest request) {
+        AnimalResponse response = animalService.createAnimal(request);
+        return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_REGISTER_SUCCESS, response);
     }
 
     @Override
     @GetMapping({"", "/list"})
-    public ResponseEntity<CommonResDto<Page<AnimalResponse>>> getAnimalList(
+    public ResponseEntity<CommonResponse<Page<AnimalResponse>>> getAnimalList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         Page<AnimalResponse> animalList = animalService.getAllAnimals(PageRequest.of(page, size));
-        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_LIST_SUCCESS, animalList);
+        return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_LIST_SUCCESS, animalList);
     }
 
     @Override
     @GetMapping("/cursor")
-    public ResponseEntity<CommonResDto<Slice<AnimalResponse>>> getAnimalsByCursor(
+    public ResponseEntity<CommonResponse<Slice<AnimalResponse>>> getAnimalsByCursor(
             @RequestParam(required = false) Long lastAnimalId,
             @RequestParam(defaultValue = "10") int size
     ) {
         Slice<AnimalResponse> animalSlice = animalService.getAnimalsByCursor(lastAnimalId, size);
-        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_LIST_SUCCESS, animalSlice);
+        return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_LIST_SUCCESS, animalSlice);
     }
 
     @Override
     @GetMapping("/species")
-    public ResponseEntity<CommonResDto<Page<AnimalResponse>>> getAnimalsBySpecies(
+    public ResponseEntity<CommonResponse<Page<AnimalResponse>>> getAnimalsBySpecies(
             @RequestParam Species species,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         Page<AnimalResponse> animalList = animalService.getAnimalsBySpecies(species, PageRequest.of(page, size));
-        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_SPECIES_LIST_SUCCESS, animalList);
+        return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_SPECIES_LIST_SUCCESS, animalList);
     }
 
     @Override
     @GetMapping("/{id}")
-    public ResponseEntity<CommonResDto<AnimalResponse>> getAnimalById(@PathVariable Long id) {
+    public ResponseEntity<CommonResponse<AnimalResponse>> getAnimalById(@PathVariable Long id) {
         AnimalResponse animal = animalService.getAnimal(id);
-        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_DETAIL_SUCCESS, animal);
+        return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_DETAIL_SUCCESS, animal);
     }
 
     @Override
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto<AnimalResponse>> updateAnimal(
+    public ResponseEntity<CommonResponse<AnimalResponse>> updateAnimal(
             @PathVariable Long id,
             @Valid @RequestBody AnimalStatusUpdateRequest request
     ) {
         AnimalResponse animal = animalService.updateAnimal(id, request);
-        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_STATUS_UPDATE_SUCCESS, animal);
+        return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_STATUS_UPDATE_SUCCESS, animal);
     }
 
     @Override
     @DeleteMapping(value = {"/{id}", "/delete/{id}"})
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CommonResDto<Void>> deleteAnimal(@PathVariable Long id) {
+    public ResponseEntity<CommonResponse<Void>> deleteAnimal(@PathVariable Long id) {
         animalService.deleteAnimal(id);
-        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_DELETE_SUCCESS);
+        return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_DELETE_SUCCESS);
     }
 
     @Override
     @PostMapping("/{id}/favorite")
-    public ResponseEntity<CommonResDto<FavoriteToggleResponseDto>> toggleFavorite(
+    public ResponseEntity<CommonResponse<FavoriteToggleResponse>> toggleFavorite(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long memberId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
-        FavoriteToggleResponseDto response = animalFavoriteService.toggleFavorite(id, memberId);
-        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_TOGGLE_SUCCESS, response);
+        FavoriteToggleResponse response = animalFavoriteService.toggleFavorite(id, memberId);
+        return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_TOGGLE_SUCCESS, response);
     }
 
     @Override
     @GetMapping("/favorites/my")
-    public ResponseEntity<CommonResDto<Page<AnimalResponse>>> getMyFavoriteAnimals(
+    public ResponseEntity<CommonResponse<Page<AnimalResponse>>> getMyFavoriteAnimals(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long memberId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
         Page<AnimalResponse> response = animalFavoriteService.getMyFavoriteAnimals(memberId, PageRequest.of(page, size));
-        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_LIST_SUCCESS, response);
+        return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_LIST_SUCCESS, response);
     }
 
     @Override
     @DeleteMapping("/{id}/favorite")
-    public ResponseEntity<CommonResDto<FavoriteToggleResponseDto>> deleteFavorite(
+    public ResponseEntity<CommonResponse<FavoriteToggleResponse>> deleteFavorite(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long memberId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
-        FavoriteToggleResponseDto response = animalFavoriteService.removeFavorite(id, memberId);
-        return CommonResDto.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_DELETE_SUCCESS, response);
+        FavoriteToggleResponse response = animalFavoriteService.removeFavorite(id, memberId);
+        return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_DELETE_SUCCESS, response);
     }
 }

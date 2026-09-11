@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.Properties;
 
-public record KakaoUserDto(
+public record KakaoUserResponse(
         Long id,
 
         @JsonProperty("connected_at")

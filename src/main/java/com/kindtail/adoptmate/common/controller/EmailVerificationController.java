@@ -1,13 +1,13 @@
 package com.kindtail.adoptmate.common.controller;
 
-import com.kindtail.adoptmate.common.dto.CommonResDto;
-import com.kindtail.adoptmate.common.dto.EmailSendRequestDto;
-import com.kindtail.adoptmate.common.dto.EmailVerifyRequestDto;
+import com.kindtail.adoptmate.common.dto.CommonResponse;
+import com.kindtail.adoptmate.common.dto.EmailSendRequest;
+import com.kindtail.adoptmate.common.dto.EmailVerifyRequest;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.common.service.EmailVerificationService;
-import com.kindtail.adoptmate.member.dto.PasswordResetRequestDto;
+import com.kindtail.adoptmate.member.dto.PasswordResetRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,35 +26,35 @@ public class EmailVerificationController implements EmailVerificationControllerD
 
     @Override
     @PostMapping("/verify-email")
-    public ResponseEntity<CommonResDto<Void>> sendVerificationEmail(@Valid @RequestBody EmailSendRequestDto request) {
+    public ResponseEntity<CommonResponse<Void>> sendVerificationEmail(@Valid @RequestBody EmailSendRequest request) {
         emailVerificationService.mailCheck(request.email());
-        return CommonResDto.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
+        return CommonResponse.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
     }
 
     @Override
     @PostMapping("/verify-code")
-    public ResponseEntity<CommonResDto<Map<String, String>>> verifyCode(@Valid @RequestBody EmailVerifyRequestDto request) {
+    public ResponseEntity<CommonResponse<Map<String, String>>> verifyCode(@Valid @RequestBody EmailVerifyRequest request) {
         emailVerificationService.verifyEmail(request.email(), request.code());
         Map<String, String> result = Map.of("email", request.email(), "code", request.code());
-        return CommonResDto.toResponseEntity(SuccessCode.EMAIL_VERIFY_SUCCESS, result);
+        return CommonResponse.toResponseEntity(SuccessCode.EMAIL_VERIFY_SUCCESS, result);
     }
 
     @Override
     @PostMapping("/send-reset-code")
-    public ResponseEntity<CommonResDto<Void>> sendResetCode(@RequestParam String email) {
+    public ResponseEntity<CommonResponse<Void>> sendResetCode(@RequestParam String email) {
         emailVerificationService.sendPasswordResetEmail(email);
-        return CommonResDto.toResponseEntity(SuccessCode.RESET_CODE_SEND_SUCCESS);
+        return CommonResponse.toResponseEntity(SuccessCode.RESET_CODE_SEND_SUCCESS);
     }
 
     @Override
     @PostMapping("/verify-reset-code")
-    public ResponseEntity<CommonResDto<Void>> verifyResetCode(
+    public ResponseEntity<CommonResponse<Void>> verifyResetCode(
             @RequestParam String email,
             @RequestParam String code
     ) {
         boolean verified = emailVerificationService.verifyPassword(email, code);
         if (verified) {
-            return CommonResDto.toResponseEntity(SuccessCode.RESET_CODE_VERIFY_SUCCESS);
+            return CommonResponse.toResponseEntity(SuccessCode.RESET_CODE_VERIFY_SUCCESS);
         } else {
             throw new CustomException(ErrorCode.EMAIL_VERIFICATION_CODE_MISMATCH);
         }
@@ -62,8 +62,8 @@ public class EmailVerificationController implements EmailVerificationControllerD
 
     @Override
     @PatchMapping("/password")
-    public ResponseEntity<CommonResDto<Void>> updatePassword(@RequestBody @Valid PasswordResetRequestDto dto) {
+    public ResponseEntity<CommonResponse<Void>> updatePassword(@RequestBody @Valid PasswordResetRequest dto) {
         emailVerificationService.updatePassword(dto);
-        return CommonResDto.toResponseEntity(SuccessCode.PASSWORD_RESET_SUCCESS);
+        return CommonResponse.toResponseEntity(SuccessCode.PASSWORD_RESET_SUCCESS);
     }
 }

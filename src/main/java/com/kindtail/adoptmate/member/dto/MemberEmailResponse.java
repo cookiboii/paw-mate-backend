@@ -1,6 +1,6 @@
 package com.kindtail.adoptmate.member.dto;
 
-public record MemberEmailDto(
+public record MemberEmailResponse(
         String email
 ) {
 }

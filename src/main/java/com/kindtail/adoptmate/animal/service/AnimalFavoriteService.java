@@ -3,7 +3,7 @@ package com.kindtail.adoptmate.animal.service;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.AnimalFavorite;
 import com.kindtail.adoptmate.animal.dto.AnimalResponse;
-import com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto;
+import com.kindtail.adoptmate.animal.dto.FavoriteToggleResponse;
 import com.kindtail.adoptmate.animal.repository.AnimalFavoriteRepository;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
@@ -37,14 +37,14 @@ public class AnimalFavoriteService {
     // 클래스의 읽기 전용 트랜잭션을 중단하고, 분산 락을 획득한 뒤 내부 TransactionTemplate에서
     // 쓰기 트랜잭션을 시작한다. 락보다 트랜잭션이 먼저 시작되면 읽기 전용 연결을 재사용할 수 있다.
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public FavoriteToggleResponseDto toggleFavorite(Long animalId, Long memberId) {
+    public FavoriteToggleResponse toggleFavorite(Long animalId, Long memberId) {
         return distributedLockTemplate.execute(
                 "favorite:" + memberId + ":" + animalId,
                 () -> transactionTemplate.execute(status -> toggleFavoriteWithinLock(animalId, memberId))
         );
     }
 
-    private FavoriteToggleResponseDto toggleFavoriteWithinLock(Long animalId, Long memberId) {
+    private FavoriteToggleResponse toggleFavoriteWithinLock(Long animalId, Long memberId) {
         Animal animal = animalRepository.findById(animalId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
 
@@ -69,11 +69,11 @@ public class AnimalFavoriteService {
         }
 
         long favoriteCount = animalFavoriteRepository.countByAnimalId(animalId);
-        return new FavoriteToggleResponseDto(animalId, isFavorite, favoriteCount);
+        return new FavoriteToggleResponse(animalId, isFavorite, favoriteCount);
     }
 
     @Transactional
-    public FavoriteToggleResponseDto removeFavorite(Long animalId, Long memberId) {
+    public FavoriteToggleResponse removeFavorite(Long animalId, Long memberId) {
         Animal animal = animalRepository.findById(animalId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
 
@@ -87,7 +87,7 @@ public class AnimalFavoriteService {
                 });
 
         long favoriteCount = animalFavoriteRepository.countByAnimalId(animalId);
-        return new FavoriteToggleResponseDto(animalId, false, favoriteCount);
+        return new FavoriteToggleResponse(animalId, false, favoriteCount);
     }
 
     public Page<AnimalResponse> getMyFavoriteAnimals(Long memberId, Pageable pageable) {

@@ -94,15 +94,15 @@ class MemberControllerTest {
     @DisplayName("회원을 등록할 수 있다")
     void registerMember_성공 () throws Exception {
         // given
-        MemberRegisterRequestDto request = new MemberRegisterRequestDto(
+        MemberRegisterRequest request = new MemberRegisterRequest(
                 "나석후",
                 "test@example.com",
                 "password123",
                 Role.USER
         );
 
-        MemberResponseDto responseDto = MemberResponseDto.from(testMember);
-        given(memberFacade.registerMember(any(MemberRegisterRequestDto.class))).willReturn(responseDto);
+        MemberResponse response = MemberResponse.from(testMember);
+        given(memberFacade.registerMember(any(MemberRegisterRequest.class))).willReturn(response);
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/adoptmate/register")
@@ -120,10 +120,10 @@ class MemberControllerTest {
     @DisplayName("로그인할 수 있다")
     void login_성공 () throws Exception {
         // given
-        MemberLoginRequestDto loginRequest = new MemberLoginRequestDto("test@example.com", "password123");
-        MemberLoginResultDto result = new MemberLoginResultDto("accessToken123", "refreshToken123", "test@example.com", Role.USER);
+        MemberLoginRequest loginRequest = new MemberLoginRequest("test@example.com", "password123");
+        MemberLoginResponse result = new MemberLoginResponse("accessToken123", "refreshToken123", "test@example.com", Role.USER);
 
-        given(memberService.login(any(MemberLoginRequestDto.class))).willReturn(result);
+        given(memberService.login(any(MemberLoginRequest.class))).willReturn(result);
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/adoptmate/login")
@@ -162,13 +162,13 @@ class MemberControllerTest {
     @DisplayName("내 정보를 조회할 수 있다")
     void getMyInfo_성공 () throws Exception {
         // given
-        MemberInfoResponseDto infoDto = MemberInfoResponseDto.builder()
+        MemberInfoResponse memberInfo = MemberInfoResponse.builder()
                 .id(testMember.getId())
                 .name(testMember.getName())
                 .email(testMember.getEmail())
                 .role(testMember.getRole())
                 .build();
-        given(memberService.getMemberInfo()).willReturn(infoDto);
+        given(memberService.getMemberInfo()).willReturn(memberInfo);
 
         // when
         ResultActions resultActions = mockMvc.perform(get("/adoptmate/myInfo"));
@@ -184,13 +184,13 @@ class MemberControllerTest {
     @DisplayName("ADMIN 이 전체 회원을 조회할 수 있다")
     void getAllMembers_성공 () throws Exception {
         // given
-        MemberInfoResponseDto infoDto = MemberInfoResponseDto.builder()
+        MemberInfoResponse memberInfo = MemberInfoResponse.builder()
                 .id(testMember.getId())
                 .name(testMember.getName())
                 .email(testMember.getEmail())
                 .role(testMember.getRole())
                 .build();
-        List<MemberInfoResponseDto> members = List.of(infoDto);
+        List<MemberInfoResponse> members = List.of(memberInfo);
         given(memberService.getMembers()).willReturn(members);
 
         // when
@@ -207,8 +207,8 @@ class MemberControllerTest {
     @DisplayName("비밀번호를 변경할 수 있다")
     void changePassword_성공 () throws Exception {
         // given
-        PasswordChangeRequestDto request = new PasswordChangeRequestDto("oldPassword", "newPassword");
-        willDoNothing().given(memberService).changePassword(any(String.class), any(PasswordChangeRequestDto.class));
+        PasswordChangeRequest request = new PasswordChangeRequest("oldPassword", "newPassword");
+        willDoNothing().given(memberService).changePassword(any(String.class), any(PasswordChangeRequest.class));
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/adoptmate/password")

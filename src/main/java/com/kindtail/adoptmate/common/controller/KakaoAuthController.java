@@ -3,8 +3,8 @@ package com.kindtail.adoptmate.common.controller;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.auth.OAuthResponseUtil;
 import com.kindtail.adoptmate.common.service.KakaoOAuthService;
-import com.kindtail.adoptmate.member.dto.KakaoUserDto;
-import com.kindtail.adoptmate.member.dto.MemberResponseDto;
+import com.kindtail.adoptmate.member.dto.KakaoUserResponse;
+import com.kindtail.adoptmate.member.dto.MemberResponse;
 import com.kindtail.adoptmate.member.service.MemberService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,18 +36,18 @@ public class KakaoAuthController implements KakaoAuthControllerDocs {
     @GetMapping("/kakao")
     public void kakaoCallback(@RequestParam String code, HttpServletResponse response) throws IOException {
         String kakaoAccessToken = kakaoOAuthService.getKakaoAccessToken(code);
-        KakaoUserDto kakaoUserDto = kakaoOAuthService.getKakaoUser(kakaoAccessToken);
-        MemberResponseDto memberResponseDto = kakaoOAuthService.findOrCreateKakaoUser(kakaoUserDto);
-        String token = jwtTokenProvider.createToken(memberResponseDto.email(), memberResponseDto.role().toString());
-        String refreshToken = jwtTokenProvider.createRefreshToken(memberResponseDto.email());
+        KakaoUserResponse kakaoUser = kakaoOAuthService.getKakaoUser(kakaoAccessToken);
+        MemberResponse memberResponse = kakaoOAuthService.findOrCreateKakaoUser(kakaoUser);
+        String token = jwtTokenProvider.createToken(memberResponse.email(), memberResponse.role().toString());
+        String refreshToken = jwtTokenProvider.createRefreshToken(memberResponse.email());
 
-        memberService.saveRefreshToken(memberResponseDto.email(), refreshToken);
+        memberService.saveRefreshToken(memberResponse.email(), refreshToken);
 
         String html = OAuthResponseUtil.buildPopupSuccessHtml(
                 token,
                 refreshToken,
-                memberResponseDto.id(),
-                memberResponseDto.role().toString(),
+                memberResponse.id(),
+                memberResponse.role().toString(),
                 "KAKAO",
                 this.clientUrl
         );

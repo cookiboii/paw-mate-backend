@@ -1,9 +1,9 @@
 package com.kindtail.adoptmate.comment.controller;
 
-import com.kindtail.adoptmate.comment.dto.CommentDto;
-import com.kindtail.adoptmate.comment.dto.CommentResponseDto;
-import com.kindtail.adoptmate.comment.dto.CommentUpdateDto;
-import com.kindtail.adoptmate.common.dto.CommonResDto;
+import com.kindtail.adoptmate.comment.dto.CommentCreateRequest;
+import com.kindtail.adoptmate.comment.dto.CommentResponse;
+import com.kindtail.adoptmate.comment.dto.CommentUpdateRequest;
+import com.kindtail.adoptmate.common.dto.CommonResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,9 +25,9 @@ public interface CommentControllerDocs {
             @ApiResponse(responseCode = "400", description = "유효성 검사 실패"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글 또는 부모 댓글")
     })
-    ResponseEntity<CommonResDto<CommentResponseDto>> addComment(
+    ResponseEntity<CommonResponse<CommentResponse>> createComment(
             @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId,
-            @Valid @RequestBody CommentDto commentDto
+            @Valid @RequestBody CommentCreateRequest request
     );
 
     @Operation(summary = "게시글 댓글 목록 조회 (계층형 대댓글 트리)", description = "특정 게시글의 모든 댓글과 자식 답글들을 계층형 트리 구조로 조회합니다.")
@@ -35,7 +35,7 @@ public interface CommentControllerDocs {
             @ApiResponse(responseCode = "200", description = "댓글 목록 조회 성공"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글")
     })
-    ResponseEntity<CommonResDto<List<CommentResponseDto>>> getComments(
+    ResponseEntity<CommonResponse<List<CommentResponse>>> getComments(
             @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId
     );
 
@@ -45,7 +45,7 @@ public interface CommentControllerDocs {
             @ApiResponse(responseCode = "403", description = "수정/삭제 권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 댓글")
     })
-    ResponseEntity<CommonResDto<Void>> deleteComment(
+    ResponseEntity<CommonResponse<Void>> deleteComment(
             @Parameter(description = "댓글 ID", example = "1") @PathVariable Long commentId
     );
 
@@ -55,8 +55,8 @@ public interface CommentControllerDocs {
             @ApiResponse(responseCode = "403", description = "수정/삭제 권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 댓글")
     })
-    ResponseEntity<CommonResDto<CommentResponseDto>> updateComment(
+    ResponseEntity<CommonResponse<CommentResponse>> updateComment(
             @Parameter(description = "댓글 ID", example = "1") @PathVariable Long commentId,
-            @Valid @RequestBody CommentUpdateDto dto
+            @Valid @RequestBody CommentUpdateRequest dto
     );
 }

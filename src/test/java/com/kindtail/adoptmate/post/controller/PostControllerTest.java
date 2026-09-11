@@ -7,9 +7,9 @@ import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.post.domain.Post;
-import com.kindtail.adoptmate.post.dto.PostCreateRequestDto;
-import com.kindtail.adoptmate.post.dto.PostResponseDto;
-import com.kindtail.adoptmate.post.dto.PostUpdateRequestDto;
+import com.kindtail.adoptmate.post.dto.PostCreateRequest;
+import com.kindtail.adoptmate.post.dto.PostResponse;
+import com.kindtail.adoptmate.post.dto.PostUpdateRequest;
 import com.kindtail.adoptmate.post.service.PostService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -90,13 +90,13 @@ class PostControllerTest {
     @DisplayName("게시글을 성공적으로 작성할 수 있다 (201 CREATED)")
     void createPost_성공() throws Exception {
         // given
-        PostCreateRequestDto requestDto = new PostCreateRequestDto("테스트 제목", "테스트 내용", "test.jpg");
-        given(postService.createPost(any(PostCreateRequestDto.class))).willReturn(PostResponseDto.from(testPost));
+        PostCreateRequest request = new PostCreateRequest("테스트 제목", "테스트 내용", "test.jpg");
+        given(postService.createPost(any(PostCreateRequest.class))).willReturn(PostResponse.from(testPost));
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/post/create")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)));
+                .content(objectMapper.writeValueAsString(request)));
 
         // then
         resultActions.andDo(print())
@@ -110,8 +110,8 @@ class PostControllerTest {
     @DisplayName("게시글 목록을 페이지네이션으로 조회할 수 있다 (200 OK)")
     void getPostList_성공() throws Exception {
         // given
-        PostResponseDto responseDto = PostResponseDto.from(testPost);
-        Page<PostResponseDto> page = new PageImpl<>(List.of(responseDto), PageRequest.of(0, 10), 1);
+        PostResponse response = PostResponse.from(testPost);
+        Page<PostResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
         given(postService.getAllPosts(any(PageRequest.class))).willReturn(page);
 
         // when
@@ -131,8 +131,8 @@ class PostControllerTest {
     @DisplayName("게시글 목록을 No-Offset 커서 기반으로 조회할 수 있다 (200 OK)")
     void getPostsByCursor_성공() throws Exception {
         // given
-        PostResponseDto responseDto = PostResponseDto.from(testPost);
-        org.springframework.data.domain.Slice<PostResponseDto> slice = new org.springframework.data.domain.SliceImpl<>(List.of(responseDto), PageRequest.of(0, 10), false);
+        PostResponse response = PostResponse.from(testPost);
+        org.springframework.data.domain.Slice<PostResponse> slice = new org.springframework.data.domain.SliceImpl<>(List.of(response), PageRequest.of(0, 10), false);
         given(postService.getPostsByCursor(eq(10L), eq(10))).willReturn(slice);
 
         // when
@@ -153,8 +153,8 @@ class PostControllerTest {
     void getPostById_성공() throws Exception {
         // given
         Long postId = 1L;
-        PostResponseDto responseDto = PostResponseDto.from(testPost);
-        given(postService.getPost(postId)).willReturn(responseDto);
+        PostResponse response = PostResponse.from(testPost);
+        given(postService.getPost(postId)).willReturn(response);
 
         // when
         ResultActions resultActions = mockMvc.perform(get("/post/{postId}", postId));
@@ -172,15 +172,15 @@ class PostControllerTest {
     void updatePost_성공() throws Exception {
         // given
         Long postId = 1L;
-        PostUpdateRequestDto requestDto = new PostUpdateRequestDto("수정 제목", "new.jpg", "수정 내용");
-        PostResponseDto updatedResponse = new PostResponseDto(1L, "수정 제목", "수정 내용", "test@example.com", "테스트 사용자", LocalDateTime.now(), "new.jpg");
+        PostUpdateRequest request = new PostUpdateRequest("수정 제목", "new.jpg", "수정 내용");
+        PostResponse updatedResponse = new PostResponse(1L, "수정 제목", "수정 내용", "test@example.com", "테스트 사용자", LocalDateTime.now(), "new.jpg");
 
-        given(postService.updatePost(eq(postId), any(PostUpdateRequestDto.class))).willReturn(updatedResponse);
+        given(postService.updatePost(eq(postId), any(PostUpdateRequest.class))).willReturn(updatedResponse);
 
         // when
         ResultActions resultActions = mockMvc.perform(put("/post/{postId}", postId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)));
+                .content(objectMapper.writeValueAsString(request)));
 
         // then
         resultActions.andDo(print())

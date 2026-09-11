@@ -222,7 +222,7 @@ Content-Type: application/json
 
 ### 공통 응답 처리
 
-모든 성공 응답은 `CommonResDto`의 `result`에 실제 데이터를 담습니다. 프론트 API 래퍼에서 공통으로 언래핑하면 화면 코드가 단순해집니다.
+모든 성공 응답은 `CommonResponse`의 `result`에 실제 데이터를 담습니다. 프론트 API 래퍼에서 공통으로 언래핑하면 화면 코드가 단순해집니다.
 
 ```ts
 type ApiResponse<T> = {
@@ -627,7 +627,7 @@ Content-Type: application/json
 }
 ```
 
-> 보안 주의: 현재 `MemberResponseDto` 구현에는 `password` 필드가 포함되어 있습니다. 비밀번호(해시 포함)는 응답으로 노출하지 않는 것이 원칙이므로, 운영 전 회원가입 응답 DTO에서 해당 필드를 제거해야 합니다.
+> 보안 주의: 현재 `MemberResponse` 구현에는 `password` 필드가 포함되어 있습니다. 비밀번호(해시 포함)는 응답으로 노출하지 않는 것이 원칙이므로, 운영 전 회원가입 응답 DTO에서 해당 필드를 제거해야 합니다.
 
 ```http
 POST /adoptmate/login

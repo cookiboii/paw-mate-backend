@@ -1,8 +1,8 @@
 package com.kindtail.adoptmate.post.controller;
 
-import com.kindtail.adoptmate.common.dto.CommonResDto;
-import com.kindtail.adoptmate.post.dto.PostCreateRequestDto;
-import com.kindtail.adoptmate.post.dto.PostUpdateRequestDto;
+import com.kindtail.adoptmate.common.dto.CommonResponse;
+import com.kindtail.adoptmate.post.dto.PostCreateRequest;
+import com.kindtail.adoptmate.post.dto.PostUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,19 +26,19 @@ public interface PostControllerDocs {
             @ApiResponse(responseCode = "400", description = "유효성 검사 실패"),
             @ApiResponse(responseCode = "401", description = "로그인 필요")
     })
-    ResponseEntity<CommonResDto<com.kindtail.adoptmate.post.dto.PostResponseDto>> createPost(@Valid @RequestBody PostCreateRequestDto dto);
+    ResponseEntity<CommonResponse<com.kindtail.adoptmate.post.dto.PostResponse>> createPost(@Valid @RequestBody PostCreateRequest dto);
 
     @Operation(summary = "게시글 목록 조회 (오프셋 페이징)", description = "커뮤니티 게시글 목록을 오프셋 기반으로 페이징하여 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 완료")
     })
-    ResponseEntity<CommonResDto<org.springframework.data.domain.Page<com.kindtail.adoptmate.post.dto.PostResponseDto>>> getPostList(Pageable pageable);
+    ResponseEntity<CommonResponse<org.springframework.data.domain.Page<com.kindtail.adoptmate.post.dto.PostResponse>>> getPostList(Pageable pageable);
 
     @Operation(summary = "게시글 목록 조회 (No-Offset 커서 / 무한 스크롤)", description = "lastPostId를 기준으로 다음 페이지의 게시글 목록을 No-Offset 방식으로 조회하여 count 쿼리 오버헤드 없이 고속 페이징합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 완료")
     })
-    ResponseEntity<CommonResDto<org.springframework.data.domain.Slice<com.kindtail.adoptmate.post.dto.PostResponseDto>>> getPostsByCursor(
+    ResponseEntity<CommonResponse<org.springframework.data.domain.Slice<com.kindtail.adoptmate.post.dto.PostResponse>>> getPostsByCursor(
             @Parameter(description = "마지막으로 조회된 게시글 ID (첫 페이지 요청 시 생략 또는 null)", example = "10")
             @RequestParam(required = false) Long lastPostId,
             @Parameter(description = "조회할 게시글 수 (기본값: 10)", example = "10")
@@ -50,7 +50,7 @@ public interface PostControllerDocs {
             @ApiResponse(responseCode = "200", description = "조회 완료"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글")
     })
-    ResponseEntity<CommonResDto<com.kindtail.adoptmate.post.dto.PostResponseDto>> getPostById(
+    ResponseEntity<CommonResponse<com.kindtail.adoptmate.post.dto.PostResponse>> getPostById(
             @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId
     );
 
@@ -60,7 +60,7 @@ public interface PostControllerDocs {
             @ApiResponse(responseCode = "403", description = "수정/삭제 권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글")
     })
-    ResponseEntity<CommonResDto<Void>> deletePostById(
+    ResponseEntity<CommonResponse<Void>> deletePostById(
             @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId
     );
 
@@ -70,8 +70,8 @@ public interface PostControllerDocs {
             @ApiResponse(responseCode = "403", description = "수정/삭제 권한 없음"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글")
     })
-    ResponseEntity<CommonResDto<com.kindtail.adoptmate.post.dto.PostResponseDto>> updatePost(
+    ResponseEntity<CommonResponse<com.kindtail.adoptmate.post.dto.PostResponse>> updatePost(
             @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId,
-            @Valid @RequestBody PostUpdateRequestDto dto
+            @Valid @RequestBody PostUpdateRequest dto
     );
 }

@@ -77,10 +77,10 @@ public class MemberService {
     private boolean emailVerificationRequired;
 
     @Transactional
-    public MemberResponseDto registerMember(MemberRegisterRequestDto memberRegisterRequestDto) {
-        String email = memberRegisterRequestDto.email();
-        String password = memberRegisterRequestDto.password();
-        String username = memberRegisterRequestDto.name();
+    public MemberResponse registerMember(MemberRegisterRequest request) {
+        String email = request.email();
+        String password = request.password();
+        String username = request.name();
 
         // 1. 이메일 중복 검사를 먼저 수행하여 불필요한 BCrypt 연산 비용(CPU 리소스) 낭비 방어
         Optional<Member> findMember = memberRepository.findByEmail(email);
@@ -106,24 +106,24 @@ public class MemberService {
                 .role(role)
                 .build();
         Member saved = memberRepository.save(member);
-        return MemberResponseDto.from(saved);
+        return MemberResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
-    public MemberLoginResultDto login(MemberLoginRequestDto loginRequestDto) {
-        Member member = authenticateMember(loginRequestDto);
+    public MemberLoginResponse login(MemberLoginRequest request) {
+        Member member = authenticateMember(request);
 
         String token = jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString());
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getEmail());
         saveRefreshToken(member.getEmail(), refreshToken);
 
-        return new MemberLoginResultDto(token, refreshToken, member.getEmail(), member.getRole());
+        return new MemberLoginResponse(token, refreshToken, member.getEmail(), member.getRole());
     }
 
     @Transactional(readOnly = true)
-    public Member authenticateMember(MemberLoginRequestDto loginRequestDto) {
-        String email = loginRequestDto.email();
-        String password = loginRequestDto.password();
+    public Member authenticateMember(MemberLoginRequest request) {
+        String email = request.email();
+        String password = request.password();
 
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
@@ -136,12 +136,12 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public MemberInfoResponseDto getMemberInfo() {
+    public MemberInfoResponse getMemberInfo() {
         String email = SecurityUtil.getCurrentUserEmail();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
-        return MemberInfoResponseDto.builder()
+        return MemberInfoResponse.builder()
                 .id(member.getId())
                 .name(member.getName())
                 .email(member.getEmail())
@@ -150,9 +150,9 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public List<MemberInfoResponseDto> getMembers() {
+    public List<MemberInfoResponse> getMembers() {
         return memberRepository.findAll().stream()
-                .map(member -> MemberInfoResponseDto.builder()
+                .map(member -> MemberInfoResponse.builder()
                         .id(member.getId())
                         .name(member.getName())
                         .email(member.getEmail())
@@ -213,7 +213,7 @@ public class MemberService {
     }
 
     @Transactional
-    public void changePassword(String email, PasswordChangeRequestDto dto) {
+    public void changePassword(String email, PasswordChangeRequest dto) {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
         if (!passwordEncoder.matches(dto.currentPassword(), member.getPassword())) {

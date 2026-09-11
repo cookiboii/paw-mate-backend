@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
 import com.kindtail.adoptmate.adoption.domain.HousingType;
 import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
-import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
-import com.kindtail.adoptmate.adoption.dto.AdoptionUpdateRequestDto;
+import com.kindtail.adoptmate.adoption.dto.AdoptionResponse;
+import com.kindtail.adoptmate.adoption.dto.AdoptionStatusUpdateRequest;
 import com.kindtail.adoptmate.adoption.facade.AdoptionFacade;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
@@ -83,17 +83,17 @@ class AdoptionControllerTest {
     @Test
     @DisplayName("입양 신청을 성공적으로 처리한다 (201 ACCEPTED)")
     @WithMockUser
-    void registerAdoptionSuccess() throws Exception {
+    void applyAdoptionSuccess() throws Exception {
         // given
         Long animalId = 1L;
         Long memberId = 1L;
-        AdoptionCreateRequest requestDto = new AdoptionCreateRequest(
+        AdoptionCreateRequest request = new AdoptionCreateRequest(
                 "010-1234-5678",
                 HousingType.APARTMENT,
                 "없음",
                 "평생 책임지고 사랑으로 보살피겠습니다."
         );
-        AdoptionResponseDto responseDto = new AdoptionResponseDto(
+        AdoptionResponse response = new AdoptionResponse(
                 1L,
                 1L,
                 "말티즈",
@@ -109,12 +109,12 @@ class AdoptionControllerTest {
 
         given(memberService.getMemberIdByEmail(anyString())).willReturn(memberId);
         given(adoptionFacade.applyAdoption(any(AdoptionCreateRequest.class), eq(memberId), eq(animalId)))
-                .willReturn(responseDto);
+                .willReturn(response);
 
         // when & then
         mockMvc.perform(post("/adoptions/animals/{animalId}", animalId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto))
+                        .content(objectMapper.writeValueAsString(request))
                         .with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.statusCode").value(201))
@@ -130,15 +130,15 @@ class AdoptionControllerTest {
     void myAdoptionSuccess() throws Exception {
         // given
         Long memberId = 1L;
-        AdoptionResponseDto responseDto1 = new AdoptionResponseDto(
+        AdoptionResponse response1 = new AdoptionResponse(
                 1L, 1L, "말티즈", "test1.jpg", "홍길동", "010-1111-1111", HousingType.APARTMENT, "없음", "이유 1", AdoptionStatus.PENDING, LocalDateTime.now()
         );
-        AdoptionResponseDto responseDto2 = new AdoptionResponseDto(
+        AdoptionResponse response2 = new AdoptionResponse(
                 2L, 2L, "푸들", "test2.jpg", "홍길동", "010-2222-2222", HousingType.VILLA, "개 1마리", "이유 2", AdoptionStatus.APPROVED, LocalDateTime.now()
         );
 
         given(memberService.getMemberIdByEmail(anyString())).willReturn(memberId);
-        given(adoptionService.getAdoptions(memberId)).willReturn(List.of(responseDto1, responseDto2));
+        given(adoptionService.getMemberAdoptions(memberId)).willReturn(List.of(response1, response2));
 
         // when & then
         mockMvc.perform(get("/adoptions/myAdoption")
@@ -157,14 +157,14 @@ class AdoptionControllerTest {
     @WithMockUser
     void allAdoptionsSuccess() throws Exception {
         // given
-        AdoptionResponseDto responseDto1 = new AdoptionResponseDto(
+        AdoptionResponse response1 = new AdoptionResponse(
                 1L, 1L, "말티즈", "test1.jpg", "홍길동", "010-1111-1111", HousingType.APARTMENT, "없음", "이유 1", AdoptionStatus.PENDING, LocalDateTime.now()
         );
-        AdoptionResponseDto responseDto2 = new AdoptionResponseDto(
+        AdoptionResponse response2 = new AdoptionResponse(
                 2L, 2L, "푸들", "test2.jpg", "김철수", "010-2222-2222", HousingType.VILLA, "개 1마리", "이유 2", AdoptionStatus.APPROVED, LocalDateTime.now()
         );
 
-        given(adoptionService.getAllAdoptions()).willReturn(List.of(responseDto1, responseDto2));
+        given(adoptionService.getAllAdoptions()).willReturn(List.of(response1, response2));
 
         // when & then
         mockMvc.perform(get("/adoptions/all")
@@ -184,18 +184,18 @@ class AdoptionControllerTest {
     void updateStatusSuccess() throws Exception {
         // given
         Long adoptionId = 1L;
-        AdoptionUpdateRequestDto requestDto = new AdoptionUpdateRequestDto(AdoptionStatus.APPROVED);
-        AdoptionResponseDto responseDto = new AdoptionResponseDto(
+        AdoptionStatusUpdateRequest request = new AdoptionStatusUpdateRequest(AdoptionStatus.APPROVED);
+        AdoptionResponse response = new AdoptionResponse(
                 1L, 1L, "말티즈", "test.jpg", "홍길동", "010-1234-5678", HousingType.APARTMENT, "없음", "이유", AdoptionStatus.APPROVED, LocalDateTime.now()
         );
 
         given(adoptionFacade.updateStatus(eq(adoptionId), eq(AdoptionStatus.APPROVED)))
-                .willReturn(responseDto);
+                .willReturn(response);
 
         // when & then
         mockMvc.perform(put("/adoptions/{adoptionId}/status", adoptionId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto))
+                        .content(objectMapper.writeValueAsString(request))
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.statusCode").value(200))

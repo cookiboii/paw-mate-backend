@@ -2,9 +2,9 @@ package com.kindtail.adoptmate.comment.service;
 
 import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.comment.domain.Comment;
-import com.kindtail.adoptmate.comment.dto.CommentDto;
-import com.kindtail.adoptmate.comment.dto.CommentResponseDto;
-import com.kindtail.adoptmate.comment.dto.CommentUpdateDto;
+import com.kindtail.adoptmate.comment.dto.CommentCreateRequest;
+import com.kindtail.adoptmate.comment.dto.CommentResponse;
+import com.kindtail.adoptmate.comment.dto.CommentUpdateRequest;
 import com.kindtail.adoptmate.comment.repository.CommentRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
@@ -105,14 +105,14 @@ class CommentServiceTest {
     void addRootComment_성공() {
         // given
         setupSecurityContext("commenter@example.com", Role.USER);
-        CommentDto commentDto = new CommentDto(null, "새로운 루트 댓글");
+        CommentCreateRequest request = new CommentCreateRequest(null, "새로운 루트 댓글");
 
         given(memberRepository.findByEmail("commenter@example.com")).willReturn(Optional.of(author));
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
         given(commentRepository.save(any(Comment.class))).willReturn(parentComment);
 
         // when
-        CommentResponseDto result = commentService.addComment(10L, commentDto);
+        CommentResponse result = commentService.createComment(10L, request);
 
         // then
         assertThat(result).isNotNull();
@@ -125,7 +125,7 @@ class CommentServiceTest {
     void addChildComment_성공() {
         // given
         setupSecurityContext("commenter@example.com", Role.USER);
-        CommentDto commentDto = new CommentDto(100L, "대댓글 내용");
+        CommentCreateRequest request = new CommentCreateRequest(100L, "대댓글 내용");
 
         given(memberRepository.findByEmail("commenter@example.com")).willReturn(Optional.of(author));
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
@@ -143,7 +143,7 @@ class CommentServiceTest {
         given(commentRepository.save(any(Comment.class))).willReturn(childComment);
 
         // when
-        CommentResponseDto result = commentService.addComment(10L, commentDto);
+        CommentResponse result = commentService.createComment(10L, request);
 
         // then
         assertThat(result).isNotNull();
@@ -152,17 +152,17 @@ class CommentServiceTest {
 
     @Test
     @DisplayName("존재하지 않는 부모 댓글 ID를 지정하면 예외가 발생한다")
-    void addComment_부모댓글없음_예외() {
+    void createComment_부모댓글없음_예외() {
         // given
         setupSecurityContext("commenter@example.com", Role.USER);
-        CommentDto commentDto = new CommentDto(999L, "잘못된 대댓글");
+        CommentCreateRequest request = new CommentCreateRequest(999L, "잘못된 대댓글");
 
         given(memberRepository.findByEmail("commenter@example.com")).willReturn(Optional.of(author));
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
         given(commentRepository.findById(999L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> commentService.addComment(10L, commentDto))
+        assertThatThrownBy(() -> commentService.createComment(10L, request))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.COMMENT_NOT_FOUND);
     }
@@ -175,7 +175,7 @@ class CommentServiceTest {
         given(commentRepository.findByPostAndParentIsNull(testPost)).willReturn(List.of(parentComment));
 
         // when
-        List<CommentResponseDto> result = commentService.getComments(10L);
+        List<CommentResponse> result = commentService.getComments(10L);
 
         // then
         assertThat(result).hasSize(1);
@@ -187,12 +187,12 @@ class CommentServiceTest {
     void updateComment_작성자_성공() {
         // given
         setupSecurityContext("commenter@example.com", Role.USER);
-        CommentUpdateDto updateDto = new CommentUpdateDto(100L, "수정된 댓글");
+        CommentUpdateRequest request = new CommentUpdateRequest(100L, "수정된 댓글");
 
         given(commentRepository.findById(100L)).willReturn(Optional.of(parentComment));
 
         // when
-        CommentResponseDto result = commentService.updateComment(100L, updateDto);
+        CommentResponse result = commentService.updateComment(100L, request);
 
         // then
         assertThat(result.content()).isEqualTo("수정된 댓글");
@@ -203,12 +203,12 @@ class CommentServiceTest {
     void updateComment_권한없음_예외() {
         // given
         setupSecurityContext("other@example.com", Role.USER);
-        CommentUpdateDto updateDto = new CommentUpdateDto(100L, "수정 시도");
+        CommentUpdateRequest request = new CommentUpdateRequest(100L, "수정 시도");
 
         given(commentRepository.findById(100L)).willReturn(Optional.of(parentComment));
 
         // when & then
-        assertThatThrownBy(() -> commentService.updateComment(100L, updateDto))
+        assertThatThrownBy(() -> commentService.updateComment(100L, request))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
     }

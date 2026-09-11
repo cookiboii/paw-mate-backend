@@ -99,7 +99,7 @@ class AnimalControllerTest {
 
     @Test
     @DisplayName("동물을 등록할 수 있다 (ADMIN 권한)")
-    void registerAnimal_성공 () throws Exception {
+    void createAnimal_성공 () throws Exception {
         // given
         AnimalCreateRequest request = new AnimalCreateRequest(
                 Species.DOG,
@@ -111,7 +111,7 @@ class AnimalControllerTest {
                 Status.PROTECTED
         );
 
-        given(animalService.registerAnimal(any(AnimalCreateRequest.class))).willReturn(AnimalResponse.from(testAnimal));
+        given(animalService.createAnimal(any(AnimalCreateRequest.class))).willReturn(AnimalResponse.from(testAnimal));
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/animals/register")
@@ -268,10 +268,10 @@ class AnimalControllerTest {
     void toggleFavorite_성공 () throws Exception {
         // given
         Long animalId = 1L;
-        com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto responseDto =
-                new com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto(animalId, true, 1L);
+        com.kindtail.adoptmate.animal.dto.FavoriteToggleResponse response =
+                new com.kindtail.adoptmate.animal.dto.FavoriteToggleResponse(animalId, true, 1L);
 
-        given(animalFavoriteService.toggleFavorite(eq(animalId), any())).willReturn(responseDto);
+        given(animalFavoriteService.toggleFavorite(eq(animalId), any())).willReturn(response);
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/animals/{id}/favorite", animalId));
@@ -320,10 +320,10 @@ class AnimalControllerTest {
     void deleteFavorite_성공 () throws Exception {
         // given
         Long animalId = 1L;
-        com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto responseDto =
-                new com.kindtail.adoptmate.animal.dto.FavoriteToggleResponseDto(animalId, false, 0L);
+        com.kindtail.adoptmate.animal.dto.FavoriteToggleResponse response =
+                new com.kindtail.adoptmate.animal.dto.FavoriteToggleResponse(animalId, false, 0L);
 
-        given(animalFavoriteService.removeFavorite(eq(animalId), any())).willReturn(responseDto);
+        given(animalFavoriteService.removeFavorite(eq(animalId), any())).willReturn(response);
 
         // when
         ResultActions resultActions = mockMvc.perform(delete("/animals/{id}/favorite", animalId));

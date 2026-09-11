@@ -5,17 +5,17 @@ import com.kindtail.adoptmate.comment.domain.Comment;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record CommentResponseDto(
+public record CommentResponse(
         Long id,
         String authorName,
         Long authorId,
         String authorEmail,
         String content,
         LocalDateTime createdAt,
-        List<CommentResponseDto> children
+        List<CommentResponse> children
 ) {
-    public static CommentResponseDto fromComment(Comment comment) {
-        return new CommentResponseDto(
+    public static CommentResponse fromComment(Comment comment) {
+        return new CommentResponse(
                 comment.getId(),
                 comment.getMember().getName(),
                 comment.getMember().getId(),
@@ -23,7 +23,7 @@ public record CommentResponseDto(
                 comment.getContent(),
                 comment.getCreatedAt(),
                 comment.getChildren().stream()
-                        .map(CommentResponseDto::fromComment)
+                        .map(CommentResponse::fromComment)
                         .toList()
         );
     }

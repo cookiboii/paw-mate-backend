@@ -6,7 +6,7 @@ import com.kindtail.adoptmate.adoption.domain.HousingType;
 
 import java.time.LocalDateTime;
 
-public record AdoptionResponseDto(
+public record AdoptionResponse(
         Long adoptionId,
         Long animalId,
         String animalBreed,
@@ -19,8 +19,8 @@ public record AdoptionResponseDto(
         AdoptionStatus status,
         LocalDateTime applyDate
 ) {
-    public static AdoptionResponseDto from(Adoption adoption) {
-        return new AdoptionResponseDto(
+    public static AdoptionResponse from(Adoption adoption) {
+        return new AdoptionResponse(
                 adoption.getId(),
                 adoption.getAnimal().getId(),
                 adoption.getAnimal().getBreed(),

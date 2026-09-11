@@ -4,7 +4,7 @@ import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
 import com.kindtail.adoptmate.adoption.domain.HousingType;
 import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
-import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
+import com.kindtail.adoptmate.adoption.dto.AdoptionResponse;
 import com.kindtail.adoptmate.adoption.repository.AdoptionRepository;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Species;
@@ -72,7 +72,7 @@ class AdoptionServiceTest {
     @DisplayName("세분화된 필드로 입양 신청을 성공적으로 처리할 수 있다")
     void applyAdoptionSuccess() {
         // given
-        AdoptionCreateRequest requestDto = new AdoptionCreateRequest(
+        AdoptionCreateRequest request = new AdoptionCreateRequest(
                 "010-1234-5678",
                 HousingType.APARTMENT,
                 "없음",
@@ -88,16 +88,16 @@ class AdoptionServiceTest {
         Adoption savedAdoption = Adoption.of(
                 member,
                 animal,
-                requestDto.phone(),
-                requestDto.housingType(),
-                requestDto.hasPet(),
-                requestDto.reason(),
+                request.phone(),
+                request.housingType(),
+                request.hasPet(),
+                request.reason(),
                 AdoptionStatus.PENDING
         );
         given(adoptionRepository.save(any(Adoption.class))).willReturn(savedAdoption);
 
         // when
-        AdoptionResponseDto response = adoptionService.applyAdoption(requestDto, memberId, animalId);
+        AdoptionResponse response = adoptionService.applyAdoption(request, memberId, animalId);
 
         // then
         assertThat(response).isNotNull();
@@ -114,14 +114,14 @@ class AdoptionServiceTest {
     @DisplayName("존재하지 않는 동물로 입양 신청 시 예외가 발생한다")
     void applyAdoptionAnimalNotFound() {
         // given
-        AdoptionCreateRequest requestDto = new AdoptionCreateRequest("010-1234-5678", HousingType.APARTMENT, "없음", "동기 작성");
+        AdoptionCreateRequest request = new AdoptionCreateRequest("010-1234-5678", HousingType.APARTMENT, "없음", "동기 작성");
         Long memberId = 1L;
         Long animalId = 999L;
 
         given(animalRepository.findById(animalId)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> adoptionService.applyAdoption(requestDto, memberId, animalId))
+        assertThatThrownBy(() -> adoptionService.applyAdoption(request, memberId, animalId))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ANIMAL_NOT_FOUND);
     }
@@ -130,7 +130,7 @@ class AdoptionServiceTest {
     @DisplayName("존재하지 않는 회원으로 입양 신청 시 예외가 발생한다")
     void applyAdoptionMemberNotFound() {
         // given
-        AdoptionCreateRequest requestDto = new AdoptionCreateRequest("010-1234-5678", HousingType.APARTMENT, "없음", "동기 작성");
+        AdoptionCreateRequest request = new AdoptionCreateRequest("010-1234-5678", HousingType.APARTMENT, "없음", "동기 작성");
         Long memberId = 999L;
         Long animalId = 1L;
 
@@ -138,7 +138,7 @@ class AdoptionServiceTest {
         given(memberRepository.findById(memberId)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> adoptionService.applyAdoption(requestDto, memberId, animalId))
+        assertThatThrownBy(() -> adoptionService.applyAdoption(request, memberId, animalId))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
     }
@@ -153,7 +153,7 @@ class AdoptionServiceTest {
                 .status(Status.ADOPTED)
                 .build();
 
-        AdoptionCreateRequest requestDto = new AdoptionCreateRequest("010-1234-5678", HousingType.APARTMENT, "없음", "동기 작성");
+        AdoptionCreateRequest request = new AdoptionCreateRequest("010-1234-5678", HousingType.APARTMENT, "없음", "동기 작성");
         Long memberId = 1L;
         Long animalId = 1L;
 
@@ -161,7 +161,7 @@ class AdoptionServiceTest {
         given(memberRepository.findById(memberId)).willReturn(Optional.of(member));
 
         // when & then
-        assertThatThrownBy(() -> adoptionService.applyAdoption(requestDto, memberId, animalId))
+        assertThatThrownBy(() -> adoptionService.applyAdoption(request, memberId, animalId))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_PROTECTED_ANIMAL);
     }
@@ -170,7 +170,7 @@ class AdoptionServiceTest {
     @DisplayName("이미 입양 신청한 동물에 중복 신청 시 예외가 발생한다")
     void applyAdoptionAlreadyExists() {
         // given
-        AdoptionCreateRequest requestDto = new AdoptionCreateRequest("010-1234-5678", HousingType.APARTMENT, "없음", "동기 작성");
+        AdoptionCreateRequest request = new AdoptionCreateRequest("010-1234-5678", HousingType.APARTMENT, "없음", "동기 작성");
         Long memberId = 1L;
         Long animalId = 1L;
 
@@ -179,14 +179,14 @@ class AdoptionServiceTest {
         given(adoptionRepository.existsByMemberAndAnimal(member, animal)).willReturn(true);
 
         // when & then
-        assertThatThrownBy(() -> adoptionService.applyAdoption(requestDto, memberId, animalId))
+        assertThatThrownBy(() -> adoptionService.applyAdoption(request, memberId, animalId))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ADOPTION_ALREADY_EXISTS);
     }
 
     @Test
     @DisplayName("회원의 입양 내역을 조회할 수 있다")
-    void getAdoptionsByMember() {
+    void getMemberAdoptionsByMember() {
         // given
         Long memberId = 1L;
         Adoption adoption1 = Adoption.of(member, animal, "010-1111-1111", HousingType.APARTMENT, "없음", "이유 1", AdoptionStatus.PENDING);
@@ -195,7 +195,7 @@ class AdoptionServiceTest {
         given(adoptionRepository.findByMemberId(memberId)).willReturn(List.of(adoption1, adoption2));
 
         // when
-        List<AdoptionResponseDto> result = adoptionService.getAdoptions(memberId);
+        List<AdoptionResponse> result = adoptionService.getMemberAdoptions(memberId);
 
         // then
         assertThat(result).hasSize(2);
@@ -215,7 +215,7 @@ class AdoptionServiceTest {
         given(adoptionRepository.findAllWithFetchJoin()).willReturn(List.of(adoption1, adoption2));
 
         // when
-        List<AdoptionResponseDto> result = adoptionService.getAllAdoptions();
+        List<AdoptionResponse> result = adoptionService.getAllAdoptions();
 
         // then
         assertThat(result).hasSize(2);
@@ -232,7 +232,7 @@ class AdoptionServiceTest {
         given(adoptionRepository.findAll(pageable)).willReturn(adoptionPage);
 
         // when
-        Page<AdoptionResponseDto> result = adoptionService.getAllAdoptions(pageable);
+        Page<AdoptionResponse> result = adoptionService.getAllAdoptions(pageable);
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
@@ -254,7 +254,7 @@ class AdoptionServiceTest {
                 .willReturn(List.of(otherPendingAdoption));
 
         // when
-        AdoptionResponseDto response = adoptionService.updateStatus(adoptionId, AdoptionStatus.APPROVED);
+        AdoptionResponse response = adoptionService.updateStatus(adoptionId, AdoptionStatus.APPROVED);
 
         // then
         assertThat(response.status()).isEqualTo(AdoptionStatus.APPROVED);
@@ -273,7 +273,7 @@ class AdoptionServiceTest {
         given(adoptionRepository.existsByAnimalAndStatusAndIdNot(animal, AdoptionStatus.PENDING, adoptionId)).willReturn(false);
 
         // when
-        AdoptionResponseDto response = adoptionService.updateStatus(adoptionId, AdoptionStatus.REJECTED);
+        AdoptionResponse response = adoptionService.updateStatus(adoptionId, AdoptionStatus.REJECTED);
 
         // then
         assertThat(response.status()).isEqualTo(AdoptionStatus.REJECTED);
@@ -292,7 +292,7 @@ class AdoptionServiceTest {
         given(adoptionRepository.existsByAnimalAndStatusAndIdNot(animal, AdoptionStatus.PENDING, adoptionId)).willReturn(true);
 
         // when
-        AdoptionResponseDto response = adoptionService.updateStatus(adoptionId, AdoptionStatus.REJECTED);
+        AdoptionResponse response = adoptionService.updateStatus(adoptionId, AdoptionStatus.REJECTED);
 
         // then
         assertThat(response.status()).isEqualTo(AdoptionStatus.REJECTED);

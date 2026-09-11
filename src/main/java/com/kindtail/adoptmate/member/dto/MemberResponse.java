@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 @Builder
-public record MemberResponseDto(
+public record MemberResponse(
         Long id,
         @NotBlank(message = "이름은 필수입니다.")
         String name,
@@ -25,8 +25,8 @@ public record MemberResponseDto(
         String socialId
 ) {
 
-    public static MemberResponseDto from(Member member) {
-        return new MemberResponseDto(
+    public static MemberResponse from(Member member) {
+        return new MemberResponse(
                 member.getId(),
                 member.getName(),
                 member.getEmail(),

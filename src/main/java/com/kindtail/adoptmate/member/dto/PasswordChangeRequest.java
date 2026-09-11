@@ -3,7 +3,7 @@ package com.kindtail.adoptmate.member.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record PasswordChangeRequestDto(
+public record PasswordChangeRequest(
         @NotBlank(message = "현재 비밀번호를 입력해주세요.")
         String currentPassword,
 

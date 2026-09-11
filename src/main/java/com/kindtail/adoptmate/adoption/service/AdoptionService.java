@@ -3,7 +3,7 @@ package com.kindtail.adoptmate.adoption.service;
 import com.kindtail.adoptmate.adoption.domain.Adoption;
 import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
 import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
-import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
+import com.kindtail.adoptmate.adoption.dto.AdoptionResponse;
 import com.kindtail.adoptmate.adoption.repository.AdoptionRepository;
 import com.kindtail.adoptmate.animal.domain.Animal;
 import com.kindtail.adoptmate.animal.domain.Status;
@@ -36,7 +36,7 @@ public class AdoptionService {
     }
 
     @Transactional
-    public AdoptionResponseDto applyAdoption(AdoptionCreateRequest dto, Long memberId, Long animalId) {
+    public AdoptionResponse applyAdoption(AdoptionCreateRequest dto, Long memberId, Long animalId) {
         Animal animal = animalRepository.findById(animalId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
         Member member = memberRepository.findById(memberId)
@@ -63,33 +63,33 @@ public class AdoptionService {
         // 📌 4. 신청 접수 시 동물 상태를 '입양 대기(WAITING)'로 자동 전환
         animal.updateStatus(Status.WAITING);
 
-        return AdoptionResponseDto.from(saved);
+        return AdoptionResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
-    public List<AdoptionResponseDto> getAdoptions(Long memberId) {
+    public List<AdoptionResponse> getMemberAdoptions(Long memberId) {
         List<Adoption> adoptions = adoptionRepository.findByMemberId(memberId);
         return adoptions.stream()
-                .map(AdoptionResponseDto::from)
+                .map(AdoptionResponse::from)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public Page<AdoptionResponseDto> getAllAdoptions(Pageable pageable) {
+    public Page<AdoptionResponse> getAllAdoptions(Pageable pageable) {
         Page<Adoption> adoptions = adoptionRepository.findAll(pageable);
-        return adoptions.map(AdoptionResponseDto::from);
+        return adoptions.map(AdoptionResponse::from);
     }
 
     @Transactional(readOnly = true)
-    public List<AdoptionResponseDto> getAllAdoptions() {
+    public List<AdoptionResponse> getAllAdoptions() {
         List<Adoption> adoptions = adoptionRepository.findAllWithFetchJoin();
         return adoptions.stream()
-                .map(AdoptionResponseDto::from)
+                .map(AdoptionResponse::from)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public AdoptionResponseDto updateStatus(Long adoptionId, AdoptionStatus status) {
+    public AdoptionResponse updateStatus(Long adoptionId, AdoptionStatus status) {
         Adoption adoption = adoptionRepository.findByIdWithFetchJoin(adoptionId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ADOPTION_NOT_FOUND));
 
@@ -120,7 +120,7 @@ public class AdoptionService {
             throw new CustomException(ErrorCode.INVALID_ADOPTION_STATUS_TRANSITION);
         }
 
-        return AdoptionResponseDto.from(adoption);
+        return AdoptionResponse.from(adoption);
     }
 }
 

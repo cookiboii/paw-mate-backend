@@ -3,7 +3,7 @@ package com.kindtail.adoptmate.adoption.facade;
 import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
 import com.kindtail.adoptmate.adoption.domain.HousingType;
 import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
-import com.kindtail.adoptmate.adoption.dto.AdoptionResponseDto;
+import com.kindtail.adoptmate.adoption.dto.AdoptionResponse;
 import com.kindtail.adoptmate.adoption.repository.AdoptionRepository;
 import com.kindtail.adoptmate.adoption.service.AdoptionService;
 import com.kindtail.adoptmate.common.lock.DistributedLockTemplate;
@@ -48,7 +48,7 @@ class AdoptionFacadeTest {
         AdoptionCreateRequest request = new AdoptionCreateRequest(
                 "010-1234-5678", HousingType.APARTMENT, "없음", "이유"
         );
-        AdoptionResponseDto expectedResponse = new AdoptionResponseDto(
+        AdoptionResponse expectedResponse = new AdoptionResponse(
                 1L, animalId, "말티즈", "image.jpg", "신청자",
                 "010-1234-5678", HousingType.APARTMENT, "없음", "이유",
                 AdoptionStatus.PENDING, LocalDateTime.now()
@@ -56,13 +56,13 @@ class AdoptionFacadeTest {
 
         given(distributedLockTemplate.execute(eq("animal:10"), any(Supplier.class)))
                 .willAnswer(invocation -> {
-                    Supplier<AdoptionResponseDto> supplier = invocation.getArgument(1);
+                    Supplier<AdoptionResponse> supplier = invocation.getArgument(1);
                     return supplier.get();
                 });
         given(adoptionService.applyAdoption(request, memberId, animalId)).willReturn(expectedResponse);
 
         // when
-        AdoptionResponseDto result = adoptionFacade.applyAdoption(request, memberId, animalId);
+        AdoptionResponse result = adoptionFacade.applyAdoption(request, memberId, animalId);
 
         // then
         assertThat(result).isEqualTo(expectedResponse);
@@ -77,7 +77,7 @@ class AdoptionFacadeTest {
         // given
         Long adoptionId = 5L;
         Long animalId = 10L;
-        AdoptionResponseDto expectedResponse = new AdoptionResponseDto(
+        AdoptionResponse expectedResponse = new AdoptionResponse(
                 adoptionId, animalId, "말티즈", "image.jpg", "신청자",
                 "010-1234-5678", HousingType.APARTMENT, "없음", "이유",
                 AdoptionStatus.APPROVED, LocalDateTime.now()
@@ -86,13 +86,13 @@ class AdoptionFacadeTest {
         given(adoptionRepository.findAnimalIdById(adoptionId)).willReturn(java.util.Optional.of(animalId));
         given(distributedLockTemplate.execute(eq("animal:10"), any(Supplier.class)))
                 .willAnswer(invocation -> {
-                    Supplier<AdoptionResponseDto> supplier = invocation.getArgument(1);
+                    Supplier<AdoptionResponse> supplier = invocation.getArgument(1);
                     return supplier.get();
                 });
         given(adoptionService.updateStatus(adoptionId, AdoptionStatus.APPROVED)).willReturn(expectedResponse);
 
         // when
-        AdoptionResponseDto result = adoptionFacade.updateStatus(adoptionId, AdoptionStatus.APPROVED);
+        AdoptionResponse result = adoptionFacade.updateStatus(adoptionId, AdoptionStatus.APPROVED);
 
         // then
         assertThat(result).isEqualTo(expectedResponse);

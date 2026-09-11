@@ -12,7 +12,7 @@ import com.kindtail.adoptmate.animal.domain.Status;
 import com.kindtail.adoptmate.animal.repository.AnimalRepository;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
-import com.kindtail.adoptmate.member.dto.MemberRegisterRequestDto;
+import com.kindtail.adoptmate.member.dto.MemberRegisterRequest;
 import com.kindtail.adoptmate.member.facade.MemberFacade;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -180,7 +180,7 @@ class DistributedLockTest {
                 try {
                     startLatch.await();
 
-                    MemberRegisterRequestDto dto = new MemberRegisterRequestDto(
+                    MemberRegisterRequest dto = new MemberRegisterRequest(
                             "동시가입자",
                             duplicateEmail,
                             "password123!",
