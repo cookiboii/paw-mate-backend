@@ -6,11 +6,13 @@ import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.dto.*;
+import com.kindtail.adoptmate.member.event.MemberSessionInvalidationEvent;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.auth.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,7 +34,9 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void logout(String accessToken) {
         try {
             String email = jwtTokenProvider.getEmailFromToken(accessToken);
@@ -45,6 +49,7 @@ public class MemberService {
         }
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void saveRefreshToken(String email, String refreshToken) {
         redisTemplate.opsForValue().set(
                 "refreshToken:" + email,
@@ -53,6 +58,7 @@ public class MemberService {
         );
     }
 
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public TokenRefreshResponse refreshAccessToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new CustomException(ErrorCode.UNAUTHORIZED, "Refresh Token이 제공되지 않았습니다.");
@@ -176,14 +182,7 @@ public class MemberService {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
         memberRepository.delete(member);
-
-        // Redis RefreshToken 삭제
-        redisTemplate.delete("refreshToken:" + email);
-
-        // AccessToken Blacklist 등록
-        if (accessToken != null && !accessToken.isBlank()) {
-            logout(accessToken);
-        }
+        eventPublisher.publishEvent(new MemberSessionInvalidationEvent(email, accessToken));
 
     }
 
@@ -205,11 +204,7 @@ public class MemberService {
 
         String email = member.getEmail();
         memberRepository.delete(member);
-
-        // Redis RefreshToken 무효화
-        redisTemplate.delete("refreshToken:" + email);
-
-        // userDetails 캐시 무효화
+        eventPublisher.publishEvent(new MemberSessionInvalidationEvent(email, null));
     }
 
     @Transactional

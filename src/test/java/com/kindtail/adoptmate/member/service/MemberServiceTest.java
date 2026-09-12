@@ -6,6 +6,7 @@ import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.dto.*;
+import com.kindtail.adoptmate.member.event.MemberSessionInvalidationEvent;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Duration;
@@ -43,6 +45,10 @@ class MemberServiceTest {
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
 
     @Mock
     private ValueOperations<String, Object> valueOperations;
@@ -260,7 +266,7 @@ class MemberServiceTest {
 
         // then
         verify(memberRepository).delete(targetMember);
-        verify(redisTemplate).delete("refreshToken:user@example.com");
+        verify(eventPublisher).publishEvent(any(MemberSessionInvalidationEvent.class));
     }
 
     @Test

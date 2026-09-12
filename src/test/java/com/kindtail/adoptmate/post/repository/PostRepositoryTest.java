@@ -12,6 +12,8 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -27,6 +29,9 @@ class PostRepositoryTest {
 
     @Autowired
     private MemberRepository memberRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private Member testMember;
 
@@ -118,6 +123,9 @@ class PostRepositoryTest {
                 first = saved;
             }
         }
+
+        entityManager.flush();
+        entityManager.clear();
 
         // when (첫 페이지: lastPostId null)
         org.springframework.data.domain.Slice<Post> firstSlice = postRepository.findPostsByCursor(null, null, PageRequest.of(0, 2));

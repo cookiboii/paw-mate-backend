@@ -30,7 +30,7 @@ spring:
         format_sql: false
         show_sql: false
         default_batch_fetch_size: 100
-    open-in-view: true
+    open-in-view: false
 
   data:
     redis:

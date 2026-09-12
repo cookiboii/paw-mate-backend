@@ -11,7 +11,6 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.Optional;
@@ -21,10 +20,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
-    private final MemberRepository memberRepository;
+    private final OAuth2MemberPersistenceService oauth2MemberPersistenceService;
 
     @Override
-    @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
@@ -72,25 +70,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         final String finalProfileImage = profileImage;
         final String finalSocialId = socialId;
 
-        Member member = memberRepository.findByAuthProviderAndSocialId(authProvider, socialId)
-                .orElseGet(() -> {
-                    Optional<Member> existingMember = memberRepository.findByEmail(finalEmail);
-                    if (existingMember.isPresent()) {
-                        Member found = existingMember.get();
-                        found.updateSocialInfo(finalAuthProvider, finalSocialId, finalProfileImage);
-                        return found;
-                    }
-                    // 신규 회원 등록
-                    Member newMember = Member.builder()
-                            .email(finalEmail)
-                            .name(finalName)
-                            .profileImage(finalProfileImage)
-                            .socialId(finalSocialId)
-                            .authProvider(finalAuthProvider)
-                            .role(Role.USER)
-                            .build();
-                    return memberRepository.save(newMember);
-                });
+        Member member = oauth2MemberPersistenceService.findOrCreate(
+                finalAuthProvider, finalSocialId, finalEmail, finalName, finalProfileImage
+        );
 
         return new CustomUserDetails(member, attributes);
     }

@@ -28,6 +28,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.SliceImpl;
 
 @Service
 @RequiredArgsConstructor
@@ -61,7 +68,7 @@ public class PostService {
     public Page<PostResponse> getAllPosts(Pageable pageable) {
         Page<Post> posts = postRepository.findAll(pageable);
         Long memberId = SecurityUtil.getOptionalCurrentUserId().orElse(null);
-        return posts.map(post -> toResponse(post, memberId));
+        return new PageImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.getTotalElements());
     }
 
     @Transactional(readOnly = true)
@@ -69,7 +76,7 @@ public class PostService {
         Pageable pageable = PageRequest.of(0, size);
         Slice<Post> posts = postRepository.findPostsByCursor(lastPostId, findCursorCreatedAt(lastPostId), pageable);
         Long memberId = SecurityUtil.getOptionalCurrentUserId().orElse(null);
-        return posts.map(post -> toResponse(post, memberId));
+        return new SliceImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.hasNext());
     }
 
     @Transactional(readOnly = true)
@@ -86,7 +93,7 @@ public class PostService {
             default -> throw new IllegalArgumentException("sort must be latest, popular, or comments");
         };
         Long memberId = SecurityUtil.getOptionalCurrentUserId().orElse(null);
-        return posts.map(post -> toResponse(post, memberId));
+        return new SliceImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.hasNext());
     }
 
     @Transactional
@@ -161,8 +168,8 @@ public class PostService {
     public Slice<PostResponse> getMyBookmarks(int size) {
         if (size < 1 || size > 100) throw new IllegalArgumentException("size must be between 1 and 100");
         Long memberId = SecurityUtil.getCurrentUserId();
-        return postBookmarkRepository.findPostsByMemberIdOrderByCreatedAtDesc(memberId, PageRequest.of(0, size))
-                .map(post -> toResponse(post, memberId));
+        Slice<Post> posts = postBookmarkRepository.findPostsByMemberIdOrderByCreatedAtDesc(memberId, PageRequest.of(0, size));
+        return new SliceImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.hasNext());
     }
 
     private PostResponse toResponse(Post post, Long memberId) {
@@ -172,6 +179,34 @@ public class PostService {
         boolean liked = memberId != null && postLikeRepository != null && postLikeRepository.existsByPostIdAndMemberId(post.getId(), memberId);
         boolean bookmarked = memberId != null && postBookmarkRepository != null && postBookmarkRepository.existsByPostIdAndMemberId(post.getId(), memberId);
         return PostResponse.from(post, likeCount, commentCount, liked, bookmarked);
+    }
+
+    private List<PostResponse> toResponses(List<Post> posts, Long memberId) {
+        if (posts.isEmpty() || postLikeRepository == null || commentRepository == null) {
+            return posts.stream().map(post -> toResponse(post, memberId)).toList();
+        }
+
+        List<Long> postIds = posts.stream().map(Post::getId).toList();
+        Map<Long, Long> likeCounts = countByPostId(postLikeRepository.countByPostIds(postIds));
+        Map<Long, Long> commentCounts = countByPostId(commentRepository.countByPostIds(postIds));
+        Set<Long> likedPostIds = memberId == null ? Set.of() : Set.copyOf(postLikeRepository.findLikedPostIds(postIds, memberId));
+        Set<Long> bookmarkedPostIds = memberId == null || postBookmarkRepository == null
+                ? Set.of() : Set.copyOf(postBookmarkRepository.findBookmarkedPostIds(postIds, memberId));
+
+        return posts.stream()
+                .map(post -> PostResponse.from(post,
+                        likeCounts.getOrDefault(post.getId(), 0L),
+                        commentCounts.getOrDefault(post.getId(), 0L),
+                        likedPostIds.contains(post.getId()),
+                        bookmarkedPostIds.contains(post.getId())))
+                .toList();
+    }
+
+    private Map<Long, Long> countByPostId(List<Object[]> rows) {
+        return rows.stream().collect(Collectors.toMap(
+                row -> (Long) row[0],
+                row -> ((Number) row[1]).longValue()
+        ));
     }
 
     private LocalDateTime findCursorCreatedAt(Long lastPostId) {

@@ -72,8 +72,15 @@ public class AnimalFavoriteService {
         return new FavoriteToggleResponse(animalId, isFavorite, favoriteCount);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public FavoriteToggleResponse removeFavorite(Long animalId, Long memberId) {
+        return distributedLockTemplate.execute(
+                "favorite:" + memberId + ":" + animalId,
+                () -> transactionTemplate.execute(status -> removeFavoriteWithinLock(animalId, memberId))
+        );
+    }
+
+    private FavoriteToggleResponse removeFavoriteWithinLock(Long animalId, Long memberId) {
         Animal animal = animalRepository.findById(animalId)
                 .orElseThrow(() -> new CustomException(ErrorCode.ANIMAL_NOT_FOUND));
 
