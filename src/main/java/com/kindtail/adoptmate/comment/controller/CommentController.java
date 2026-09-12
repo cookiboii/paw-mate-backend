@@ -8,11 +8,13 @@ import com.kindtail.adoptmate.common.dto.CommonResponse;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/comment")
@@ -30,8 +32,11 @@ public class CommentController implements CommentControllerDocs {
 
     @Override
     @GetMapping("/{postId}")
-    public ResponseEntity<CommonResponse<List<CommentResponse>>> getComments(@PathVariable Long postId) {
-        List<CommentResponse> comments = commentService.getComments(postId);
+    public ResponseEntity<CommonResponse<Page<CommentResponse>>> getComments(
+            @PathVariable Long postId,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        Page<CommentResponse> comments = commentService.getComments(postId, pageable);
         return CommonResponse.toResponseEntity(SuccessCode.COMMENT_LIST_SUCCESS, comments);
     }
 

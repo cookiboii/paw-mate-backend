@@ -44,10 +44,10 @@ public class MemberController implements MemberControllerDocs {
     public ResponseEntity<CommonResponse<TokenRefreshResponse>> refreshToken(
             @Valid @RequestBody TokenRefreshRequest request
     ) {
-        String newToken = memberService.refreshAccessToken(request.refreshToken());
+        TokenRefreshResponse response = memberService.refreshAccessToken(request.refreshToken());
         return CommonResponse.toResponseEntity(
                 SuccessCode.TOKEN_REISSUE_SUCCESS,
-                new TokenRefreshResponse(newToken)
+                response
         );
     }
 

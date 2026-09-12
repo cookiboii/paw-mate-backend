@@ -9,6 +9,7 @@ import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.common.service.EmailVerificationService;
 import com.kindtail.adoptmate.member.dto.PasswordResetRequest;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,8 +27,11 @@ public class EmailVerificationController implements EmailVerificationControllerD
 
     @Override
     @PostMapping("/verify-email")
-    public ResponseEntity<CommonResponse<Void>> sendVerificationEmail(@Valid @RequestBody EmailSendRequest request) {
-        emailVerificationService.mailCheck(request.email());
+    public ResponseEntity<CommonResponse<Void>> sendVerificationEmail(
+            @Valid @RequestBody EmailSendRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        emailVerificationService.sendRegistrationVerification(request.email(), httpRequest.getRemoteAddr());
         return CommonResponse.toResponseEntity(SuccessCode.EMAIL_SEND_SUCCESS);
     }
 

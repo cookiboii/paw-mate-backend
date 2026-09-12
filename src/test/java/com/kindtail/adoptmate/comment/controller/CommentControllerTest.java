@@ -13,6 +13,8 @@ import com.kindtail.adoptmate.member.domain.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -104,17 +106,22 @@ class CommentControllerTest {
     void getComments_성공() throws Exception {
         // given
         Long postId = 1L;
-        given(commentService.getComments(postId)).willReturn(List.of(response));
+        given(commentService.getComments(eq(postId), any())).willReturn(
+                new PageImpl<>(List.of(response), PageRequest.of(0, 20), 1)
+        );
 
         // when
-        ResultActions resultActions = mockMvc.perform(get("/comment/{postId}", postId));
+        ResultActions resultActions = mockMvc.perform(get("/comment/{postId}", postId)
+                .param("page", "0")
+                .param("size", "20"));
 
         // then
         resultActions.andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.statusCode").value(200))
                 .andExpect(jsonPath("$.statusMessage").value("보기성공"))
-                .andExpect(jsonPath("$.result[0].authorName").value("댓글작성자"));
+                .andExpect(jsonPath("$.result.content[0].authorName").value("댓글작성자"))
+                .andExpect(jsonPath("$.result.totalElements").value(1));
     }
 
     @Test

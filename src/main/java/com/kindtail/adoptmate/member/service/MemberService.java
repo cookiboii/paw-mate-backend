@@ -51,7 +51,7 @@ public class MemberService {
         );
     }
 
-    public String refreshAccessToken(String refreshToken) {
+    public TokenRefreshResponse refreshAccessToken(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new CustomException(ErrorCode.UNAUTHORIZED, "Refresh Token이 제공되지 않았습니다.");
         }
@@ -70,7 +70,11 @@ public class MemberService {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
-        return jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString());
+        String newAccessToken = jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString());
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(member.getEmail());
+        // Replace the stored token so a refresh token cannot be replayed after use.
+        saveRefreshToken(member.getEmail(), newRefreshToken);
+        return new TokenRefreshResponse(newAccessToken, newRefreshToken);
     }
 
     @Value("${app.email-verification.required:false}")

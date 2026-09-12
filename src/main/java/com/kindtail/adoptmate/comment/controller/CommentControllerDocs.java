@@ -10,11 +10,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-
-import java.util.List;
 
 @Tag(name = "7. 댓글 & 계층형 대댓글 API", description = "게시글 댓글 작성, 계층형 대댓글 트리 목록 조회, 수정, 삭제 API")
 public interface CommentControllerDocs {
@@ -30,13 +30,14 @@ public interface CommentControllerDocs {
             @Valid @RequestBody CommentCreateRequest request
     );
 
-    @Operation(summary = "게시글 댓글 목록 조회 (계층형 대댓글 트리)", description = "특정 게시글의 모든 댓글과 자식 답글들을 계층형 트리 구조로 조회합니다.")
+    @Operation(summary = "게시글 댓글 목록 조회 (최상위 댓글 페이지)", description = "최상위 댓글만 페이지 단위로 조회하고, 각 댓글에 포함된 children으로 대댓글을 함께 반환합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "댓글 목록 조회 성공"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글")
     })
-    ResponseEntity<CommonResponse<List<CommentResponse>>> getComments(
-            @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId
+    ResponseEntity<CommonResponse<Page<CommentResponse>>> getComments(
+            @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId,
+            @Parameter(description = "0부터 시작하는 페이지 번호 (기본값: 0)", example = "0") Pageable pageable
     );
 
     @Operation(summary = "댓글 삭제", description = "댓글을 삭제합니다. (작성자 본인 또는 관리자만 가능)")

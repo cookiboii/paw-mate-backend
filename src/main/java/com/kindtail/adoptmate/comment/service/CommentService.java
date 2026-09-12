@@ -17,8 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -56,13 +56,11 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentResponse> getComments(Long id) {
+    public Page<CommentResponse> getComments(Long id, Pageable pageable) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
-        List<Comment> rootComments = commentRepository.findByPostAndParentIsNull(post);
-        return rootComments.stream()
-                .map(CommentResponse::fromComment)
-                .collect(Collectors.toList());
+        return commentRepository.findByPostAndParentIsNull(post, pageable)
+                .map(CommentResponse::fromComment);
     }
 
     @Transactional

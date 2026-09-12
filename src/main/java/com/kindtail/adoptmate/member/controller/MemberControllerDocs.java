@@ -35,7 +35,7 @@ public interface MemberControllerDocs {
     })
     ResponseEntity<CommonResponse<com.kindtail.adoptmate.member.dto.MemberLoginResponse>> login(@RequestBody @Valid MemberLoginRequest dto);
 
-    @Operation(summary = "Access Token 재발급", description = "Redis에 저장된 유효한 Refresh Token으로 새로운 Access Token을 발급받습니다.")
+    @Operation(summary = "토큰 재발급", description = "Redis에 저장된 유효한 Refresh Token으로 새 Access Token과 Refresh Token을 발급하고, 기존 Refresh Token은 폐기합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "토큰 재발급 성공"),
             @ApiResponse(responseCode = "401", description = "유효하지 않거나 만료된 Refresh Token")

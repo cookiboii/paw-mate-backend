@@ -29,7 +29,8 @@
 - Spring Security는 세션을 만들지 않는 Stateless 방식으로 동작합니다.
 - `JwtAuthFilter`는 Bearer 토큰을 검증하고, Redis 블랙리스트에 등록된 로그아웃 토큰을 차단합니다.
 - 토큰의 이메일로 `CustomUserDetailsService`를 다시 조회하므로, 탈퇴·권한 변경 등 회원 상태를 인증 과정에 반영합니다.
-- Refresh Token은 Redis에 저장하며, Access Token 재발급·로그아웃·회원 탈퇴에 사용합니다.
+- Refresh Token은 Redis에 저장하며, Access Token 재발급·로그아웃·회원 탈퇴에 사용합니다. 재발급 시 Access Token과 Refresh Token을 모두 새로 발급하고 Redis 값을 교체하는 rotation 방식을 사용하므로, 기존 Refresh Token은 다시 사용할 수 없습니다.
+- Access Token과 Refresh Token에는 각각 고유한 JWT ID(`jti`)가 포함됩니다.
 - 비밀번호는 BCrypt로 해시 처리합니다.
 - 카카오 OAuth2 로그인과 일반 이메일 로그인을 모두 지원하며, 회원의 인증 제공자는 `AuthProvider`로 구분합니다.
 - 관리자 전용 기능은 `@PreAuthorize("hasRole('ADMIN')")`로 보호합니다.
@@ -66,6 +67,18 @@
 | Cursor (`Slice`) | `/animals/cursor`, `/post/cursor` | `lastAnimalId`, `lastPostId` 기반. Count 쿼리 없이 무한 스크롤에 적합 |
 
 커서 조회는 ID 내림차순 Keyset 조건을 사용합니다. 요청 크기는 최대 100개로 제한됩니다.
+
+### 댓글 페이지네이션 정책
+
+대댓글 관계를 보존하기 위해 **최상위 댓글만 페이지네이션**합니다. 각 최상위 댓글을 조회할 때는 해당 댓글의 대댓글을 함께 반환하므로, 하나의 댓글 스레드가 서로 다른 페이지로 나뉘지 않습니다.
+
+```text
+GET /comment/{postId}?page=0&size=20
+```
+
+- `page`는 0부터 시작하며, `size`의 기본값은 20입니다.
+- 응답의 `result.content`에는 최상위 댓글과 각 댓글의 `children`이 포함됩니다.
+- 대댓글이 매우 많은 경우에는 대댓글 전용 조회 API를 추가해 필요할 때 더 불러옵니다.
 
 ### Swagger 문서
 
@@ -207,7 +220,7 @@ Content-Type: application/json
 }
 ```
 
-성공 시 `result.token`, `result.refreshToken`, `result.email`, `result.role`을 받습니다. Access Token 만료로 `401`이 발생하면 아래 API로 새 Access Token을 받고, 실패하면 로그인 화면으로 이동합니다.
+성공 시 `result.token`, `result.refreshToken`, `result.email`, `result.role`을 받습니다. Access Token 만료로 `401`이 발생하면 아래 API로 Access Token과 Refresh Token을 모두 새로 발급받고, 실패하면 로그인 화면으로 이동합니다.
 
 ```http
 POST /adoptmate/refresh-token
@@ -218,7 +231,7 @@ Content-Type: application/json
 }
 ```
 
-재발급 성공 응답의 Access Token은 `result.token`입니다. 로그아웃은 `POST /adoptmate/logout`에 현재 Access Token을 담아 요청합니다.
+재발급 성공 응답은 `result.token`(새 Access Token)과 `result.refreshToken`(새 Refresh Token)을 반환합니다. 새 Refresh Token을 저장하고 기존 Refresh Token은 폐기해야 합니다. 로그아웃은 `POST /adoptmate/logout`에 현재 Access Token을 담아 요청합니다.
 
 ### 공통 응답 처리
 
@@ -486,7 +499,7 @@ erDiagram
 | --- | --- | --- | --- | --- |
 | POST | `/adoptmate/register` | 공개 | `name`, `email`, `password`(6자 이상), `role`(`USER`/`ADMIN`) | `id`, `name`, `email`, `password`, `role`, `profileImage`, `authProvider`, `socialId` |
 | POST | `/adoptmate/login` | 공개 | `email`, `password` | `token`, `refreshToken`, `email`, `role` |
-| POST | `/adoptmate/refresh-token` | 공개 | `refreshToken` | `token` |
+| POST | `/adoptmate/refresh-token` | 공개 | `refreshToken` | `token`, `refreshToken` |
 | POST | `/adoptmate/logout` | 인증 | 없음 | `null` |
 | GET | `/adoptmate/myInfo` | 인증 | 없음 | `id`, `name`, `email`, `role` |
 | GET | `/adoptmate/all` | ADMIN | 없음 | 회원 정보 배열 |
@@ -534,7 +547,7 @@ erDiagram
 
 ### 게시글 · 댓글
 
-게시글 작성·수정은 `title`, `content`가 필수이고 `img`는 선택입니다. 게시글 응답은 `id`, `title`, `content`, `email`, `name`, `createAt`, `img`입니다. 댓글 작성은 `content`와 `parentId`(대댓글일 때만)를 사용하며, 댓글 응답의 `children`에는 하위 댓글 배열이 포함됩니다.
+게시글 작성·수정은 `title`, `content`가 필수이고 `img`는 선택입니다. 게시글 응답은 `id`, `title`, `content`, `email`, `name`, `createAt`, `img`입니다. 댓글 작성은 `content`와 `parentId`(대댓글일 때만)를 사용하며, 댓글 응답의 `children`에는 하위 댓글 배열이 포함됩니다. 댓글 목록은 최상위 댓글을 기준으로 페이지네이션하며, 각 최상위 댓글에는 해당 대댓글이 함께 포함됩니다.
 
 | 메서드 | 경로 | 권한 | 요청 | `result` |
 | --- | --- | --- | --- | --- |
@@ -545,7 +558,7 @@ erDiagram
 | PUT | `/api/v1/posts/{postId}` | 인증 | `title`, `content`, `img`(선택) | 변경된 게시글 1건 |
 | DELETE | `/api/v1/posts/{postId}` | 인증 | 경로: `postId` | `null` |
 | POST | `/comment/{postId}` | 인증 | `content`, `parentId`(선택) | 댓글 1건 |
-| GET | `/comment/{postId}` | 공개 | 경로: `postId` | 댓글 트리 배열 |
+| GET | `/comment/{postId}` | 공개 | 경로: `postId`, 쿼리: `page`(기본 0), `size`(기본 20) | 최상위 댓글 `Page` (`content`의 각 댓글에 `children` 포함) |
 | PUT | `/comment/{commentId}` | 인증 | `commentId`, `content` | 변경된 댓글 1건 |
 | DELETE | `/comment/{commentId}` | 인증 | 경로: `commentId` | `null` |
 
@@ -699,7 +712,7 @@ Content-Type: application/json
 {"parentId":null,"content":"따뜻한 후기 감사합니다."}
 ```
 
-대댓글은 같은 요청에서 `parentId`에 부모 댓글 ID를 지정합니다. 댓글 목록의 각 항목은 `id`, `authorName`, `authorId`, `authorEmail`, `content`, `createdAt`, `children`을 포함합니다.
+대댓글은 같은 요청에서 `parentId`에 부모 댓글 ID를 지정합니다. 댓글 목록은 `GET /comment/{postId}?page=0&size=20`으로 조회하며, `result.content`에는 최상위 댓글만 페이지 단위로 담깁니다. 각 항목은 `id`, `authorName`, `authorId`, `authorEmail`, `content`, `createdAt`, `children`을 포함하고, `children`에는 해당 최상위 댓글의 대댓글이 포함됩니다. 따라서 하나의 댓글 스레드는 서로 다른 페이지로 나뉘지 않습니다.
 
 </details>
 

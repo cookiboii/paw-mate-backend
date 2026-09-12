@@ -35,6 +35,9 @@ public class EmailVerificationService {
     private static final String RESET_ATTEMPT_KEY = "reset:attempt:";
     private static final String RESET_BLOCK_KEY = "reset:block:";
     private static final String RESET_SEND_KEY = "reset:send:";
+    private static final String SIGNUP_SEND_KEY = "signup:send:";
+    private static final String SIGNUP_IP_RATE_KEY = "signup:ip:";
+    private static final int MAX_SIGNUP_EMAILS_PER_IP = 10;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public String mailCheck(String email) {
@@ -60,6 +63,41 @@ public class EmailVerificationService {
         redisTemplate.opsForValue().set(key, authNum, Duration.ofMinutes(3));
         log.info("Verification code saved to Redis for {}", email);
         return authNum;
+    }
+
+    /** Sends a registration code without revealing whether the account already exists. */
+    public void sendRegistrationVerification(String email, String clientIp) {
+        enforceSignupIpRateLimit(clientIp);
+        Boolean firstRequest = redisTemplate.opsForValue().setIfAbsent(
+                SIGNUP_SEND_KEY + email, "sent", Duration.ofMinutes(1)
+        );
+        if (!Boolean.TRUE.equals(firstRequest)) {
+            throw new CustomException(ErrorCode.EMAIL_VERIFICATION_BLOCKED);
+        }
+
+        try {
+            if (memberRepository.findByEmail(email).isPresent()) {
+                return;
+            }
+            String authNum = mailSenderService.joinMail(email);
+            redisTemplate.opsForValue().set(VERIFICATION_CODE_KEY + email, authNum, Duration.ofMinutes(3));
+        } catch (MessagingException e) {
+            redisTemplate.delete(SIGNUP_SEND_KEY + email);
+            log.error("Failed to send verification email", e);
+            throw new CustomException(ErrorCode.EMAIL_SEND_FAILED);
+        }
+    }
+
+    private void enforceSignupIpRateLimit(String clientIp) {
+        String safeClientIp = (clientIp == null || clientIp.isBlank()) ? "unknown" : clientIp;
+        String key = SIGNUP_IP_RATE_KEY + safeClientIp;
+        Long count = redisTemplate.opsForValue().increment(key);
+        if (count != null && count == 1L) {
+            redisTemplate.expire(key, Duration.ofMinutes(10));
+        }
+        if (count != null && count > MAX_SIGNUP_EMAILS_PER_IP) {
+            throw new CustomException(ErrorCode.EMAIL_VERIFICATION_BLOCKED);
+        }
     }
 
     // 인증 코드 검증 로직

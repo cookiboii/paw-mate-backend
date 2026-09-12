@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.comment.dto;
 
 import com.kindtail.adoptmate.comment.domain.Comment;
+import com.kindtail.adoptmate.member.domain.Member;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,11 +16,12 @@ public record CommentResponse(
         List<CommentResponse> children
 ) {
     public static CommentResponse fromComment(Comment comment) {
+        Member member = comment.getMember();
         return new CommentResponse(
                 comment.getId(),
-                comment.getMember().getName(),
-                comment.getMember().getId(),
-                comment.getMember().getEmail(),
+                member != null ? member.getName() : "탈퇴한 사용자",
+                member != null ? member.getId() : null,
+                member != null ? member.getEmail() : null,
                 comment.getContent(),
                 comment.getCreatedAt(),
                 comment.getChildren().stream()

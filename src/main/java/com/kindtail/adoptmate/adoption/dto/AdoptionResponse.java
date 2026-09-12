@@ -5,6 +5,7 @@ import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
 import com.kindtail.adoptmate.adoption.domain.HousingType;
 
 import java.time.LocalDateTime;
+import com.kindtail.adoptmate.member.domain.Member;
 
 public record AdoptionResponse(
         Long adoptionId,
@@ -20,12 +21,13 @@ public record AdoptionResponse(
         LocalDateTime applyDate
 ) {
     public static AdoptionResponse from(Adoption adoption) {
+        Member member = adoption.getMember();
         return new AdoptionResponse(
                 adoption.getId(),
                 adoption.getAnimal().getId(),
                 adoption.getAnimal().getBreed(),
                 adoption.getAnimal().getImage(),
-                adoption.getMember().getName(),
+                member != null ? member.getName() : "탈퇴한 사용자",
                 adoption.getPhone(),
                 adoption.getHousingType(),
                 adoption.getHasPet(),

@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,7 +23,10 @@ public interface EmailVerificationControllerDocs {
             @ApiResponse(responseCode = "200", description = "인증 코드 전송 완료"),
             @ApiResponse(responseCode = "400", description = "유효하지 않은 이메일")
     })
-    ResponseEntity<CommonResponse<Void>> sendVerificationEmail(@Valid @RequestBody com.kindtail.adoptmate.common.dto.EmailSendRequest request);
+    ResponseEntity<CommonResponse<Void>> sendVerificationEmail(
+            @Valid @RequestBody com.kindtail.adoptmate.common.dto.EmailSendRequest request,
+            HttpServletRequest httpRequest
+    );
 
     @Operation(summary = "회원가입 이메일 인증 코드 확인", description = "전송받은 6자리 인증 코드를 검증합니다. (5회 연속 실패 시 30분간 차단)")
     @ApiResponses({

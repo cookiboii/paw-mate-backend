@@ -144,7 +144,8 @@ class MemberControllerTest {
         Map<String, String> request = new HashMap<>();
         request.put("refreshToken", "refreshToken123");
 
-        given(memberService.refreshAccessToken("refreshToken123")).willReturn("newAccessToken123");
+        given(memberService.refreshAccessToken("refreshToken123"))
+                .willReturn(new TokenRefreshResponse("newAccessToken123", "newRefreshToken123"));
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/adoptmate/refresh-token")
@@ -155,7 +156,8 @@ class MemberControllerTest {
         resultActions.andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.statusMessage").value("토큰 재발급 성공"))
-                .andExpect(jsonPath("$.result.token").value("newAccessToken123"));
+                .andExpect(jsonPath("$.result.token").value("newAccessToken123"))
+                .andExpect(jsonPath("$.result.refreshToken").value("newRefreshToken123"));
     }
 
     @Test

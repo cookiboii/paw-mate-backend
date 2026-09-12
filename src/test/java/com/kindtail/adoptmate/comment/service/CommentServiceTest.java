@@ -21,6 +21,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -168,18 +171,21 @@ class CommentServiceTest {
     }
 
     @Test
-    @DisplayName("게시글의 최상위 댓글 및 대댓글 목록을 조회할 수 있다")
+    @DisplayName("게시글의 최상위 댓글을 페이지 단위로 조회할 수 있다")
     void getComments_성공() {
         // given
+        PageRequest pageable = PageRequest.of(0, 20);
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
-        given(commentRepository.findByPostAndParentIsNull(testPost)).willReturn(List.of(parentComment));
+        given(commentRepository.findByPostAndParentIsNull(testPost, pageable))
+                .willReturn(new PageImpl<>(List.of(parentComment), pageable, 1));
 
         // when
-        List<CommentResponse> result = commentService.getComments(10L);
+        Page<CommentResponse> result = commentService.getComments(10L, pageable);
 
         // then
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).content()).isEqualTo("부모 댓글");
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).content()).isEqualTo("부모 댓글");
+        assertThat(result.getTotalElements()).isEqualTo(1);
     }
 
     @Test
