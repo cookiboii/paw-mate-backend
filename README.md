@@ -68,6 +68,16 @@
 
 게시글 커서는 정렬 기준과 ID를 함께 사용합니다. `latest`는 `createdAt DESC, id DESC`, `popular`는 `likeCount DESC, id DESC`, `comments`는 `commentCount DESC, id DESC`입니다. 요청 크기는 1~100개로 제한됩니다.
 
+#### 게시글 커서 쿼리 구현
+
+커서 기준 게시글의 값을 JPQL 서브쿼리에서 반복 조회하지 않습니다. 서비스 계층이 커서의 `createdAt`, 좋아요 수(`likeCount`), 댓글 수(`commentCount`)를 한 번 조회한 뒤 리포지토리 쿼리의 파라미터로 전달합니다.
+
+- `latest`: 커서의 `createdAt`과 ID로 다음 페이지를 판별합니다.
+- `popular`: 커서의 좋아요 수와 ID로 다음 페이지를 판별합니다.
+- `comments`: 커서의 댓글 수와 ID로 다음 페이지를 판별합니다.
+
+이 방식은 복잡하게 중첩된 JPQL 서브쿼리를 Hibernate가 초기화 시 파싱하면서 발생할 수 있는 `java.lang.OutOfMemoryError: Java heap space`를 방지하고, 정렬 동률에서는 ID를 보조 키로 사용해 페이지 간 중복·누락을 막습니다.
+
 ### 댓글 페이지네이션 정책
 
 대댓글 관계를 보존하기 위해 **최상위 댓글만 페이지네이션**합니다. 각 최상위 댓글을 조회할 때는 해당 댓글의 대댓글을 함께 반환하므로, 하나의 댓글 스레드가 서로 다른 페이지로 나뉘지 않습니다.

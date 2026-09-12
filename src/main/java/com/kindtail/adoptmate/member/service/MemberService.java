@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -24,6 +25,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MemberService {
 
     private final MemberRepository memberRepository;
@@ -113,7 +115,7 @@ public class MemberService {
         return MemberResponse.from(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public MemberLoginResponse login(MemberLoginRequest request) {
         Member member = authenticateMember(request);
 
@@ -124,8 +126,7 @@ public class MemberService {
         return new MemberLoginResponse(token, refreshToken, member.getEmail(), member.getRole());
     }
 
-    @Transactional(readOnly = true)
-    public Member authenticateMember(MemberLoginRequest request) {
+    private Member authenticateMember(MemberLoginRequest request) {
         String email = request.email();
         String password = request.password();
 
