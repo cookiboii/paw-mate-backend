@@ -120,7 +120,7 @@ class PostRepositoryTest {
         }
 
         // when (첫 페이지: lastPostId null)
-        org.springframework.data.domain.Slice<Post> firstSlice = postRepository.findPostsByCursor(null, PageRequest.of(0, 2));
+        org.springframework.data.domain.Slice<Post> firstSlice = postRepository.findPostsByCursor(null, null, PageRequest.of(0, 2));
 
         // then
         assertThat(firstSlice.getContent()).hasSize(2);
@@ -128,7 +128,8 @@ class PostRepositoryTest {
 
         // when (두 번째 페이지: lastPostId 지정)
         Long cursorId = firstSlice.getContent().get(1).getId();
-        org.springframework.data.domain.Slice<Post> secondSlice = postRepository.findPostsByCursor(cursorId, PageRequest.of(0, 2));
+        LocalDateTime cursorCreatedAt = postRepository.findById(cursorId).orElseThrow().getCreatedAt();
+        org.springframework.data.domain.Slice<Post> secondSlice = postRepository.findPostsByCursor(cursorId, cursorCreatedAt, PageRequest.of(0, 2));
 
         // then
         assertThat(secondSlice.getContent()).hasSize(2);

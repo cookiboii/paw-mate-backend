@@ -27,6 +27,8 @@ import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class PostService {
@@ -65,7 +67,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public Slice<PostResponse> getPostsByCursor(Long lastPostId, int size) {
         Pageable pageable = PageRequest.of(0, size);
-        Slice<Post> posts = postRepository.findPostsByCursor(lastPostId, pageable);
+        Slice<Post> posts = postRepository.findPostsByCursor(lastPostId, findCursorCreatedAt(lastPostId), pageable);
         Long memberId = SecurityUtil.getOptionalCurrentUserId().orElse(null);
         return posts.map(post -> toResponse(post, memberId));
     }
@@ -78,9 +80,9 @@ public class PostService {
         String normalizedSort = sort == null || sort.isBlank() ? "latest" : sort.trim().toLowerCase();
         Pageable pageable = PageRequest.of(0, size);
         Slice<Post> posts = switch (normalizedSort) {
-            case "latest" -> postRepository.searchLatest(lastPostId, postCategory, normalizedKeyword, pageable);
-            case "popular" -> postRepository.searchPopular(lastPostId, postCategory, normalizedKeyword, pageable);
-            case "comments" -> postRepository.searchByCommentCount(lastPostId, postCategory, normalizedKeyword, pageable);
+            case "latest" -> postRepository.searchLatest(lastPostId, findCursorCreatedAt(lastPostId), postCategory, normalizedKeyword, pageable);
+            case "popular" -> postRepository.searchPopular(lastPostId, countLikes(lastPostId), postCategory, normalizedKeyword, pageable);
+            case "comments" -> postRepository.searchByCommentCount(lastPostId, countComments(lastPostId), postCategory, normalizedKeyword, pageable);
             default -> throw new IllegalArgumentException("sort must be latest, popular, or comments");
         };
         Long memberId = SecurityUtil.getOptionalCurrentUserId().orElse(null);
@@ -170,5 +172,19 @@ public class PostService {
         boolean liked = memberId != null && postLikeRepository != null && postLikeRepository.existsByPostIdAndMemberId(post.getId(), memberId);
         boolean bookmarked = memberId != null && postBookmarkRepository != null && postBookmarkRepository.existsByPostIdAndMemberId(post.getId(), memberId);
         return PostResponse.from(post, likeCount, commentCount, liked, bookmarked);
+    }
+
+    private LocalDateTime findCursorCreatedAt(Long lastPostId) {
+        return lastPostId == null ? null : postRepository.findById(lastPostId)
+                .map(Post::getCreatedAt)
+                .orElse(null);
+    }
+
+    private long countLikes(Long lastPostId) {
+        return lastPostId == null ? 0L : postLikeRepository.countByPostId(lastPostId);
+    }
+
+    private long countComments(Long lastPostId) {
+        return lastPostId == null ? 0L : commentRepository.countByPostId(lastPostId);
     }
 }

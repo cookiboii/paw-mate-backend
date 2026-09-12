@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
@@ -26,18 +27,32 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Slice<Post> findSliceBy(Pageable pageable);
 
     @EntityGraph(attributePaths = {"member"})
-    @Query("SELECT p FROM Post p WHERE (:lastPostId IS NULL OR ((SELECT c.createdAt FROM Post c WHERE c.id = :lastPostId) IS NULL AND p.id < :lastPostId) OR (p.createdAt < (SELECT c.createdAt FROM Post c WHERE c.id = :lastPostId) OR (p.createdAt = (SELECT c.createdAt FROM Post c WHERE c.id = :lastPostId) AND p.id < :lastPostId))) ORDER BY p.createdAt DESC, p.id DESC")
-    Slice<Post> findPostsByCursor(@Param("lastPostId") Long lastPostId, Pageable pageable);
+    @Query("SELECT p FROM Post p WHERE :lastPostId IS NULL OR (:lastCreatedAt IS NULL AND p.id < :lastPostId) OR (:lastCreatedAt IS NOT NULL AND (p.createdAt < :lastCreatedAt OR (p.createdAt = :lastCreatedAt AND p.id < :lastPostId))) ORDER BY p.createdAt DESC, p.id DESC")
+    Slice<Post> findPostsByCursor(@Param("lastPostId") Long lastPostId,
+                                  @Param("lastCreatedAt") LocalDateTime lastCreatedAt,
+                                  Pageable pageable);
 
     @EntityGraph(attributePaths = {"member"})
-    @Query("SELECT p FROM Post p WHERE (:category IS NULL OR p.category = :category) AND (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR ((SELECT c.createdAt FROM Post c WHERE c.id = :lastPostId) IS NULL AND p.id < :lastPostId) OR (p.createdAt < (SELECT c.createdAt FROM Post c WHERE c.id = :lastPostId) OR (p.createdAt = (SELECT c.createdAt FROM Post c WHERE c.id = :lastPostId) AND p.id < :lastPostId))) ORDER BY p.createdAt DESC, p.id DESC")
-    Slice<Post> searchLatest(@Param("lastPostId") Long lastPostId, @Param("category") PostCategory category, @Param("keyword") String keyword, Pageable pageable);
+    @Query("SELECT p FROM Post p WHERE (:category IS NULL OR p.category = :category) AND (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR (:lastCreatedAt IS NULL AND p.id < :lastPostId) OR (:lastCreatedAt IS NOT NULL AND (p.createdAt < :lastCreatedAt OR (p.createdAt = :lastCreatedAt AND p.id < :lastPostId)))) ORDER BY p.createdAt DESC, p.id DESC")
+    Slice<Post> searchLatest(@Param("lastPostId") Long lastPostId,
+                              @Param("lastCreatedAt") LocalDateTime lastCreatedAt,
+                              @Param("category") PostCategory category,
+                              @Param("keyword") String keyword,
+                              Pageable pageable);
 
     @EntityGraph(attributePaths = {"member"})
-    @Query("SELECT p FROM Post p WHERE (:category IS NULL OR p.category = :category) AND (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR ((SELECT count(pl) FROM PostLike pl WHERE pl.post = p) < (SELECT count(cl) FROM PostLike cl WHERE cl.post.id = :lastPostId) OR ((SELECT count(pl) FROM PostLike pl WHERE pl.post = p) = (SELECT count(cl) FROM PostLike cl WHERE cl.post.id = :lastPostId) AND p.id < :lastPostId))) ORDER BY (SELECT count(pl) FROM PostLike pl WHERE pl.post = p) DESC, p.id DESC")
-    Slice<Post> searchPopular(@Param("lastPostId") Long lastPostId, @Param("category") PostCategory category, @Param("keyword") String keyword, Pageable pageable);
+    @Query("SELECT p FROM Post p WHERE (:category IS NULL OR p.category = :category) AND (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR (SELECT count(pl) FROM PostLike pl WHERE pl.post = p) < :lastLikeCount OR ((SELECT count(pl) FROM PostLike pl WHERE pl.post = p) = :lastLikeCount AND p.id < :lastPostId)) ORDER BY (SELECT count(pl) FROM PostLike pl WHERE pl.post = p) DESC, p.id DESC")
+    Slice<Post> searchPopular(@Param("lastPostId") Long lastPostId,
+                               @Param("lastLikeCount") long lastLikeCount,
+                               @Param("category") PostCategory category,
+                               @Param("keyword") String keyword,
+                               Pageable pageable);
 
     @EntityGraph(attributePaths = {"member"})
-    @Query("SELECT p FROM Post p WHERE (:category IS NULL OR p.category = :category) AND (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR ((SELECT count(cm) FROM Comment cm WHERE cm.post = p) < (SELECT count(cursorComment) FROM Comment cursorComment WHERE cursorComment.post.id = :lastPostId) OR ((SELECT count(cm) FROM Comment cm WHERE cm.post = p) = (SELECT count(cursorComment) FROM Comment cursorComment WHERE cursorComment.post.id = :lastPostId) AND p.id < :lastPostId))) ORDER BY (SELECT count(cm) FROM Comment cm WHERE cm.post = p) DESC, p.id DESC")
-    Slice<Post> searchByCommentCount(@Param("lastPostId") Long lastPostId, @Param("category") PostCategory category, @Param("keyword") String keyword, Pageable pageable);
+    @Query("SELECT p FROM Post p WHERE (:category IS NULL OR p.category = :category) AND (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR (SELECT count(cm) FROM Comment cm WHERE cm.post = p) < :lastCommentCount OR ((SELECT count(cm) FROM Comment cm WHERE cm.post = p) = :lastCommentCount AND p.id < :lastPostId)) ORDER BY (SELECT count(cm) FROM Comment cm WHERE cm.post = p) DESC, p.id DESC")
+    Slice<Post> searchByCommentCount(@Param("lastPostId") Long lastPostId,
+                                      @Param("lastCommentCount") long lastCommentCount,
+                                      @Param("category") PostCategory category,
+                                      @Param("keyword") String keyword,
+                                      Pageable pageable);
 }

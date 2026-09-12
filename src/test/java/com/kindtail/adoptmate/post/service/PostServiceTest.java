@@ -158,7 +158,7 @@ class PostServiceTest {
     void getPostsByCursor_성공() {
         // given
         Slice<Post> slice = new SliceImpl<>(List.of(testPost), PageRequest.of(0, 10), false);
-        given(postRepository.findPostsByCursor(any(), any(PageRequest.class))).willReturn(slice);
+        given(postRepository.findPostsByCursor(any(), any(), any(PageRequest.class))).willReturn(slice);
 
         // when
         Slice<PostResponse> result = postService.getPostsByCursor(10L, 10);
