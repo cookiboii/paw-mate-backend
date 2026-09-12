@@ -8,10 +8,15 @@ spring:
     password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 10
-      connection-timeout: 5000
-      leak-detection-threshold: 3000
+      # Keep these configurable per deployment.  Three seconds is too short for
+      # a leak detector and reports ordinary slow DB requests as connection leaks.
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${HIKARI_MIN_IDLE:2}
+      connection-timeout: ${HIKARI_CONNECTION_TIMEOUT:5000}
+      validation-timeout: ${HIKARI_VALIDATION_TIMEOUT:3000}
+      idle-timeout: ${HIKARI_IDLE_TIMEOUT:600000}
+      max-lifetime: ${HIKARI_MAX_LIFETIME:1800000}
+      leak-detection-threshold: ${HIKARI_LEAK_DETECTION_THRESHOLD:30000}
 
   jpa:
     hibernate:
