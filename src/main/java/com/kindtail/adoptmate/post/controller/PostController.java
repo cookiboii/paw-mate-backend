@@ -6,6 +6,8 @@ import com.kindtail.adoptmate.post.domain.Post;
 import com.kindtail.adoptmate.post.dto.PostCreateRequest;
 import com.kindtail.adoptmate.post.dto.PostResponse;
 import com.kindtail.adoptmate.post.dto.PostUpdateRequest;
+import com.kindtail.adoptmate.post.dto.LikeResponse;
+import com.kindtail.adoptmate.post.dto.BookmarkResponse;
 import com.kindtail.adoptmate.post.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -42,10 +44,42 @@ public class PostController implements PostControllerDocs {
     @GetMapping("/cursor")
     public ResponseEntity<CommonResponse<Slice<PostResponse>>> getPostsByCursor(
             @RequestParam(required = false) Long lastPostId,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sort
     ) {
-        Slice<PostResponse> postSlice = postService.getPostsByCursor(lastPostId, size);
+        // Keep the legacy cursor call working for older clients that send none of
+        // the new search parameters; all new cursor options use the richer query.
+        Slice<PostResponse> postSlice = category == null && keyword == null && (sort == null || "latest".equalsIgnoreCase(sort))
+                ? postService.getPostsByCursor(lastPostId, size)
+                : postService.searchPosts(lastPostId, size, category, keyword, sort);
         return CommonResponse.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postSlice);
+    }
+
+    @PostMapping("/{postId}/likes")
+    public ResponseEntity<CommonResponse<LikeResponse>> likePost(@PathVariable Long postId) {
+        return CommonResponse.toResponseEntity(SuccessCode.OK, postService.likePost(postId));
+    }
+
+    @DeleteMapping("/{postId}/likes")
+    public ResponseEntity<CommonResponse<LikeResponse>> unlikePost(@PathVariable Long postId) {
+        return CommonResponse.toResponseEntity(SuccessCode.OK, postService.unlikePost(postId));
+    }
+
+    @PostMapping("/{postId}/bookmarks")
+    public ResponseEntity<CommonResponse<BookmarkResponse>> bookmarkPost(@PathVariable Long postId) {
+        return CommonResponse.toResponseEntity(SuccessCode.OK, postService.bookmarkPost(postId));
+    }
+
+    @DeleteMapping("/{postId}/bookmarks")
+    public ResponseEntity<CommonResponse<BookmarkResponse>> removeBookmark(@PathVariable Long postId) {
+        return CommonResponse.toResponseEntity(SuccessCode.OK, postService.removeBookmark(postId));
+    }
+
+    @GetMapping("/bookmarks/me")
+    public ResponseEntity<CommonResponse<Slice<PostResponse>>> getMyBookmarks(@RequestParam(defaultValue = "20") int size) {
+        return CommonResponse.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postService.getMyBookmarks(size));
     }
 
     @Override

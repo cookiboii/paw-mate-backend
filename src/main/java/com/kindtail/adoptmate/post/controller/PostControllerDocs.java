@@ -42,7 +42,10 @@ public interface PostControllerDocs {
             @Parameter(description = "마지막으로 조회된 게시글 ID (첫 페이지 요청 시 생략 또는 null)", example = "10")
             @RequestParam(required = false) Long lastPostId,
             @Parameter(description = "조회할 게시글 수 (기본값: 10)", example = "10")
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sort
     );
 
     @Operation(summary = "게시글 상세 조회", description = "게시글 ID로 상세 내용 및 작성자 정보를 조회합니다.")

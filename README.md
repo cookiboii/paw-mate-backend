@@ -21,7 +21,7 @@
 - 카카오 OAuth2 로그인
 - 보호 동물 등록, 조회, 종별 조회, 상태 변경, 찜하기
 - 입양 신청과 승인·반려 상태 전이
-- 게시글·댓글 CRUD 및 커서 기반 목록 조회
+- 게시글·댓글 CRUD, 통합 검색, 좋아요·북마크 및 커서 기반 목록 조회
 - Redis 캐시, Redisson 분산 락, JPA 낙관적 락
 
 ## 인증·보안 구조
@@ -66,7 +66,7 @@
 | Offset 페이지 | `/animals/list`, `/post/list` | 전체 건수와 페이지 메타데이터가 필요한 화면에 적합 |
 | Cursor (`Slice`) | `/animals/cursor`, `/post/cursor` | `lastAnimalId`, `lastPostId` 기반. Count 쿼리 없이 무한 스크롤에 적합 |
 
-커서 조회는 ID 내림차순 Keyset 조건을 사용합니다. 요청 크기는 최대 100개로 제한됩니다.
+게시글 커서는 정렬 기준과 ID를 함께 사용합니다. `latest`는 `createdAt DESC, id DESC`, `popular`는 `likeCount DESC, id DESC`, `comments`는 `commentCount DESC, id DESC`입니다. 요청 크기는 1~100개로 제한됩니다.
 
 ### 댓글 페이지네이션 정책
 
@@ -415,6 +415,8 @@ erDiagram
 | `adoption` | 회원의 입양 신청서 | 회원·동물 참조, `(member_id, animal_id)` 유니크, `version` 낙관적 락 |
 | `animal_favorite` | 회원의 관심 동물 | `(member_id, animal_id)` 유니크로 중복 찜 방지 |
 | `post` | 커뮤니티 게시글 | 작성 회원 참조, `version` 낙관적 락 |
+| `post_like` | 게시글 좋아요 | `(post_id, member_id)` 유니크로 중복 좋아요 방지 |
+| `post_bookmark` | 게시글 북마크 | `(post_id, member_id)` 유니크로 중복 북마크 방지 |
 | `comment` | 댓글 및 대댓글 | 게시글·작성 회원 참조, `parent_id` 자기 참조 |
 
 ### 공통 컬럼과 삭제 정책
@@ -547,16 +549,21 @@ erDiagram
 
 ### 게시글 · 댓글
 
-게시글 작성·수정은 `title`, `content`가 필수이고 `img`는 선택입니다. 게시글 응답은 `id`, `title`, `content`, `email`, `name`, `createAt`, `img`입니다. 댓글 작성은 `content`와 `parentId`(대댓글일 때만)를 사용하며, 댓글 응답의 `children`에는 하위 댓글 배열이 포함됩니다. 댓글 목록은 최상위 댓글을 기준으로 페이지네이션하며, 각 최상위 댓글에는 해당 대댓글이 함께 포함됩니다.
+게시글 작성·수정은 `title`, `content`가 필수이고 `img`, `category`는 선택입니다. `category`는 `REVIEW`, `FREE_ADOPTION`, `REPORT` 중 하나이며 생략 시 `REVIEW`입니다. 게시글 응답에는 `id`, `title`, `content`, `email`, `name`, `createdAt`, `img`, `likeCount`, `commentCount`, `likedByMe`, `bookmarkedByMe`가 포함됩니다. 비로그인 조회의 `likedByMe`, `bookmarkedByMe`는 항상 `false`입니다. 댓글 작성은 `content`와 `parentId`(대댓글일 때만)를 사용하며, 댓글 응답의 `children`에는 하위 댓글 배열이 포함됩니다.
 
 | 메서드 | 경로 | 권한 | 요청 | `result` |
 | --- | --- | --- | --- | --- |
-| POST | `/api/v1/posts` | 인증 | `title`, `content`, `img`(선택) | 게시글 1건 |
+| POST | `/api/v1/posts` | 인증 | `title`, `content`, `img`(선택), `category`(선택) | 게시글 1건 |
 | GET | `/api/v1/posts` | 공개 | 쿼리: `page`, `size`, `sort` | 게시글 `Page` |
-| GET | `/api/v1/posts/cursor` | 공개 | 쿼리: `lastPostId`(선택), `size` | 게시글 `Slice` |
+| GET | `/api/v1/posts/cursor` | 공개 | 쿼리: `lastPostId`(선택), `size`, `category`(선택), `keyword`(선택), `sort`(선택: `latest`/`popular`/`comments`) | 게시글 `Slice` |
 | GET | `/api/v1/posts/{postId}` | 공개 | 경로: `postId` | 게시글 1건 |
 | PUT | `/api/v1/posts/{postId}` | 인증 | `title`, `content`, `img`(선택) | 변경된 게시글 1건 |
 | DELETE | `/api/v1/posts/{postId}` | 인증 | 경로: `postId` | `null` |
+| POST | `/api/v1/posts/{postId}/likes` | 인증 | 경로: `postId` | `liked`, `likeCount` |
+| DELETE | `/api/v1/posts/{postId}/likes` | 인증 | 경로: `postId` | `liked`, `likeCount` |
+| POST | `/api/v1/posts/{postId}/bookmarks` | 인증 | 경로: `postId` | `bookmarked` |
+| DELETE | `/api/v1/posts/{postId}/bookmarks` | 인증 | 경로: `postId` | `bookmarked` |
+| GET | `/api/v1/posts/bookmarks/me` | 인증 | 쿼리: `size`(기본 20) | 최근 저장순 게시글 `Slice` |
 | POST | `/comment/{postId}` | 인증 | `content`, `parentId`(선택) | 댓글 1건 |
 | GET | `/comment/{postId}` | 공개 | 경로: `postId`, 쿼리: `page`(기본 0), `size`(기본 20) | 최상위 댓글 `Page` (`content`의 각 댓글에 `children` 포함) |
 | PUT | `/comment/{commentId}` | 인증 | `commentId`, `content` | 변경된 댓글 1건 |
@@ -701,8 +708,49 @@ POST /api/v1/posts
 Authorization: Bearer <accessToken>
 Content-Type: application/json
 
-{"title":"입양 후기","content":"우리 아이를 만난 이야기입니다.","img":"/uploads/review.jpg"}
+{"title":"입양 후기","content":"우리 아이를 만난 이야기입니다.","img":"/uploads/review.jpg","category":"REVIEW"}
 ```
+
+```http
+GET /api/v1/posts/cursor?size=10&category=REVIEW&keyword=몽이&sort=popular
+Authorization: Bearer <accessToken>
+```
+
+`lastPostId`는 첫 요청에서 생략하고, 다음 요청부터 직전 응답 `result.content`의 마지막 게시글 ID를 전달합니다. 응답의 `result.hasNext`가 `false`이면 다음 페이지가 없습니다. `keyword`는 제목·본문·작성자명을 통합 검색합니다.
+
+```json
+{
+  "statusCode": 200,
+  "result": {
+    "content": [{
+      "id": 42,
+      "title": "[REVIEW] 새 가족이 된 몽이",
+      "content": "...",
+      "name": "pawuser",
+      "img": "https://example.com/mongi.jpg",
+      "createdAt": "2026-09-12T10:20:00",
+      "likeCount": 12,
+      "commentCount": 3,
+      "likedByMe": false,
+      "bookmarkedByMe": true
+    }],
+    "hasNext": true
+  }
+}
+```
+
+좋아요와 북마크는 멱등 처리합니다. 같은 사용자가 이미 좋아요/북마크한 게시글에 다시 `POST` 요청해도 상태는 유지됩니다. 게시글 삭제 시 연결된 좋아요·북마크 레코드도 함께 제거됩니다.
+
+```http
+POST /api/v1/posts/42/likes
+DELETE /api/v1/posts/42/likes
+POST /api/v1/posts/42/bookmarks
+DELETE /api/v1/posts/42/bookmarks
+GET /api/v1/posts/bookmarks/me?size=20
+Authorization: Bearer <accessToken>
+```
+
+좋아요 응답 `result`는 `{ "liked": true, "likeCount": 13 }`, 북마크 응답 `result`는 `{ "bookmarked": true }` 형식입니다.
 
 ```http
 POST /comment/1

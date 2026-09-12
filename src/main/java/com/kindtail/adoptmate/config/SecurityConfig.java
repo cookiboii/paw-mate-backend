@@ -57,6 +57,7 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.PATCH, "/adoptmate/password").permitAll()
+                .requestMatchers("/api/v1/posts/bookmarks/me", "/post/bookmarks/me").authenticated()
                 .requestMatchers(
                         "/adoptmate/register",
                         "/adoptmate/login",

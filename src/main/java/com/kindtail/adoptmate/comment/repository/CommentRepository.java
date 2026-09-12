@@ -11,6 +11,8 @@ import java.util.List;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
+    long countByPostId(Long postId);
+
     @EntityGraph(attributePaths = {"member"})
     List<Comment> findByPost(Post post);
 

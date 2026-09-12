@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
+import java.util.Optional;
 
 /**
  * Spring Security Context 및 HTTP 요청에서 인증 정보를 안전하게 처리하는 공통 유틸리티 클래스
@@ -61,6 +62,15 @@ public abstract class SecurityUtil {
      */
     public static Long getCurrentUserId() {
         return getCurrentUserDetails().getId();
+    }
+
+    /** Returns an empty value for anonymous requests (used by public read APIs). */
+    public static Optional<Long> getOptionalCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
+            return Optional.ofNullable(userDetails.getId());
+        }
+        return Optional.empty();
     }
 
     /**
