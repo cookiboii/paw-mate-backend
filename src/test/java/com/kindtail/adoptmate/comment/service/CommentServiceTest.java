@@ -264,4 +264,25 @@ class CommentServiceTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
     }
+    @Test
+    void getComments_masksSecretCommentForUnauthorizedViewer() {
+        setupSecurityContext("other@example.com", Role.USER);
+        Comment secretComment = Comment.builder()
+                .id(101L)
+                .content("private content")
+                .secret(true)
+                .member(author)
+                .post(testPost)
+                .children(new ArrayList<>())
+                .build();
+        PageRequest pageable = PageRequest.of(0, 20);
+        given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
+        given(commentRepository.findByPostAndParentIsNull(testPost, pageable))
+                .willReturn(new PageImpl<>(List.of(secretComment), pageable, 1));
+
+        CommentResponse response = commentService.getComments(10L, pageable).getContent().get(0);
+
+        assertThat(response.secret()).isTrue();
+        assertThat(response.content()).isEqualTo("비밀 댓글입니다.");
+    }
 }

@@ -48,20 +48,22 @@ public class CommentService {
 
         Comment comment = Comment.builder()
                 .content(request.content())
+                .secret(Boolean.TRUE.equals(request.secret()))
                 .parent(parent)
                 .post(post)
                 .member(member)
                 .build();
         commentRepository.save(comment);
-        return CommentResponse.fromComment(comment);
+        return CommentResponse.fromComment(comment, currentUserProvider.currentUser());
     }
 
     @Transactional(readOnly = true)
     public Page<CommentResponse> getComments(Long id, Pageable pageable) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+        CustomUserDetails viewer = currentUserProvider.optionalCurrentUser().orElse(null);
         return commentRepository.findByPostAndParentIsNull(post, pageable)
-                .map(CommentResponse::fromComment);
+                .map(comment -> CommentResponse.fromComment(comment, viewer));
     }
 
     @Transactional
@@ -84,6 +86,6 @@ public class CommentService {
 
         comment.validateAuthorOrAdmin(userDetails);
         comment.updateComment(dto.content());
-        return CommentResponse.fromComment(comment);
+        return CommentResponse.fromComment(comment, userDetails);
     }
 }

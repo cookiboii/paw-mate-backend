@@ -29,9 +29,13 @@ public class CurrentUserProvider {
     }
 
     public Optional<Long> optionalCurrentUserId() {
+        return optionalCurrentUser().map(CustomUserDetails::getId);
+    }
+
+    public Optional<CustomUserDetails> optionalCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails userDetails) {
-            return Optional.ofNullable(userDetails.getId());
+            return Optional.of(userDetails);
         }
         return Optional.empty();
     }

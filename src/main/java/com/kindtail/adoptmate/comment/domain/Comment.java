@@ -36,6 +36,10 @@ public class Comment extends BaseTimeEntity {
     @Lob
     private String content;
 
+    @Column(name = "is_secret", nullable = false)
+    @Builder.Default
+    private boolean secret = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Comment parent;

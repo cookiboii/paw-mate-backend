@@ -194,12 +194,32 @@ Controller → Facade/Service → Repository → Database/Redis
 | POST/DELETE | `/api/v1/posts/{postId}/likes` | 인증 | - | 좋아요 상태·개수 |
 | POST/DELETE | `/api/v1/posts/{postId}/bookmarks` | 인증 | - | 북마크 상태 |
 | GET | `/api/v1/posts/bookmarks/me` | 인증 | `size`(1~100) | 북마크 게시글 `Slice` |
-| POST | `/comment/{postId}` | 인증 | `content`, 선택 `parentId` | 댓글 1건 |
+| POST | `/comment/{postId}` | 인증 | `content`, 선택 `parentId`, 선택 `secret` | 댓글 1건 |
 | GET | `/comment/{postId}` | 공개 | `page`, `size`, `sort` | 최상위 댓글 `Page` |
 | PUT | `/comment/{commentId}` | 인증 | `content` | 변경된 댓글 |
 | DELETE | `/comment/{commentId}` | 인증 | - | `null` |
 
 호환 경로(`/animals`, `/post`, `/animals/register`, `/post/create` 등)는 기존 클라이언트 지원을 위해 함께 제공됩니다. 신규 클라이언트는 표의 `/api/v1/**` 경로를 사용하세요.
+
+### 비밀 댓글
+
+댓글 생성 요청에 `secret: true`를 포함하면 비밀 댓글이 됩니다. 생략하거나 `false`이면 공개 댓글입니다.
+
+```json
+{
+  "parentId": null,
+  "content": "입양 관련 문의입니다.",
+  "secret": true
+}
+```
+
+- 비밀 댓글 내용은 댓글 작성자, 해당 게시글 작성자, `ADMIN` 역할만 확인할 수 있습니다.
+- 그 외 로그인 사용자와 비로그인 사용자는 댓글의 `secret` 값은 확인할 수 있지만, `content`에는 `비밀 댓글입니다.`가 반환됩니다.
+- 운영/기존 데이터베이스에는 아래 마이그레이션을 먼저 적용해야 합니다. `JPA_DDL_AUTO=validate` 환경에서는 이 컬럼이 없으면 애플리케이션이 시작되지 않습니다.
+
+```sql
+ALTER TABLE comment ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT FALSE;
+```
 
 ## 최근 구조 개선
 

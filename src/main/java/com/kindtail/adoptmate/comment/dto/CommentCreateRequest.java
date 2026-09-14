@@ -6,6 +6,11 @@ public record CommentCreateRequest(
         Long parentId,
 
         @NotBlank(message = "댓글 내용을 입력해주세요.")
-        String content
+        String content,
+
+        Boolean secret
 ) {
+    public CommentCreateRequest(Long parentId, String content) {
+        this(parentId, content, false);
+    }
 }
