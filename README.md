@@ -215,6 +215,7 @@ Controller → Facade/Service → Repository → Database/Redis
 
 - 비밀 댓글 내용은 댓글 작성자, 해당 게시글 작성자, `ADMIN` 역할만 확인할 수 있습니다.
 - 그 외 로그인 사용자와 비로그인 사용자는 댓글의 `secret` 값은 확인할 수 있지만, `content`에는 `비밀 댓글입니다.`가 반환됩니다.
+- 대댓글도 동일한 API에서 `parentId`와 `secret: true`를 함께 보내면 비밀 대댓글로 생성됩니다. 조회 권한과 내용 마스킹 규칙도 일반 비밀 댓글과 동일합니다.
 - 운영/기존 데이터베이스에는 아래 마이그레이션을 먼저 적용해야 합니다. `JPA_DDL_AUTO=validate` 환경에서는 이 컬럼이 없으면 애플리케이션이 시작되지 않습니다.
 
 ```sql
