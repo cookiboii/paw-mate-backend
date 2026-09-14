@@ -53,10 +53,13 @@ Controller ──► Service / Facade ──► Repository ──► MySQL
 Member 1 ── * Animal
 Member 1 ── * Post 1 ── * Comment
 Member 1 ── * Adoption * ── 1 Animal
-Member * ── * Animal (AnimalFavorite)
-Member * ── * Post   (PostLike, PostBookmark)
+Member 1 ── * AnimalFavorite * ── 1 Animal
+Member 1 ── * PostLike       * ── 1 Post
+Member 1 ── * PostBookmark   * ── 1 Post
 Comment 1 ── * Comment (parent/children)
 ```
+
+`Member`와 `Animal`·`Post` 사이에는 JPA `@ManyToMany`를 사용하지 않습니다. `AnimalFavorite`, `PostLike`, `PostBookmark`를 각각 독립된 연결 엔티티로 두고, 각 연결 엔티티가 두 대상에 `@ManyToOne`으로 연결됩니다. 이 방식은 유니크 제약을 통한 중복 방지와 연결 정보의 확장을 안전하게 지원합니다.
 
 `Animal`, `Adoption`, `Post`의 `@Version`은 동시에 수정한 요청을 감지하는 낙관적 락이다. 충돌은 전역 예외 처리에서 `409 Conflict`로 변환한다.
 
