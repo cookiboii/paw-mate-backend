@@ -119,7 +119,7 @@ src/main/java/com/kindtail/adoptmate
 | `animal` | 보호 동물과 관심 동물 관리 | `AnimalService`, `AnimalFavoriteService` |
 | `adoption` | 입양 신청과 상태 전이 | `AdoptionFacade`, `AdoptionService`, `DistributedLockTemplate` |
 | `post` | 게시글 명령과 조회 | `PostService`(명령), `PostQueryService`(조회) |
-| `comment` | 댓글·대댓글 관리 | `CommentService` |
+| `comment` | 댓글·대댓글·비밀 댓글 관리 | `CommentService`, `CommentResponse` 권한 기반 마스킹 |
 | `common` | 공통 응답·예외, 메일, Redis 기반 인증 코드 | `CommonResponse`, `GlobalExceptionHandler`, `EmailVerificationService`, `PasswordResetService` |
 | `config` | Security, CORS, Redis, JPA, Swagger 설정 | `SecurityConfig`, `CorsConfig`, `SecurityExceptionHandlers` |
 
@@ -135,6 +135,33 @@ Controller → Facade/Service → Repository → Database/Redis
 - Service는 유스케이스와 트랜잭션 경계를 담당하며, 조회와 변경이 복잡한 게시글은 `PostQueryService`와 `PostService`로 나뉩니다.
 - Facade는 입양 신청처럼 여러 서비스·락을 조합해야 하는 흐름에만 사용합니다.
 - Repository는 데이터 조회/저장만 담당하며, 인증된 사용자 정보는 `CurrentUserProvider`를 통해 가져옵니다.
+
+### 주요 요청 흐름
+
+```mermaid
+flowchart LR
+    Client[Client] --> Filter[JwtAuthFilter]
+    Filter -->|JWT claim| User[CurrentUserProvider]
+    User --> Controller[Controller]
+    Controller --> Auth[AuthenticationService]
+    Controller --> Command[PostService / CommentService]
+    Controller --> Query[PostQueryService]
+    Command --> Repository[Repository]
+    Query --> Repository
+    Auth --> Session[TokenSessionService]
+    Session --> Redis[(Redis)]
+    Repository --> DB[(MySQL)]
+```
+
+비밀 댓글 조회는 `CommentService`에서 현재 사용자를 가져온 뒤 `CommentResponse`로 변환하는 시점에 권한을 적용합니다.
+
+```text
+비밀 댓글인가?
+ ├─ 아니오 → 원본 content 반환
+ └─ 예
+    ├─ 댓글 작성자 / 게시글 작성자 / ADMIN → 원본 content 반환
+    └─ 그 외 사용자 또는 비로그인 → "비밀 댓글입니다."로 마스킹
+```
 
 ## API 빠른 명세
 

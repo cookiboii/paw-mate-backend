@@ -204,3 +204,64 @@ Redis는 토큰, 이메일 인증, Spring Cache, Redisson 락에 공용으로 �
 - 상태 변경 Entity는 `@Version`과 충돌 응답을 검토한다.
 - 운영 DB에 `ddl-auto=create`를 사용하지 않는다.
 - 보안 응답 DTO에 비밀번호·해시·내부 토큰을 포함하지 않는다.
+## 14. 최신 아키텍처 보정
+
+> 최신 구현 기준(인증·게시글 조회 분리·비밀 댓글 반영): 2026-09
+
+## 책임 분리
+
+| 영역 | 현재 책임 | 핵심 구성 요소 |
+| --- | --- | --- |
+| 인증 | 로그인, Refresh Token 회전, 로그아웃, 토큰 발급 | `AuthenticationService`, `JwtTokenProvider` |
+| 토큰 세션 | Refresh Token 저장, Access Token 블랙리스트, `tokenVersion` 관리 | `TokenSessionService`, Redis |
+| 현재 사용자 | SecurityContext에서 인증 사용자 조회 | `CurrentUserProvider` |
+| 게시글 명령 | 작성·수정·삭제·좋아요·북마크 변경 | `PostService` |
+| 게시글 조회 | 목록·검색·상세·내 북마크 조회, 배치 집계 | `PostQueryService` |
+| 가입 이메일 인증 | 가입 코드 발송·검증, IP/요청 제한 | `EmailVerificationService` |
+| 비밀번호 재설정 | 재설정 코드 발송·검증, 비밀번호 변경 | `PasswordResetService` |
+| 댓글 | 댓글·대댓글 작성/수정/삭제와 비밀 댓글 조회 마스킹 | `CommentService`, `CommentResponse` |
+
+```mermaid
+flowchart LR
+    Client --> Filter[JwtAuthFilter]
+    Filter --> CurrentUser[CurrentUserProvider]
+    CurrentUser --> Controller
+    Controller --> Auth[AuthenticationService]
+    Controller --> PostCommand[PostService]
+    Controller --> PostQuery[PostQueryService]
+    Controller --> Comment[CommentService]
+    Auth --> TokenSession[TokenSessionService]
+    TokenSession --> Redis[(Redis)]
+    PostCommand --> Repository
+    PostQuery --> Repository
+    Comment --> Repository
+    Repository --> MySQL[(MySQL)]
+```
+
+## JWT와 세션 무효화
+
+`JwtAuthFilter`는 유효한 JWT의 회원 ID·이메일·역할 claim으로 `CustomUserDetails`를 구성합니다. 따라서 일반 인증 요청은 회원 테이블을 다시 조회하지 않습니다. 필터는 Redis 블랙리스트와 `tokenVersion`도 확인합니다.
+
+- 로그아웃: 현재 Access Token을 만료 시각까지 블랙리스트에 저장하고, 해당 회원의 Refresh Token을 제거합니다.
+- 비밀번호 변경·회원 탈퇴: Refresh Token을 제거하고 `tokenVersion`을 증가시켜 이전 Access Token도 무효화합니다.
+- Refresh: 기존 Refresh Token 검증 후 새 Access/Refresh Token을 발급하고 Redis 값을 교체합니다.
+
+## 비밀 댓글
+
+`comment.is_secret`은 기본값 `false`입니다. 댓글과 대댓글 모두 생성 요청의 `secret: true`로 비밀 댓글이 될 수 있습니다.
+
+```text
+CommentService.getComments
+  → CurrentUserProvider.optionalCurrentUser
+  → CommentResponse.fromComment(comment, viewer)
+     ├─ 공개 댓글: 원본 content
+     └─ 비밀 댓글
+        ├─ 댓글 작성자 / 게시글 작성자 / ADMIN: 원본 content
+        └─ 그 외 사용자 또는 비로그인: "비밀 댓글입니다."
+```
+
+비밀 댓글은 조회 결과에서 `secret: true`가 유지되며, 권한이 없는 사용자에게는 내용만 마스킹합니다. 운영 DB에는 다음 마이그레이션이 필요합니다.
+
+```sql
+ALTER TABLE comment ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT FALSE;
+```
