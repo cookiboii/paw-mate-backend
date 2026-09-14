@@ -11,6 +11,7 @@ import com.kindtail.adoptmate.post.dto.PostCreateRequest;
 import com.kindtail.adoptmate.post.dto.PostResponse;
 import com.kindtail.adoptmate.post.dto.PostUpdateRequest;
 import com.kindtail.adoptmate.post.service.PostService;
+import com.kindtail.adoptmate.post.service.PostQueryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,9 @@ class PostControllerTest {
 
     @MockitoBean
     private PostService postService;
+
+    @MockitoBean
+    private PostQueryService postQueryService;
 
     @MockitoBean
     private JwtAuthFilter jwtAuthFilter;
@@ -112,7 +116,7 @@ class PostControllerTest {
         // given
         PostResponse response = PostResponse.from(testPost);
         Page<PostResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
-        given(postService.getAllPosts(any(PageRequest.class))).willReturn(page);
+        given(postQueryService.getAllPosts(any(PageRequest.class))).willReturn(page);
 
         // when
         ResultActions resultActions = mockMvc.perform(get("/post/list")
@@ -133,7 +137,7 @@ class PostControllerTest {
         // given
         PostResponse response = PostResponse.from(testPost);
         org.springframework.data.domain.Slice<PostResponse> slice = new org.springframework.data.domain.SliceImpl<>(List.of(response), PageRequest.of(0, 10), false);
-        given(postService.getPostsByCursor(eq(10L), eq(10))).willReturn(slice);
+        given(postQueryService.getPostsByCursor(eq(10L), eq(10))).willReturn(slice);
 
         // when
         ResultActions resultActions = mockMvc.perform(get("/post/cursor")
@@ -154,7 +158,7 @@ class PostControllerTest {
         // given
         Long postId = 1L;
         PostResponse response = PostResponse.from(testPost);
-        given(postService.getPost(postId)).willReturn(response);
+        given(postQueryService.getPost(postId)).willReturn(response);
 
         // when
         ResultActions resultActions = mockMvc.perform(get("/post/{postId}", postId));

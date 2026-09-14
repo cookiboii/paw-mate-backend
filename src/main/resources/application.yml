@@ -20,7 +20,9 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:create}
+      # A schema must never be recreated because an environment variable was omitted.
+      # Local and test profiles explicitly opt into their development settings.
+      ddl-auto: ${JPA_DDL_AUTO:validate}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
@@ -92,6 +94,10 @@ server:
 
 client:
   url: ${CLIENT_URL:https://paw-mate-frontend.vercel.app}
+
+app:
+  email-verification:
+    required: ${EMAIL_VERIFICATION_REQUIRED:true}
 
 logging:
   level:

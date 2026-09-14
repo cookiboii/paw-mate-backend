@@ -1,7 +1,8 @@
 package com.kindtail.adoptmate.member.controller;
 
 import com.kindtail.adoptmate.auth.CustomUserDetails;
-import com.kindtail.adoptmate.auth.SecurityUtil;
+import com.kindtail.adoptmate.auth.BearerTokenExtractor;
+import com.kindtail.adoptmate.auth.AuthenticationService;
 import com.kindtail.adoptmate.common.dto.CommonResponse;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import com.kindtail.adoptmate.member.dto.*;
@@ -16,6 +17,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/adoptmate")
@@ -24,6 +27,8 @@ public class MemberController implements MemberControllerDocs {
 
     private final MemberFacade memberFacade;
     private final MemberService memberService;
+    private final AuthenticationService authenticationService;
+    private final BearerTokenExtractor bearerTokenExtractor;
 
     @Override
     @PostMapping("/register")
@@ -35,7 +40,7 @@ public class MemberController implements MemberControllerDocs {
     @Override
     @PostMapping("/login")
     public ResponseEntity<CommonResponse<MemberLoginResponse>> login(@RequestBody @Valid MemberLoginRequest dto) {
-        MemberLoginResponse result = memberService.login(dto);
+        MemberLoginResponse result = authenticationService.login(dto);
         return CommonResponse.toResponseEntity(SuccessCode.LOGIN_SUCCESS, result);
     }
 
@@ -44,7 +49,7 @@ public class MemberController implements MemberControllerDocs {
     public ResponseEntity<CommonResponse<TokenRefreshResponse>> refreshToken(
             @Valid @RequestBody TokenRefreshRequest request
     ) {
-        TokenRefreshResponse response = memberService.refreshAccessToken(request.refreshToken());
+        TokenRefreshResponse response = authenticationService.refresh(request.refreshToken());
         return CommonResponse.toResponseEntity(
                 SuccessCode.TOKEN_REISSUE_SUCCESS,
                 response
@@ -54,9 +59,9 @@ public class MemberController implements MemberControllerDocs {
     @Override
     @PostMapping("/logout")
     public ResponseEntity<CommonResponse<Void>> logout(HttpServletRequest request) {
-        String accessToken = SecurityUtil.resolveToken(request);
+        String accessToken = bearerTokenExtractor.extract(request);
         if (accessToken != null) {
-            memberService.logout(accessToken);
+            authenticationService.logout(accessToken);
         }
         return CommonResponse.toResponseEntity(SuccessCode.LOGOUT_SUCCESS);
     }
@@ -76,6 +81,12 @@ public class MemberController implements MemberControllerDocs {
         return CommonResponse.toResponseEntity(SuccessCode.MEMBER_ALL_SUCCESS, dtoList);
     }
 
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CommonResponse<Page<MemberInfoResponse>>> getMembers(Pageable pageable) {
+        return CommonResponse.toResponseEntity(SuccessCode.MEMBER_ALL_SUCCESS, memberService.getMembers(pageable));
+    }
+
     @Override
     @PostMapping("/password")
     public ResponseEntity<CommonResponse<Void>> changePassword(
@@ -92,7 +103,7 @@ public class MemberController implements MemberControllerDocs {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest request
     ) {
-        String accessToken = SecurityUtil.resolveToken(request);
+        String accessToken = bearerTokenExtractor.extract(request);
         memberService.deleteUser(userDetails.getEmail(), accessToken);
         return CommonResponse.toResponseEntity(SuccessCode.MEMBER_DELETE_SUCCESS);
     }
@@ -104,7 +115,7 @@ public class MemberController implements MemberControllerDocs {
             @PathVariable Long memberId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long adminId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
+        Long adminId = userDetails.getId();
         memberService.deleteMemberByAdmin(memberId, adminId);
         return CommonResponse.toResponseEntity(SuccessCode.ADMIN_MEMBER_DELETE_SUCCESS);
     }

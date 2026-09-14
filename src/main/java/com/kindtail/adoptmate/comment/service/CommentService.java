@@ -1,7 +1,7 @@
 package com.kindtail.adoptmate.comment.service;
 
 import com.kindtail.adoptmate.auth.CustomUserDetails;
-import com.kindtail.adoptmate.auth.SecurityUtil;
+import com.kindtail.adoptmate.auth.CurrentUserProvider;
 import com.kindtail.adoptmate.comment.domain.Comment;
 import com.kindtail.adoptmate.comment.dto.CommentCreateRequest;
 import com.kindtail.adoptmate.comment.dto.CommentResponse;
@@ -27,10 +27,11 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final MemberRepository memberRepository;
     private final PostRepository postRepository;
+    private final CurrentUserProvider currentUserProvider;
 
     @Transactional
     public CommentResponse createComment(Long postId, CommentCreateRequest request) {
-        String email = SecurityUtil.getCurrentUserEmail();
+        String email = currentUserProvider.currentUserEmail();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
         Post post = postRepository.findById(postId)
@@ -65,7 +66,7 @@ public class CommentService {
 
     @Transactional
     public void deleteComment(Long id) {
-        CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
+        CustomUserDetails userDetails = currentUserProvider.currentUser();
 
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
@@ -76,7 +77,7 @@ public class CommentService {
 
     @Transactional
     public CommentResponse updateComment(Long commentId, CommentUpdateRequest dto) {
-        CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
+        CustomUserDetails userDetails = currentUserProvider.currentUser();
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));

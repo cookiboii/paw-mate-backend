@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.comment.service;
 
 import com.kindtail.adoptmate.auth.CustomUserDetails;
+import com.kindtail.adoptmate.auth.CurrentUserProvider;
 import com.kindtail.adoptmate.comment.domain.Comment;
 import com.kindtail.adoptmate.comment.dto.CommentCreateRequest;
 import com.kindtail.adoptmate.comment.dto.CommentResponse;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -50,6 +52,9 @@ class CommentServiceTest {
 
     @Mock
     private PostRepository postRepository;
+
+    @Spy
+    private CurrentUserProvider currentUserProvider = new CurrentUserProvider();
 
     @InjectMocks
     private CommentService commentService;

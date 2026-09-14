@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.member.service;
 
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
+import com.kindtail.adoptmate.auth.TokenSessionService;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
@@ -42,6 +43,9 @@ class MemberServiceTest {
 
     @Mock
     private JwtTokenProvider jwtTokenProvider;
+
+    @Mock
+    private TokenSessionService tokenSessionService;
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
@@ -120,10 +124,10 @@ class MemberServiceTest {
         String accessToken = "accessToken123";
         String refreshToken = "refreshToken123";
 
-        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(tokenSessionService.tokenVersion("test@example.com")).willReturn(0L);
         given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.of(testMember));
         given(passwordEncoder.matches("password123", "encodedPassword123")).willReturn(true);
-        given(jwtTokenProvider.createToken(1L, "test@example.com", "USER")).willReturn(accessToken);
+        given(jwtTokenProvider.createToken(1L, "test@example.com", "USER", 0L)).willReturn(accessToken);
         given(jwtTokenProvider.createRefreshToken("test@example.com")).willReturn(refreshToken);
         given(jwtTokenProvider.getExpirationRt()).willReturn(604800);
 
@@ -213,6 +217,7 @@ class MemberServiceTest {
 
         // then
         assertThat(testMember.getPassword()).isEqualTo("encodedNewPassword456");
+        verify(tokenSessionService).invalidateAllTokens("test@example.com");
     }
 
     @Test

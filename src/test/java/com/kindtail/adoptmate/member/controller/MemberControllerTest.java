@@ -2,6 +2,8 @@ package com.kindtail.adoptmate.member.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
+import com.kindtail.adoptmate.auth.BearerTokenExtractor;
+import com.kindtail.adoptmate.auth.AuthenticationService;
 import com.kindtail.adoptmate.auth.JwtAuthFilter;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.common.exception.CustomException;
@@ -63,10 +65,17 @@ class MemberControllerTest {
     private MemberService memberService;
 
     @MockitoBean
+    private AuthenticationService authenticationService;
+
+    @MockitoBean
     private JwtAuthFilter jwtAuthFilter;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private BearerTokenExtractor bearerTokenExtractor;
+
 
     @MockitoBean
     private PasswordEncoder passwordEncoder;
@@ -123,7 +132,7 @@ class MemberControllerTest {
         MemberLoginRequest loginRequest = new MemberLoginRequest("test@example.com", "password123");
         MemberLoginResponse result = new MemberLoginResponse("accessToken123", "refreshToken123", "test@example.com", Role.USER);
 
-        given(memberService.login(any(MemberLoginRequest.class))).willReturn(result);
+        given(authenticationService.login(any(MemberLoginRequest.class))).willReturn(result);
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/adoptmate/login")
@@ -144,7 +153,7 @@ class MemberControllerTest {
         Map<String, String> request = new HashMap<>();
         request.put("refreshToken", "refreshToken123");
 
-        given(memberService.refreshAccessToken("refreshToken123"))
+        given(authenticationService.refresh("refreshToken123"))
                 .willReturn(new TokenRefreshResponse("newAccessToken123", "newRefreshToken123"));
 
         // when
@@ -242,7 +251,7 @@ class MemberControllerTest {
     @DisplayName("로그아웃할 수 있다")
     void logout_성공 () throws Exception {
         // given
-        doNothing().when(memberService).logout(any(String.class));
+        doNothing().when(authenticationService).logout(any(String.class));
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/adoptmate/logout")

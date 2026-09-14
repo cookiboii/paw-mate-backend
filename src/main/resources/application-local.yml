@@ -43,3 +43,7 @@ logging:
     root: INFO
     com.kindtail: DEBUG
     org.hibernate.SQL: DEBUG
+
+app:
+  email-verification:
+    required: ${EMAIL_VERIFICATION_REQUIRED:false}

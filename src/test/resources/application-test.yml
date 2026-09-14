@@ -57,3 +57,7 @@ oauth2:
     client-id: test-client-id
     redirect-uri: http://localhost:8000/adoptmate/kakao
     client-secret: test-client-secret
+
+app:
+  email-verification:
+    required: false

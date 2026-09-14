@@ -9,11 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -26,22 +23,31 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final CustomUserDetailsService customUserDetailsService;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final TokenSessionService tokenSessionService;
+    private final BearerTokenExtractor bearerTokenExtractor;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String token = SecurityUtil.resolveToken(request);
+        String token = bearerTokenExtractor.extract(request);
 
         if (token != null) {
-            if (redisTemplate.hasKey("blackList:" + token)) {
+            if (tokenSessionService.isBlacklisted(token)) {
                 log.warn("Attempt to access with blacklisted token");
                 request.setAttribute("exception", ErrorCode.LOGOUT_TOKEN);
             } else {
                 try {
-                    String email = jwtTokenProvider.getEmailFromToken(token);
-                    UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+                    JwtTokenProvider.TokenPrincipal tokenPrincipal = jwtTokenProvider.getTokenPrincipal(token);
+                    String email = tokenPrincipal.email();
 
+                    long currentTokenVersion = tokenSessionService.tokenVersion(email);
+                    if (jwtTokenProvider.getTokenVersion(token) != currentTokenVersion) {
+                        request.setAttribute("exception", ErrorCode.UNAUTHORIZED);
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    CustomUserDetails userDetails = new CustomUserDetails(com.kindtail.adoptmate.member.domain.Member.builder()
+                            .id(tokenPrincipal.id()).email(email).role(tokenPrincipal.role()).name(email).build());
                     UsernamePasswordAuthenticationToken auth =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -49,9 +55,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 } catch (ExpiredJwtException e) {
                     log.warn("Expired JWT token: {}", e.getMessage());
                     request.setAttribute("exception", ErrorCode.UNAUTHORIZED);
-                } catch (UsernameNotFoundException | CustomException e) {
-                    log.warn("User not found during JWT authentication: {}", e.getMessage());
-                    request.setAttribute("exception", ErrorCode.MEMBER_NOT_FOUND);
                 } catch (Exception e) {
                     // Keep the original cause visible.  This catch also covers
                     // user lookup/serialization failures, which are not JWT

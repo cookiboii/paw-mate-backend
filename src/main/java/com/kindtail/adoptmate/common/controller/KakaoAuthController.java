@@ -1,11 +1,12 @@
 package com.kindtail.adoptmate.common.controller;
 
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
+import com.kindtail.adoptmate.auth.TokenSessionService;
+import com.kindtail.adoptmate.auth.AuthenticationService;
 import com.kindtail.adoptmate.auth.OAuthResponseUtil;
 import com.kindtail.adoptmate.common.service.KakaoOAuthService;
 import com.kindtail.adoptmate.member.dto.KakaoUserResponse;
 import com.kindtail.adoptmate.member.dto.MemberResponse;
-import com.kindtail.adoptmate.member.service.MemberService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,15 +22,17 @@ public class KakaoAuthController implements KakaoAuthControllerDocs {
 
     private final KakaoOAuthService kakaoOAuthService;
     private final JwtTokenProvider jwtTokenProvider;
-    private final MemberService memberService;
+    private final AuthenticationService authenticationService;
+    private final TokenSessionService tokenSessionService;
 
     @Value("${client.url:https://paw-mate-frontend.vercel.app}")
     private String clientUrl;
 
-    public KakaoAuthController(KakaoOAuthService kakaoOAuthService, JwtTokenProvider jwtTokenProvider, MemberService memberService) {
+    public KakaoAuthController(KakaoOAuthService kakaoOAuthService, JwtTokenProvider jwtTokenProvider, AuthenticationService authenticationService, TokenSessionService tokenSessionService) {
         this.kakaoOAuthService = kakaoOAuthService;
         this.jwtTokenProvider = jwtTokenProvider;
-        this.memberService = memberService;
+        this.authenticationService = authenticationService;
+        this.tokenSessionService = tokenSessionService;
     }
 
     @Override
@@ -38,10 +41,13 @@ public class KakaoAuthController implements KakaoAuthControllerDocs {
         String kakaoAccessToken = kakaoOAuthService.getKakaoAccessToken(code);
         KakaoUserResponse kakaoUser = kakaoOAuthService.getKakaoUser(kakaoAccessToken);
         MemberResponse memberResponse = kakaoOAuthService.findOrCreateKakaoUser(kakaoUser);
-        String token = jwtTokenProvider.createToken(memberResponse.email(), memberResponse.role().toString());
+        String token = jwtTokenProvider.createToken(
+                memberResponse.id(), memberResponse.email(), memberResponse.role().toString(),
+                tokenSessionService.tokenVersion(memberResponse.email())
+        );
         String refreshToken = jwtTokenProvider.createRefreshToken(memberResponse.email());
 
-        memberService.saveRefreshToken(memberResponse.email(), refreshToken);
+        authenticationService.saveRefreshToken(memberResponse.email(), refreshToken);
 
         String html = OAuthResponseUtil.buildPopupSuccessHtml(
                 token,

@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.post.service;
 
 import com.kindtail.adoptmate.auth.CustomUserDetails;
+import com.kindtail.adoptmate.auth.CurrentUserProvider;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -46,6 +48,9 @@ class PostServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Spy
+    private CurrentUserProvider currentUserProvider = new CurrentUserProvider();
 
     @InjectMocks
     private PostService postService;

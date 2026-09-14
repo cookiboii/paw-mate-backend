@@ -7,6 +7,7 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import com.kindtail.adoptmate.member.domain.Role;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -38,8 +39,13 @@ public class JwtTokenProvider {
     }
 
     public String createToken(Long id, String email, String role) {
+        return createToken(id, email, role, 0L);
+    }
+
+    public String createToken(Long id, String email, String role, long tokenVersion) {
         Claims claims = Jwts.claims().setSubject(email);
         claims.put("role", role);
+        claims.put("tokenVersion", tokenVersion);
         if (id != null) {
             claims.put("id", id);
         }
@@ -55,11 +61,26 @@ public class JwtTokenProvider {
     }
 
     public String createToken(String email, String role) {
-        return createToken(null, email, role);
+        return createToken(null, email, role, 0L);
     }
 
     public String getEmailFromToken(String token) {
         return getClaims(token).getSubject();
+    }
+
+    public TokenPrincipal getTokenPrincipal(String token) {
+        Claims claims = getClaims(token);
+        Number id = claims.get("id", Number.class);
+        String role = claims.get("role", String.class);
+        if (id == null || role == null) {
+            throw new IllegalArgumentException("JWT is missing required authentication claims");
+        }
+        return new TokenPrincipal(id.longValue(), claims.getSubject(), Role.valueOf(role));
+    }
+
+    public long getTokenVersion(String token) {
+        Number tokenVersion = getClaims(token).get("tokenVersion", Number.class);
+        return tokenVersion == null ? 0L : tokenVersion.longValue();
     }
 
     public boolean validateToken(String token) {
@@ -124,4 +145,6 @@ public class JwtTokenProvider {
     public int getExpirationRt() {
         return expirationRt;
     }
+
+    public record TokenPrincipal(Long id, String email, Role role) { }
 }

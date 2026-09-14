@@ -9,6 +9,7 @@ import com.kindtail.adoptmate.post.dto.PostUpdateRequest;
 import com.kindtail.adoptmate.post.dto.LikeResponse;
 import com.kindtail.adoptmate.post.dto.BookmarkResponse;
 import com.kindtail.adoptmate.post.service.PostService;
+import com.kindtail.adoptmate.post.service.PostQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,8 @@ import org.springframework.data.domain.Slice;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 @RestController
 @RequestMapping({"/api/v1/posts", "/post"})
@@ -25,6 +28,7 @@ import org.springframework.validation.annotation.Validated;
 public class PostController implements PostControllerDocs {
 
     private final PostService postService;
+    private final PostQueryService postQueryService;
 
     @Override
     @PostMapping({"", "/create"})
@@ -36,7 +40,7 @@ public class PostController implements PostControllerDocs {
     @Override
     @GetMapping({"", "/list"})
     public ResponseEntity<CommonResponse<Page<PostResponse>>> getPostList(Pageable pageable) {
-        Page<PostResponse> postPage = postService.getAllPosts(pageable);
+        Page<PostResponse> postPage = postQueryService.getAllPosts(pageable);
         return CommonResponse.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postPage);
     }
 
@@ -44,7 +48,7 @@ public class PostController implements PostControllerDocs {
     @GetMapping("/cursor")
     public ResponseEntity<CommonResponse<Slice<PostResponse>>> getPostsByCursor(
             @RequestParam(required = false) Long lastPostId,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String sort
@@ -52,8 +56,8 @@ public class PostController implements PostControllerDocs {
         // Keep the legacy cursor call working for older clients that send none of
         // the new search parameters; all new cursor options use the richer query.
         Slice<PostResponse> postSlice = category == null && keyword == null && (sort == null || "latest".equalsIgnoreCase(sort))
-                ? postService.getPostsByCursor(lastPostId, size)
-                : postService.searchPosts(lastPostId, size, category, keyword, sort);
+                ? postQueryService.getPostsByCursor(lastPostId, size)
+                : postQueryService.searchPosts(lastPostId, size, category, keyword, sort);
         return CommonResponse.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postSlice);
     }
 
@@ -78,14 +82,14 @@ public class PostController implements PostControllerDocs {
     }
 
     @GetMapping("/bookmarks/me")
-    public ResponseEntity<CommonResponse<Slice<PostResponse>>> getMyBookmarks(@RequestParam(defaultValue = "20") int size) {
-        return CommonResponse.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postService.getMyBookmarks(size));
+    public ResponseEntity<CommonResponse<Slice<PostResponse>>> getMyBookmarks(@RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+        return CommonResponse.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postQueryService.getMyBookmarks(size));
     }
 
     @Override
     @GetMapping("/{postId}")
     public ResponseEntity<CommonResponse<PostResponse>> getPostById(@PathVariable Long postId) {
-        PostResponse post = postService.getPost(postId);
+        PostResponse post = postQueryService.getPost(postId);
         return CommonResponse.toResponseEntity(SuccessCode.POST_DETAIL_SUCCESS, post);
     }
 

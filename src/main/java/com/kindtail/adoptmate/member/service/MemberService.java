@@ -1,6 +1,5 @@
 package com.kindtail.adoptmate.member.service;
 
-import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
@@ -9,7 +8,8 @@ import com.kindtail.adoptmate.member.dto.*;
 import com.kindtail.adoptmate.member.event.MemberSessionInvalidationEvent;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.auth.JwtTokenProvider;
-import com.kindtail.adoptmate.auth.SecurityUtil;
+import com.kindtail.adoptmate.auth.CurrentUserProvider;
+import com.kindtail.adoptmate.auth.TokenSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,11 +18,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -35,28 +36,8 @@ public class MemberService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
-
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void logout(String accessToken) {
-        try {
-            String email = jwtTokenProvider.getEmailFromToken(accessToken);
-            redisTemplate.delete("refreshToken:" + email);
-        } catch (Exception ignored) {
-        }
-        long remainingMillis = jwtTokenProvider.getRemainingExpirationMillis(accessToken);
-        if (remainingMillis > 0) {
-            redisTemplate.opsForValue().set("blackList:" + accessToken, "logout", Duration.ofMillis(remainingMillis));
-        }
-    }
-
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void saveRefreshToken(String email, String refreshToken) {
-        redisTemplate.opsForValue().set(
-                "refreshToken:" + email,
-                refreshToken,
-                Duration.ofSeconds(jwtTokenProvider.getExpirationRt())
-        );
-    }
+    private final CurrentUserProvider currentUserProvider;
+    private final TokenSessionService tokenSessionService;
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public TokenRefreshResponse refreshAccessToken(String refreshToken) {
@@ -70,18 +51,17 @@ public class MemberService {
             throw new CustomException(ErrorCode.UNAUTHORIZED, "유효하지 않거나 만료된 Refresh Token입니다.");
         }
 
-        Object storedToken = redisTemplate.opsForValue().get("refreshToken:" + email);
-        if (storedToken == null || !storedToken.toString().equals(refreshToken)) {
+        if (!tokenSessionService.matchesRefreshToken(email, refreshToken)) {
             throw new CustomException(ErrorCode.UNAUTHORIZED, "저장된 Refresh Token 정보와 일치하지 않습니다.");
         }
 
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
-        String newAccessToken = jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString());
+        String newAccessToken = jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString(), tokenSessionService.tokenVersion(member.getEmail()));
         String newRefreshToken = jwtTokenProvider.createRefreshToken(member.getEmail());
         // Replace the stored token so a refresh token cannot be replayed after use.
-        saveRefreshToken(member.getEmail(), newRefreshToken);
+        tokenSessionService.saveRefreshToken(member.getEmail(), newRefreshToken, jwtTokenProvider.getExpirationRt());
         return new TokenRefreshResponse(newAccessToken, newRefreshToken);
     }
 
@@ -121,34 +101,32 @@ public class MemberService {
         return MemberResponse.from(saved);
     }
 
+    /**
+     * @deprecated Authentication endpoints now use {@code AuthenticationService}.
+     * Retained temporarily for callers that have not yet migrated.
+     */
+    @Deprecated(forRemoval = true)
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public MemberLoginResponse login(MemberLoginRequest request) {
         Member member = authenticateMember(request);
-
-        String token = jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString());
+        String token = jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString(), tokenSessionService.tokenVersion(member.getEmail()));
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getEmail());
-        saveRefreshToken(member.getEmail(), refreshToken);
-
+        tokenSessionService.saveRefreshToken(member.getEmail(), refreshToken, jwtTokenProvider.getExpirationRt());
         return new MemberLoginResponse(token, refreshToken, member.getEmail(), member.getRole());
     }
 
     private Member authenticateMember(MemberLoginRequest request) {
-        String email = request.email();
-        String password = request.password();
-
-        Member member = memberRepository.findByEmail(email)
+        Member member = memberRepository.findByEmail(request.email())
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
-
-        if (!passwordEncoder.matches(password, member.getPassword())) {
+        if (!passwordEncoder.matches(request.password(), member.getPassword())) {
             throw new CustomException(ErrorCode.INVALID_PASSWORD);
         }
-
         return member;
     }
 
     @Transactional(readOnly = true)
     public MemberInfoResponse getMemberInfo() {
-        String email = SecurityUtil.getCurrentUserEmail();
+        String email = currentUserProvider.currentUserEmail();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
@@ -170,6 +148,16 @@ public class MemberService {
                         .role(member.getRole())
                         .build())
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MemberInfoResponse> getMembers(Pageable pageable) {
+        return memberRepository.findAll(pageable).map(member -> MemberInfoResponse.builder()
+                .id(member.getId())
+                .name(member.getName())
+                .email(member.getEmail())
+                .role(member.getRole())
+                .build());
     }
 
     @Transactional
@@ -209,7 +197,7 @@ public class MemberService {
 
     @Transactional
     public void deleteMemberByAdmin(Long memberId) {
-        deleteMemberByAdmin(memberId, SecurityUtil.getCurrentUserId());
+        deleteMemberByAdmin(memberId, currentUserProvider.currentUserId());
     }
 
     @Transactional
@@ -221,6 +209,22 @@ public class MemberService {
         }
         String encodedNewPassword = passwordEncoder.encode(dto.newPassword());
         member.updatePassword(encodedNewPassword);
+        invalidateSessionsAfterPasswordChange(email);
+    }
+
+    /** Invalidates every access/refresh token issued before a password change. */
+    public void invalidateSessionsAfterPasswordChange(String email) {
+        Runnable invalidate = () -> tokenSessionService.invalidateAllTokens(email);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    invalidate.run();
+                }
+            });
+        } else {
+            invalidate.run();
+        }
     }
 
     @Transactional(readOnly = true)

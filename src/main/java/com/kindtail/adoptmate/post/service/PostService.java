@@ -1,7 +1,7 @@
 package com.kindtail.adoptmate.post.service;
 
 import com.kindtail.adoptmate.auth.CustomUserDetails;
-import com.kindtail.adoptmate.auth.SecurityUtil;
+import com.kindtail.adoptmate.auth.CurrentUserProvider;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
@@ -45,10 +45,11 @@ public class PostService {
     private final PostLikeRepository postLikeRepository;
     private final PostBookmarkRepository postBookmarkRepository;
     private final CommentRepository commentRepository;
+    private final CurrentUserProvider currentUserProvider;
 
     @Transactional
     public PostResponse createPost(PostCreateRequest dto) {
-        String email = SecurityUtil.getCurrentUserEmail();
+        String email = currentUserProvider.currentUserEmail();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
@@ -61,24 +62,30 @@ public class PostService {
                 .build();
 
         Post saved = postRepository.save(post);
-        return toResponse(saved, SecurityUtil.getOptionalCurrentUserId().orElse(null));
+        return toResponse(saved, currentUserProvider.optionalCurrentUserId().orElse(null));
     }
 
+    /** @deprecated Read endpoints use PostQueryService. */
+    @Deprecated(forRemoval = true)
     @Transactional(readOnly = true)
     public Page<PostResponse> getAllPosts(Pageable pageable) {
         Page<Post> posts = postRepository.findAll(pageable);
-        Long memberId = SecurityUtil.getOptionalCurrentUserId().orElse(null);
+        Long memberId = currentUserProvider.optionalCurrentUserId().orElse(null);
         return new PageImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.getTotalElements());
     }
 
+    /** @deprecated Read endpoints use PostQueryService. */
+    @Deprecated(forRemoval = true)
     @Transactional(readOnly = true)
     public Slice<PostResponse> getPostsByCursor(Long lastPostId, int size) {
         Pageable pageable = PageRequest.of(0, size);
         Slice<Post> posts = postRepository.findPostsByCursor(lastPostId, findCursorCreatedAt(lastPostId), pageable);
-        Long memberId = SecurityUtil.getOptionalCurrentUserId().orElse(null);
+        Long memberId = currentUserProvider.optionalCurrentUserId().orElse(null);
         return new SliceImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.hasNext());
     }
 
+    /** @deprecated Read endpoints use PostQueryService. */
+    @Deprecated(forRemoval = true)
     @Transactional(readOnly = true)
     public Slice<PostResponse> searchPosts(Long lastPostId, int size, String category, String keyword, String sort) {
         if (size < 1 || size > 100) throw new IllegalArgumentException("size must be between 1 and 100");
@@ -92,13 +99,13 @@ public class PostService {
             case "comments" -> postRepository.searchByCommentCount(lastPostId, countComments(lastPostId), postCategory, normalizedKeyword, pageable);
             default -> throw new IllegalArgumentException("sort must be latest, popular, or comments");
         };
-        Long memberId = SecurityUtil.getOptionalCurrentUserId().orElse(null);
+        Long memberId = currentUserProvider.optionalCurrentUserId().orElse(null);
         return new SliceImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.hasNext());
     }
 
     @Transactional
     public void deletePost(Long postId) {
-        CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
+        CustomUserDetails userDetails = currentUserProvider.currentUser();
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
@@ -107,16 +114,18 @@ public class PostService {
         postRepository.delete(post);
     }
 
+    /** @deprecated Read endpoints use PostQueryService. */
+    @Deprecated(forRemoval = true)
     @Transactional(readOnly = true)
     public PostResponse getPost(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
-        return toResponse(post, SecurityUtil.getOptionalCurrentUserId().orElse(null));
+        return toResponse(post, currentUserProvider.optionalCurrentUserId().orElse(null));
     }
 
     @Transactional
     public PostResponse updatePost(Long postId, PostUpdateRequest dto) {
-        CustomUserDetails userDetails = SecurityUtil.getCurrentUserDetails();
+        CustomUserDetails userDetails = currentUserProvider.currentUser();
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
@@ -128,7 +137,7 @@ public class PostService {
 
     @Transactional
     public LikeResponse likePost(Long postId) {
-        Long memberId = SecurityUtil.getCurrentUserId();
+        Long memberId = currentUserProvider.currentUserId();
         Post post = postRepository.findById(postId).orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
         if (postLikeRepository.findByPostIdAndMemberId(postId, memberId).isEmpty()) {
             Member member = memberRepository.findById(memberId).orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
@@ -139,7 +148,7 @@ public class PostService {
 
     @Transactional
     public LikeResponse unlikePost(Long postId) {
-        Long memberId = SecurityUtil.getCurrentUserId();
+        Long memberId = currentUserProvider.currentUserId();
         if (!postRepository.existsById(postId)) throw new CustomException(ErrorCode.POST_NOT_FOUND);
         postLikeRepository.findByPostIdAndMemberId(postId, memberId).ifPresent(postLikeRepository::delete);
         return new LikeResponse(false, postLikeRepository.countByPostId(postId));
@@ -147,7 +156,7 @@ public class PostService {
 
     @Transactional
     public BookmarkResponse bookmarkPost(Long postId) {
-        Long memberId = SecurityUtil.getCurrentUserId();
+        Long memberId = currentUserProvider.currentUserId();
         Post post = postRepository.findById(postId).orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
         if (postBookmarkRepository.findByPostIdAndMemberId(postId, memberId).isEmpty()) {
             Member member = memberRepository.findById(memberId).orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
@@ -158,16 +167,18 @@ public class PostService {
 
     @Transactional
     public BookmarkResponse removeBookmark(Long postId) {
-        Long memberId = SecurityUtil.getCurrentUserId();
+        Long memberId = currentUserProvider.currentUserId();
         if (!postRepository.existsById(postId)) throw new CustomException(ErrorCode.POST_NOT_FOUND);
         postBookmarkRepository.findByPostIdAndMemberId(postId, memberId).ifPresent(postBookmarkRepository::delete);
         return new BookmarkResponse(false);
     }
 
+    /** @deprecated Read endpoints use PostQueryService. */
+    @Deprecated(forRemoval = true)
     @Transactional(readOnly = true)
     public Slice<PostResponse> getMyBookmarks(int size) {
         if (size < 1 || size > 100) throw new IllegalArgumentException("size must be between 1 and 100");
-        Long memberId = SecurityUtil.getCurrentUserId();
+        Long memberId = currentUserProvider.currentUserId();
         Slice<Post> posts = postBookmarkRepository.findPostsByMemberIdOrderByCreatedAtDesc(memberId, PageRequest.of(0, size));
         return new SliceImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.hasNext());
     }

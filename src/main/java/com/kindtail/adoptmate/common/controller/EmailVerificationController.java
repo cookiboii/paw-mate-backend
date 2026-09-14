@@ -7,6 +7,7 @@ import com.kindtail.adoptmate.common.dto.SuccessCode;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.common.service.EmailVerificationService;
+import com.kindtail.adoptmate.common.service.PasswordResetService;
 import com.kindtail.adoptmate.member.dto.PasswordResetRequest;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +25,7 @@ import java.util.Map;
 public class EmailVerificationController implements EmailVerificationControllerDocs {
 
     private final EmailVerificationService emailVerificationService;
+    private final PasswordResetService passwordResetService;
 
     @Override
     @PostMapping("/verify-email")
@@ -46,7 +48,7 @@ public class EmailVerificationController implements EmailVerificationControllerD
     @Override
     @PostMapping("/send-reset-code")
     public ResponseEntity<CommonResponse<Void>> sendResetCode(@RequestParam String email) {
-        emailVerificationService.sendPasswordResetEmail(email);
+        passwordResetService.sendPasswordResetEmail(email);
         return CommonResponse.toResponseEntity(SuccessCode.RESET_CODE_SEND_SUCCESS);
     }
 
@@ -56,7 +58,7 @@ public class EmailVerificationController implements EmailVerificationControllerD
             @RequestParam String email,
             @RequestParam String code
     ) {
-        boolean verified = emailVerificationService.verifyPassword(email, code);
+        boolean verified = passwordResetService.verifyPassword(email, code);
         if (verified) {
             return CommonResponse.toResponseEntity(SuccessCode.RESET_CODE_VERIFY_SUCCESS);
         } else {
@@ -67,7 +69,7 @@ public class EmailVerificationController implements EmailVerificationControllerD
     @Override
     @PatchMapping("/password")
     public ResponseEntity<CommonResponse<Void>> updatePassword(@RequestBody @Valid PasswordResetRequest dto) {
-        emailVerificationService.updatePassword(dto);
+        passwordResetService.updatePassword(dto);
         return CommonResponse.toResponseEntity(SuccessCode.PASSWORD_RESET_SUCCESS);
     }
 }

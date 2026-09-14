@@ -12,7 +12,7 @@ import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
-import com.kindtail.adoptmate.auth.SecurityUtil;
+import com.kindtail.adoptmate.auth.CurrentUserProvider;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,15 +26,17 @@ public class AnimalService {
 
     private final AnimalRepository animalRepository;
     private final MemberRepository memberRepository;
+    private final CurrentUserProvider currentUserProvider;
 
-    public AnimalService(AnimalRepository animalRepository, MemberRepository memberRepository) {
+    public AnimalService(AnimalRepository animalRepository, MemberRepository memberRepository, CurrentUserProvider currentUserProvider) {
         this.animalRepository = animalRepository;
         this.memberRepository = memberRepository;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @Transactional
     public AnimalResponse createAnimal(AnimalCreateRequest request) {
-        String email = SecurityUtil.getCurrentUserEmail();
+        String email = currentUserProvider.currentUserEmail();
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 

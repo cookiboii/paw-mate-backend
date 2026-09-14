@@ -8,7 +8,6 @@ import com.kindtail.adoptmate.animal.dto.FavoriteToggleResponse;
 import com.kindtail.adoptmate.animal.service.AnimalFavoriteService;
 import com.kindtail.adoptmate.animal.service.AnimalService;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
-import com.kindtail.adoptmate.auth.SecurityUtil;
 import com.kindtail.adoptmate.common.dto.CommonResponse;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import jakarta.validation.Valid;
@@ -21,6 +20,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 @RestController
 @RequestMapping({"/api/v1/animals", "/animals"})
@@ -42,8 +43,8 @@ public class AnimalController implements AnimalControllerDocs {
     @Override
     @GetMapping({"", "/list"})
     public ResponseEntity<CommonResponse<Page<AnimalResponse>>> getAnimalList(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
     ) {
         Page<AnimalResponse> animalList = animalService.getAllAnimals(PageRequest.of(page, size));
         return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_LIST_SUCCESS, animalList);
@@ -53,7 +54,7 @@ public class AnimalController implements AnimalControllerDocs {
     @GetMapping("/cursor")
     public ResponseEntity<CommonResponse<Slice<AnimalResponse>>> getAnimalsByCursor(
             @RequestParam(required = false) Long lastAnimalId,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
     ) {
         Slice<AnimalResponse> animalSlice = animalService.getAnimalsByCursor(lastAnimalId, size);
         return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_LIST_SUCCESS, animalSlice);
@@ -63,8 +64,8 @@ public class AnimalController implements AnimalControllerDocs {
     @GetMapping("/species")
     public ResponseEntity<CommonResponse<Page<AnimalResponse>>> getAnimalsBySpecies(
             @RequestParam Species species,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size
     ) {
         Page<AnimalResponse> animalList = animalService.getAnimalsBySpecies(species, PageRequest.of(page, size));
         return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_SPECIES_LIST_SUCCESS, animalList);
@@ -102,7 +103,7 @@ public class AnimalController implements AnimalControllerDocs {
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long memberId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
+        Long memberId = userDetails.getId();
         FavoriteToggleResponse response = animalFavoriteService.toggleFavorite(id, memberId);
         return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_TOGGLE_SUCCESS, response);
     }
@@ -110,11 +111,11 @@ public class AnimalController implements AnimalControllerDocs {
     @Override
     @GetMapping("/favorites/my")
     public ResponseEntity<CommonResponse<Page<AnimalResponse>>> getMyFavoriteAnimals(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long memberId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
+        Long memberId = userDetails.getId();
         Page<AnimalResponse> response = animalFavoriteService.getMyFavoriteAnimals(memberId, PageRequest.of(page, size));
         return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_LIST_SUCCESS, response);
     }
@@ -125,7 +126,7 @@ public class AnimalController implements AnimalControllerDocs {
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long memberId = userDetails != null ? userDetails.getId() : SecurityUtil.getCurrentUserId();
+        Long memberId = userDetails.getId();
         FavoriteToggleResponse response = animalFavoriteService.removeFavorite(id, memberId);
         return CommonResponse.toResponseEntity(SuccessCode.ANIMAL_FAVORITE_DELETE_SUCCESS, response);
     }
