@@ -21,16 +21,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.SliceImpl;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -140,64 +134,6 @@ class PostServiceTest {
         assertThatThrownBy(() -> postService.createPost(request))
             .isInstanceOf(CustomException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("페이지네이션으로 전체 게시글 목록을 조회할 수 있다")
-    void getAllPosts_성공() {
-        // given
-        PageImpl<Post> page = new PageImpl<>(List.of(testPost), PageRequest.of(0, 10), 1);
-        given(postRepository.findAll(any(PageRequest.class))).willReturn(page);
-
-        // when
-        Page<PostResponse> result = postService.getAllPosts(PageRequest.of(0, 10));
-
-        // then
-        assertThat(result.getTotalElements()).isEqualTo(1);
-        assertThat(result.getContent().get(0).title()).isEqualTo("테스트 제목");
-        assertThat(result.getContent().get(0).email()).isEqualTo("author@example.com");
-    }
-
-    @Test
-    @DisplayName("No-Offset 커서 기반으로 게시글 목록을 Slice 조회할 수 있다")
-    void getPostsByCursor_성공() {
-        // given
-        Slice<Post> slice = new SliceImpl<>(List.of(testPost), PageRequest.of(0, 10), false);
-        given(postRepository.findPostsByCursor(any(), any(), any(PageRequest.class))).willReturn(slice);
-
-        // when
-        Slice<PostResponse> result = postService.getPostsByCursor(10L, 10);
-
-        // then
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).title()).isEqualTo("테스트 제목");
-        assertThat(result.hasNext()).isFalse();
-    }
-
-    @Test
-    @DisplayName("ID로 단일 게시글을 조회할 수 있다")
-    void getPost_성공() {
-        // given
-        given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
-
-        // when
-        PostResponse result = postService.getPost(10L);
-
-        // then
-        assertThat(result.id()).isEqualTo(10L);
-        assertThat(result.title()).isEqualTo("테스트 제목");
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 게시글 ID로 조회하면 예외가 발생한다")
-    void getPost_없음_예외() {
-        // given
-        given(postRepository.findById(999L)).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> postService.getPost(999L))
-            .isInstanceOf(CustomException.class)
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_NOT_FOUND);
     }
 
     @Test

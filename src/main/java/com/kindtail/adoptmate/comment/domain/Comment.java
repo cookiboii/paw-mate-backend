@@ -14,7 +14,6 @@ import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.NotFound;
 import org.hibernate.annotations.NotFoundAction;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,10 +59,6 @@ public class Comment extends BaseTimeEntity {
 
     public void updateComment(String content) {
         this.content = content;
-    }
-
-    public LocalDateTime getCreationDate() {
-        return getCreatedAt();
     }
 
     /**

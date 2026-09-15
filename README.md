@@ -255,7 +255,9 @@ ALTER TABLE comment ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT FALSE;
 - `JwtAuthFilter`는 서명 검증된 JWT의 회원 ID·역할 claim으로 인증 객체를 만들기 때문에, 매 인증 요청마다 회원 DB를 조회하지 않습니다. 회원 탈퇴와 비밀번호 변경 시에는 `tokenVersion`을 증가시켜 기존 Access Token과 Refresh Token을 무효화합니다.
 - 이메일 기능은 역할에 따라 분리했습니다. `EmailVerificationService`는 회원가입 인증 코드 발송·검증을, `PasswordResetService`는 비밀번호 재설정 코드 발송·검증과 비밀번호 변경을 담당합니다.
 - 게시글은 명령과 조회를 분리했습니다. `PostService`는 작성·수정·삭제·좋아요·북마크 변경을, `PostQueryService`는 목록·검색·상세·내 북마크 조회를 담당합니다. 목록 조회 시 좋아요 수·댓글 수·사용자별 상태를 배치 조회해 N+1 조회를 피합니다.
-- 현재 사용처가 없는 `MemberEmailResponse`, `PasswordResetSendRequest`, `PasswordResetVerifyRequest`와 이전 이메일 전송 메서드는 제거했습니다.
+- 사용처가 없는 동물·게시글 `findSliceBy` 조회, 종별 커서 조회의 미연결 Service/Repository 메서드, 이전 `MemberService` 인증·토큰 재발급 구현을 제거했습니다. 로그인·토큰 재발급은 `AuthenticationService`만 사용합니다.
+- 게시글의 이전 조회 구현은 제거하고, 모든 읽기 요청을 `PostQueryService`로 일원화했습니다. `PostService`는 변경 명령만 담당합니다.
+- 중복 생성일 getter, 사용되지 않는 soft-delete 헬퍼와 미사용 import도 정리했습니다.
 
 ### 테스트 검증
 

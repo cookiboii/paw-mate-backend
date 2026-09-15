@@ -1,6 +1,5 @@
 package com.kindtail.adoptmate.member.service;
 
-import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.auth.TokenSessionService;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
@@ -21,7 +20,6 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,9 +38,6 @@ class MemberServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private JwtTokenProvider jwtTokenProvider;
 
     @Mock
     private TokenSessionService tokenSessionService;
@@ -114,61 +109,6 @@ class MemberServiceTest {
         assertThatThrownBy(() -> memberService.registerMember(request))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.EMAIL_ALREADY_EXISTS);
-    }
-
-    @Test
-    @DisplayName("로그인 시 토큰을 발급받을 수 있다")
-    void login_성공 () {
-        // given
-        MemberLoginRequest loginRequest = new MemberLoginRequest("test@example.com", "password123");
-        String accessToken = "accessToken123";
-        String refreshToken = "refreshToken123";
-
-        given(tokenSessionService.tokenVersion("test@example.com")).willReturn(0L);
-        given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.of(testMember));
-        given(passwordEncoder.matches("password123", "encodedPassword123")).willReturn(true);
-        given(jwtTokenProvider.createToken(1L, "test@example.com", "USER", 0L)).willReturn(accessToken);
-        given(jwtTokenProvider.createRefreshToken("test@example.com")).willReturn(refreshToken);
-        given(jwtTokenProvider.getExpirationRt()).willReturn(604800);
-
-        // when
-        MemberLoginResponse result = memberService.login(loginRequest);
-
-        // then
-        assertThat(result).isNotNull();
-        assertThat(result.token()).isEqualTo(accessToken);
-        assertThat(result.refreshToken()).isEqualTo(refreshToken);
-        assertThat(result.email()).isEqualTo("test@example.com");
-        assertThat(result.role()).isEqualTo(Role.USER);
-    }
-
-    @Test
-    @DisplayName("잘못된 비밀번호로 로그인하면 예외가 발생한다")
-    void login_비밀번호_불일치_예외 () {
-        // given
-        MemberLoginRequest loginRequest = new MemberLoginRequest("test@example.com", "wrongPassword");
-
-        given(memberRepository.findByEmail("test@example.com")).willReturn(Optional.of(testMember));
-        given(passwordEncoder.matches("wrongPassword", "encodedPassword123")).willReturn(false);
-
-        // when & then
-        assertThatThrownBy(() -> memberService.login(loginRequest))
-                .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 사용자로 로그인하면 예외가 발생한다")
-    void login_사용자_없음_예외 () {
-        // given
-        MemberLoginRequest loginRequest = new MemberLoginRequest("notexist@example.com", "password123");
-
-        given(memberRepository.findByEmail("notexist@example.com")).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> memberService.login(loginRequest))
-                .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
     }
 
     @Test

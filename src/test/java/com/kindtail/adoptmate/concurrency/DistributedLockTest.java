@@ -1,7 +1,6 @@
 package com.kindtail.adoptmate.concurrency;
 
 import com.kindtail.adoptmate.adoption.domain.Adoption;
-import com.kindtail.adoptmate.adoption.domain.AdoptionStatus;
 import com.kindtail.adoptmate.adoption.domain.HousingType;
 import com.kindtail.adoptmate.adoption.dto.AdoptionCreateRequest;
 import com.kindtail.adoptmate.adoption.facade.AdoptionFacade;

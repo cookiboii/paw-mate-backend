@@ -1,7 +1,5 @@
 package com.kindtail.adoptmate.auth;
 
-import com.kindtail.adoptmate.common.exception.CustomException;
-import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;

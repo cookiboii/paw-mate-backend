@@ -7,7 +7,6 @@ import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.dto.*;
 import com.kindtail.adoptmate.member.event.MemberSessionInvalidationEvent;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
-import com.kindtail.adoptmate.auth.JwtTokenProvider;
 import com.kindtail.adoptmate.auth.CurrentUserProvider;
 import com.kindtail.adoptmate.auth.TokenSessionService;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +15,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -33,37 +31,10 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
     private final CurrentUserProvider currentUserProvider;
     private final TokenSessionService tokenSessionService;
-
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public TokenRefreshResponse refreshAccessToken(String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED, "Refresh Token이 제공되지 않았습니다.");
-        }
-        String email;
-        try {
-            email = jwtTokenProvider.validateRefreshToken(refreshToken);
-        } catch (Exception e) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED, "유효하지 않거나 만료된 Refresh Token입니다.");
-        }
-
-        if (!tokenSessionService.matchesRefreshToken(email, refreshToken)) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED, "저장된 Refresh Token 정보와 일치하지 않습니다.");
-        }
-
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
-
-        String newAccessToken = jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString(), tokenSessionService.tokenVersion(member.getEmail()));
-        String newRefreshToken = jwtTokenProvider.createRefreshToken(member.getEmail());
-        // Replace the stored token so a refresh token cannot be replayed after use.
-        tokenSessionService.saveRefreshToken(member.getEmail(), newRefreshToken, jwtTokenProvider.getExpirationRt());
-        return new TokenRefreshResponse(newAccessToken, newRefreshToken);
-    }
 
     @Value("${app.email-verification.required:false}")
     private boolean emailVerificationRequired;
@@ -99,29 +70,6 @@ public class MemberService {
                 .build();
         Member saved = memberRepository.save(member);
         return MemberResponse.from(saved);
-    }
-
-    /**
-     * @deprecated Authentication endpoints now use {@code AuthenticationService}.
-     * Retained temporarily for callers that have not yet migrated.
-     */
-    @Deprecated(forRemoval = true)
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public MemberLoginResponse login(MemberLoginRequest request) {
-        Member member = authenticateMember(request);
-        String token = jwtTokenProvider.createToken(member.getId(), member.getEmail(), member.getRole().toString(), tokenSessionService.tokenVersion(member.getEmail()));
-        String refreshToken = jwtTokenProvider.createRefreshToken(member.getEmail());
-        tokenSessionService.saveRefreshToken(member.getEmail(), refreshToken, jwtTokenProvider.getExpirationRt());
-        return new MemberLoginResponse(token, refreshToken, member.getEmail(), member.getRole());
-    }
-
-    private Member authenticateMember(MemberLoginRequest request) {
-        Member member = memberRepository.findByEmail(request.email())
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
-        if (!passwordEncoder.matches(request.password(), member.getPassword())) {
-            throw new CustomException(ErrorCode.INVALID_PASSWORD);
-        }
-        return member;
     }
 
     @Transactional(readOnly = true)

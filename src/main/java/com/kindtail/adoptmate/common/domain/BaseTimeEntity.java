@@ -25,8 +25,5 @@ public abstract class BaseTimeEntity {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
-    public void softDelete() {
-        this.isDeleted = true;
-    }
 }
 

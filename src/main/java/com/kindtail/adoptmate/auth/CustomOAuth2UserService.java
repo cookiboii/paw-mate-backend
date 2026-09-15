@@ -2,8 +2,6 @@ package com.kindtail.adoptmate.auth;
 
 import com.kindtail.adoptmate.member.domain.AuthProvider;
 import com.kindtail.adoptmate.member.domain.Member;
-import com.kindtail.adoptmate.member.domain.Role;
-import com.kindtail.adoptmate.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -13,7 +11,6 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @Service

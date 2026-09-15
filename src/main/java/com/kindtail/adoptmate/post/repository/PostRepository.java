@@ -24,9 +24,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findAll(Pageable pageable);
 
     @EntityGraph(attributePaths = {"member"})
-    Slice<Post> findSliceBy(Pageable pageable);
-
-    @EntityGraph(attributePaths = {"member"})
     @Query("SELECT p FROM Post p WHERE :lastPostId IS NULL OR (:lastCreatedAt IS NULL AND p.id < :lastPostId) OR (:lastCreatedAt IS NOT NULL AND (p.createdAt < :lastCreatedAt OR (p.createdAt = :lastCreatedAt AND p.id < :lastPostId))) ORDER BY p.createdAt DESC, p.id DESC")
     Slice<Post> findPostsByCursor(@Param("lastPostId") Long lastPostId,
                                   @Param("lastCreatedAt") LocalDateTime lastCreatedAt,

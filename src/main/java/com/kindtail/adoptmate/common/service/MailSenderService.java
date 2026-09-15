@@ -1,7 +1,6 @@
 package com.kindtail.adoptmate.common.service;
 
 import jakarta.mail.MessagingException;
-import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.MailSender;
 import org.springframework.mail.javamail.JavaMailSender;

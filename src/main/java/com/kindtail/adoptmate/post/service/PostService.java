@@ -20,21 +20,9 @@ import com.kindtail.adoptmate.post.repository.PostBookmarkRepository;
 import com.kindtail.adoptmate.post.repository.PostLikeRepository;
 import com.kindtail.adoptmate.comment.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.SliceImpl;
 
 @Service
 @RequiredArgsConstructor
@@ -65,44 +53,6 @@ public class PostService {
         return toResponse(saved, currentUserProvider.optionalCurrentUserId().orElse(null));
     }
 
-    /** @deprecated Read endpoints use PostQueryService. */
-    @Deprecated(forRemoval = true)
-    @Transactional(readOnly = true)
-    public Page<PostResponse> getAllPosts(Pageable pageable) {
-        Page<Post> posts = postRepository.findAll(pageable);
-        Long memberId = currentUserProvider.optionalCurrentUserId().orElse(null);
-        return new PageImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.getTotalElements());
-    }
-
-    /** @deprecated Read endpoints use PostQueryService. */
-    @Deprecated(forRemoval = true)
-    @Transactional(readOnly = true)
-    public Slice<PostResponse> getPostsByCursor(Long lastPostId, int size) {
-        Pageable pageable = PageRequest.of(0, size);
-        Slice<Post> posts = postRepository.findPostsByCursor(lastPostId, findCursorCreatedAt(lastPostId), pageable);
-        Long memberId = currentUserProvider.optionalCurrentUserId().orElse(null);
-        return new SliceImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.hasNext());
-    }
-
-    /** @deprecated Read endpoints use PostQueryService. */
-    @Deprecated(forRemoval = true)
-    @Transactional(readOnly = true)
-    public Slice<PostResponse> searchPosts(Long lastPostId, int size, String category, String keyword, String sort) {
-        if (size < 1 || size > 100) throw new IllegalArgumentException("size must be between 1 and 100");
-        PostCategory postCategory = category == null || category.isBlank() ? null : PostCategory.valueOf(category.trim().toUpperCase());
-        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
-        String normalizedSort = sort == null || sort.isBlank() ? "latest" : sort.trim().toLowerCase();
-        Pageable pageable = PageRequest.of(0, size);
-        Slice<Post> posts = switch (normalizedSort) {
-            case "latest" -> postRepository.searchLatest(lastPostId, findCursorCreatedAt(lastPostId), postCategory, normalizedKeyword, pageable);
-            case "popular" -> postRepository.searchPopular(lastPostId, countLikes(lastPostId), postCategory, normalizedKeyword, pageable);
-            case "comments" -> postRepository.searchByCommentCount(lastPostId, countComments(lastPostId), postCategory, normalizedKeyword, pageable);
-            default -> throw new IllegalArgumentException("sort must be latest, popular, or comments");
-        };
-        Long memberId = currentUserProvider.optionalCurrentUserId().orElse(null);
-        return new SliceImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.hasNext());
-    }
-
     @Transactional
     public void deletePost(Long postId) {
         CustomUserDetails userDetails = currentUserProvider.currentUser();
@@ -112,15 +62,6 @@ public class PostService {
 
         post.validateAuthorOrAdmin(userDetails);
         postRepository.delete(post);
-    }
-
-    /** @deprecated Read endpoints use PostQueryService. */
-    @Deprecated(forRemoval = true)
-    @Transactional(readOnly = true)
-    public PostResponse getPost(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
-        return toResponse(post, currentUserProvider.optionalCurrentUserId().orElse(null));
     }
 
     @Transactional
@@ -173,16 +114,6 @@ public class PostService {
         return new BookmarkResponse(false);
     }
 
-    /** @deprecated Read endpoints use PostQueryService. */
-    @Deprecated(forRemoval = true)
-    @Transactional(readOnly = true)
-    public Slice<PostResponse> getMyBookmarks(int size) {
-        if (size < 1 || size > 100) throw new IllegalArgumentException("size must be between 1 and 100");
-        Long memberId = currentUserProvider.currentUserId();
-        Slice<Post> posts = postBookmarkRepository.findPostsByMemberIdOrderByCreatedAtDesc(memberId, PageRequest.of(0, size));
-        return new SliceImpl<>(toResponses(posts.getContent(), memberId), posts.getPageable(), posts.hasNext());
-    }
-
     private PostResponse toResponse(Post post, Long memberId) {
         // The null guards retain compatibility with existing focused Mockito tests.
         long likeCount = postLikeRepository == null ? 0L : postLikeRepository.countByPostId(post.getId());
@@ -192,45 +123,4 @@ public class PostService {
         return PostResponse.from(post, likeCount, commentCount, liked, bookmarked);
     }
 
-    private List<PostResponse> toResponses(List<Post> posts, Long memberId) {
-        if (posts.isEmpty() || postLikeRepository == null || commentRepository == null) {
-            return posts.stream().map(post -> toResponse(post, memberId)).toList();
-        }
-
-        List<Long> postIds = posts.stream().map(Post::getId).toList();
-        Map<Long, Long> likeCounts = countByPostId(postLikeRepository.countByPostIds(postIds));
-        Map<Long, Long> commentCounts = countByPostId(commentRepository.countByPostIds(postIds));
-        Set<Long> likedPostIds = memberId == null ? Set.of() : Set.copyOf(postLikeRepository.findLikedPostIds(postIds, memberId));
-        Set<Long> bookmarkedPostIds = memberId == null || postBookmarkRepository == null
-                ? Set.of() : Set.copyOf(postBookmarkRepository.findBookmarkedPostIds(postIds, memberId));
-
-        return posts.stream()
-                .map(post -> PostResponse.from(post,
-                        likeCounts.getOrDefault(post.getId(), 0L),
-                        commentCounts.getOrDefault(post.getId(), 0L),
-                        likedPostIds.contains(post.getId()),
-                        bookmarkedPostIds.contains(post.getId())))
-                .toList();
-    }
-
-    private Map<Long, Long> countByPostId(List<Object[]> rows) {
-        return rows.stream().collect(Collectors.toMap(
-                row -> (Long) row[0],
-                row -> ((Number) row[1]).longValue()
-        ));
-    }
-
-    private LocalDateTime findCursorCreatedAt(Long lastPostId) {
-        return lastPostId == null ? null : postRepository.findById(lastPostId)
-                .map(Post::getCreatedAt)
-                .orElse(null);
-    }
-
-    private long countLikes(Long lastPostId) {
-        return lastPostId == null ? 0L : postLikeRepository.countByPostId(lastPostId);
-    }
-
-    private long countComments(Long lastPostId) {
-        return lastPostId == null ? 0L : commentRepository.countByPostId(lastPostId);
-    }
 }

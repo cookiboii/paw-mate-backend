@@ -1,6 +1,5 @@
 package com.kindtail.adoptmate.auth;
 
-import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
