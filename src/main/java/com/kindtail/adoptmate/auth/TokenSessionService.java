@@ -2,6 +2,7 @@ package com.kindtail.adoptmate.auth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -10,6 +11,14 @@ import java.time.Duration;
 @Service
 @RequiredArgsConstructor
 public class TokenSessionService {
+    private static final DefaultRedisScript<Long> ROTATE_REFRESH_TOKEN_SCRIPT = new DefaultRedisScript<>("""
+            if redis.call('GET', KEYS[1]) == ARGV[1] then
+                redis.call('SET', KEYS[1], ARGV[2], 'EX', ARGV[3])
+                return 1
+            end
+            return 0
+            """, Long.class);
+
     private final RedisTemplate<String, Object> redisTemplate;
 
     public void saveRefreshToken(String email, String token, long ttlSeconds) {
@@ -18,6 +27,16 @@ public class TokenSessionService {
     public boolean matchesRefreshToken(String email, String token) {
         Object stored = redisTemplate.opsForValue().get("refreshToken:" + email);
         return stored != null && stored.toString().equals(token);
+    }
+    public boolean rotateRefreshToken(String email, String currentToken, String nextToken, long ttlSeconds) {
+        Long rotated = redisTemplate.execute(
+                ROTATE_REFRESH_TOKEN_SCRIPT,
+                java.util.List.of("refreshToken:" + email),
+                currentToken,
+                nextToken,
+                ttlSeconds
+        );
+        return Long.valueOf(1L).equals(rotated);
     }
     public void removeRefreshToken(String email) { redisTemplate.delete("refreshToken:" + email); }
     public boolean isBlacklisted(String token) { return Boolean.TRUE.equals(redisTemplate.hasKey("blackList:" + token)); }

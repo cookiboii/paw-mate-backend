@@ -51,11 +51,10 @@ public class MemberService {
             throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
-        // 2. 이메일 인증 완료 상태(signup_verified) 검증 및 1회성 토큰 소비
-        Boolean isVerified = redisTemplate.hasKey("signup_verified:" + email);
-        if (Boolean.TRUE.equals(isVerified)) {
-            redisTemplate.delete("signup_verified:" + email);
-        } else if (emailVerificationRequired) {
+        // 이메일 인증 표시는 회원 저장 트랜잭션이 커밋된 뒤에만 소비한다.
+        String verificationKey = "signup_verified:" + email;
+        Boolean isVerified = redisTemplate.hasKey(verificationKey);
+        if (!Boolean.TRUE.equals(isVerified) && emailVerificationRequired) {
             throw new CustomException(ErrorCode.UNAUTHORIZED, "이메일 인증이 완료되지 않았습니다. 인증을 먼저 진행해주세요.");
         }
 
@@ -69,6 +68,9 @@ public class MemberService {
                 .role(role)
                 .build();
         Member saved = memberRepository.save(member);
+        if (Boolean.TRUE.equals(isVerified)) {
+            deleteRedisKeyAfterCommit(verificationKey);
+        }
         return MemberResponse.from(saved);
     }
 
@@ -173,6 +175,19 @@ public class MemberService {
         } else {
             invalidate.run();
         }
+    }
+
+    private void deleteRedisKeyAfterCommit(String key) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            redisTemplate.delete(key);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                redisTemplate.delete(key);
+            }
+        });
     }
 
     @Transactional(readOnly = true)

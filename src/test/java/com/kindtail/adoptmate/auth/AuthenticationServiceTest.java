@@ -51,18 +51,19 @@ class AuthenticationServiceTest {
     void refreshRotatesStoredRefreshToken() throws Exception {
         Member member = member();
         given(jwtTokenProvider.validateRefreshToken("old-refresh")).willReturn(member.getEmail());
-        given(tokenSessionService.matchesRefreshToken(member.getEmail(), "old-refresh")).willReturn(true);
         given(memberRepository.findByEmail(member.getEmail())).willReturn(Optional.of(member));
         given(tokenSessionService.tokenVersion(member.getEmail())).willReturn(0L);
         given(jwtTokenProvider.createToken(1L, member.getEmail(), "USER", 0L)).willReturn("new-access");
         given(jwtTokenProvider.createRefreshToken(member.getEmail())).willReturn("new-refresh");
         given(jwtTokenProvider.getExpirationRt()).willReturn(3600);
+        given(tokenSessionService.rotateRefreshToken(member.getEmail(), "old-refresh", "new-refresh", 3600))
+                .willReturn(true);
 
         TokenRefreshResponse response = authenticationService.refresh("old-refresh");
 
         assertThat(response.token()).isEqualTo("new-access");
         assertThat(response.refreshToken()).isEqualTo("new-refresh");
-        verify(tokenSessionService).saveRefreshToken(member.getEmail(), "new-refresh", 3600);
+        verify(tokenSessionService).rotateRefreshToken(member.getEmail(), "old-refresh", "new-refresh", 3600);
     }
 
     @Test

@@ -929,7 +929,7 @@ Content-Type: application/json
 {"parentId":null,"content":"입양 관련 문의입니다.","secret":true}
 ```
 
-대댓글은 같은 요청에서 `parentId`에 부모 댓글 ID를 지정합니다. 댓글 목록은 `GET /comment/{postId}?page=0&size=20`으로 조회하며, `result.content`에는 최상위 댓글만 페이지 단위로 담깁니다. 각 항목은 `id`, `authorName`, `authorId`, `authorEmail`, `content`, `createdAt`, `children`을 포함하고, `children`에는 해당 최상위 댓글의 대댓글이 포함됩니다. 따라서 하나의 댓글 스레드는 서로 다른 페이지로 나뉘지 않습니다.
+대댓글은 같은 요청에서 `parentId`에 부모 댓글 ID를 지정합니다. 댓글 목록은 `GET /comment/{postId}?page=0&size=20`으로 조회하며, `result.content`에는 최상위 댓글만 페이지 단위로 담깁니다. 각 항목은 `id`, `authorName`, `authorId`, `content`, `createdAt`, `children`을 포함하고, `children`에는 해당 최상위 댓글의 대댓글이 포함됩니다. 따라서 하나의 댓글 스레드는 서로 다른 페이지로 나뉘지 않습니다. 작성자의 이메일은 공개 응답에 포함하지 않습니다.
 
 비밀 댓글의 응답에는 `secret: true`가 포함됩니다. 댓글 작성자·게시글 작성자·관리자 외의 조회에서는 작성자 정보와 댓글 구조는 유지되지만 `content`는 `비밀 댓글입니다.`로 마스킹됩니다.
 

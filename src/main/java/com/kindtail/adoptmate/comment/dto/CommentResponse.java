@@ -11,15 +11,14 @@ public record CommentResponse(
         Long id,
         String authorName,
         Long authorId,
-        String authorEmail,
         String content,
         boolean secret,
         LocalDateTime createdAt,
         List<CommentResponse> children
 ) {
-    public CommentResponse(Long id, String authorName, Long authorId, String authorEmail, String content,
+    public CommentResponse(Long id, String authorName, Long authorId, String content,
                            LocalDateTime createdAt, List<CommentResponse> children) {
-        this(id, authorName, authorId, authorEmail, content, false, createdAt, children);
+        this(id, authorName, authorId, content, false, createdAt, children);
     }
 
     public static CommentResponse fromComment(Comment comment) {
@@ -32,7 +31,6 @@ public record CommentResponse(
                 comment.getId(),
                 author != null ? author.getName() : "탈퇴한 사용자",
                 author != null ? author.getId() : null,
-                author != null ? author.getEmail() : null,
                 canView(comment, viewer) ? comment.getContent() : "비밀 댓글입니다.",
                 comment.isSecret(),
                 comment.getCreatedAt(),

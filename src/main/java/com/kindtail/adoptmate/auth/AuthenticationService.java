@@ -36,10 +36,12 @@ public class AuthenticationService {
         String email;
         try { email = jwtTokenProvider.validateRefreshToken(refreshToken); }
         catch (Exception e) { throw new CustomException(ErrorCode.UNAUTHORIZED); }
-        if (!tokenSessionService.matchesRefreshToken(email, refreshToken)) throw new CustomException(ErrorCode.UNAUTHORIZED);
         Member member = memberRepository.findByEmail(email).orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
         String nextRefresh = jwtTokenProvider.createRefreshToken(email);
-        tokenSessionService.saveRefreshToken(email, nextRefresh, jwtTokenProvider.getExpirationRt());
+        if (!tokenSessionService.rotateRefreshToken(
+                email, refreshToken, nextRefresh, jwtTokenProvider.getExpirationRt())) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
         return new TokenRefreshResponse(issueAccessToken(member), nextRefresh);
     }
 

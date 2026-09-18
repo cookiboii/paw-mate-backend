@@ -123,7 +123,7 @@ class CommentServiceTest {
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.authorEmail()).isEqualTo("commenter@example.com");
+        assertThat(result.authorName()).isEqualTo("댓글작성자");
         verify(commentRepository).save(any(Comment.class));
     }
 

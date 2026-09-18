@@ -74,7 +74,8 @@ public class PasswordResetService {
         if (email == null || request.password() == null) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
-        if (!Boolean.TRUE.equals(redisTemplate.hasKey(VERIFIED_KEY + email))) {
+        String verification = redisTemplate.opsForValue().getAndDelete(VERIFIED_KEY + email);
+        if (!"true".equals(verification)) {
             throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
         Member member = memberRepository.findByEmail(email)
@@ -82,7 +83,6 @@ public class PasswordResetService {
         member.updatePassword(passwordEncoder.encode(request.password()));
         memberService.invalidateSessionsAfterPasswordChange(email);
         redisTemplate.delete(CODE_KEY + email);
-        redisTemplate.delete(VERIFIED_KEY + email);
     }
 
     private int incrementAttempts(String email) {

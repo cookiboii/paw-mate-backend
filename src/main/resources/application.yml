@@ -85,6 +85,8 @@ spring:
 
 server:
   port: ${SERVER_PORT:8000}
+  # Resolve the client address from Forwarded/X-Forwarded-* headers added by the reverse proxy.
+  forward-headers-strategy: framework
   tomcat:
     threads:
       max: 200

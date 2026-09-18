@@ -63,7 +63,7 @@ class CommentControllerTest {
     @BeforeEach
     void setUp() {
         response = new CommentResponse(
-                1L, "댓글작성자", 10L, "commenter@example.com", "댓글 내용입니다.", LocalDateTime.now(), new ArrayList<>()
+                1L, "댓글작성자", 10L, "댓글 내용입니다.", LocalDateTime.now(), new ArrayList<>()
         );
 
         Member member = Member.builder()
@@ -121,6 +121,7 @@ class CommentControllerTest {
                 .andExpect(jsonPath("$.statusCode").value(200))
                 .andExpect(jsonPath("$.statusMessage").value("보기성공"))
                 .andExpect(jsonPath("$.result.content[0].authorName").value("댓글작성자"))
+                .andExpect(jsonPath("$.result.content[0].authorEmail").doesNotExist())
                 .andExpect(jsonPath("$.result.totalElements").value(1));
     }
 
@@ -131,7 +132,7 @@ class CommentControllerTest {
         Long commentId = 1L;
         CommentUpdateRequest request = new CommentUpdateRequest(1L, "수정된 댓글");
         CommentResponse updatedResponse = new CommentResponse(
-                1L, "댓글작성자", 10L, "commenter@example.com", "수정된 댓글", LocalDateTime.now(), new ArrayList<>()
+                1L, "댓글작성자", 10L, "수정된 댓글", LocalDateTime.now(), new ArrayList<>()
         );
 
         given(commentService.updateComment(eq(commentId), any(CommentUpdateRequest.class))).willReturn(updatedResponse);
