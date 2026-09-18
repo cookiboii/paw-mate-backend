@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class CommentService {
@@ -44,11 +46,23 @@ public class CommentService {
             if (!parent.getPost().getId().equals(post.getId())) {
                 throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "Parent comment belongs to a different post.");
             }
+            if (parent.getParent() != null) {
+                throw new CustomException(ErrorCode.INVALID_INPUT_VALUE, "대댓글에는 답글을 작성할 수 없습니다.");
+            }
+            if (parent.isSecret()) {
+                CustomUserDetails viewer = currentUserProvider.currentUser();
+                Long viewerId = viewer.getId();
+                boolean parentAuthor = parent.getMember() != null && Objects.equals(viewerId, parent.getMember().getId());
+                boolean postAuthor = post.getMember() != null && Objects.equals(viewerId, post.getMember().getId());
+                if (!viewer.isAdmin() && !parentAuthor && !postAuthor) {
+                    throw new CustomException(ErrorCode.UNAUTHORIZED_AUTHOR);
+                }
+            }
         }
 
         Comment comment = Comment.builder()
                 .content(request.content())
-                .secret(Boolean.TRUE.equals(request.secret()))
+                .secret((parent != null && parent.isSecret()) || Boolean.TRUE.equals(request.secret()))
                 .parent(parent)
                 .post(post)
                 .member(member)

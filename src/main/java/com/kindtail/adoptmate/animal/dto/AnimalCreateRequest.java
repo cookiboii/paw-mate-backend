@@ -6,17 +6,21 @@ import com.kindtail.adoptmate.animal.domain.Status;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public record AnimalCreateRequest(
         @NotNull(message = "동물 종류를 선택해주세요.")
         Species species,
 
         @NotBlank(message = "품종을 입력해주세요.")
+        @Size(max = 100, message = "품종은 100자 이하로 입력해주세요.")
         String breed,
 
         @NotBlank(message = "털 색상을 입력해주세요.")
+        @Size(max = 100, message = "털 색상은 100자 이하로 입력해주세요.")
         String color,
 
+        @Size(max = 7000000, message = "이미지 데이터가 너무 큽니다.")
         String image,
 
         @NotNull(message = "나이를 입력해주세요.")

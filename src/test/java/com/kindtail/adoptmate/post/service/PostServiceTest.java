@@ -12,6 +12,9 @@ import com.kindtail.adoptmate.post.dto.PostCreateRequest;
 import com.kindtail.adoptmate.post.dto.PostResponse;
 import com.kindtail.adoptmate.post.dto.PostUpdateRequest;
 import com.kindtail.adoptmate.post.repository.PostRepository;
+import com.kindtail.adoptmate.post.repository.PostLikeRepository;
+import com.kindtail.adoptmate.post.repository.PostBookmarkRepository;
+import com.kindtail.adoptmate.comment.repository.CommentRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,6 +45,10 @@ class PostServiceTest {
 
     @Mock
     private MemberRepository memberRepository;
+
+    @Mock private PostLikeRepository postLikeRepository;
+    @Mock private PostBookmarkRepository postBookmarkRepository;
+    @Mock private CommentRepository commentRepository;
 
     @Spy
     private CurrentUserProvider currentUserProvider = new CurrentUserProvider();
@@ -134,6 +141,36 @@ class PostServiceTest {
         assertThatThrownBy(() -> postService.createPost(request))
             .isInstanceOf(CustomException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
+    }
+
+    @Test
+    void likePostIsIdempotentWhenAlreadyLiked() {
+        setupSecurityContext("author@example.com", Role.USER);
+        given(postRepository.findByIdForUpdate(10L)).willReturn(Optional.of(testPost));
+        given(postLikeRepository.findByPostIdAndMemberId(10L, 1L))
+                .willReturn(Optional.of(com.kindtail.adoptmate.post.domain.PostLike.builder()
+                        .post(testPost).member(author).build()));
+        given(postLikeRepository.countByPostId(10L)).willReturn(1L);
+
+        var response = postService.likePost(10L);
+
+        assertThat(response.liked()).isTrue();
+        assertThat(response.likeCount()).isEqualTo(1L);
+        verify(postRepository).findByIdForUpdate(10L);
+    }
+
+    @Test
+    void bookmarkPostIsIdempotentWhenAlreadyBookmarked() {
+        setupSecurityContext("author@example.com", Role.USER);
+        given(postRepository.findByIdForUpdate(10L)).willReturn(Optional.of(testPost));
+        given(postBookmarkRepository.findByPostIdAndMemberId(10L, 1L))
+                .willReturn(Optional.of(com.kindtail.adoptmate.post.domain.PostBookmark.builder()
+                        .post(testPost).member(author).build()));
+
+        var response = postService.bookmarkPost(10L);
+
+        assertThat(response.bookmarked()).isTrue();
+        verify(postRepository).findByIdForUpdate(10L);
     }
 
     @Test

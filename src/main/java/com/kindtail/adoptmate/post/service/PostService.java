@@ -79,7 +79,7 @@ public class PostService {
     @Transactional
     public LikeResponse likePost(Long postId) {
         Long memberId = currentUserProvider.currentUserId();
-        Post post = postRepository.findById(postId).orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdForUpdate(postId).orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
         if (postLikeRepository.findByPostIdAndMemberId(postId, memberId).isEmpty()) {
             Member member = memberRepository.findById(memberId).orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
             postLikeRepository.save(PostLike.builder().post(post).member(member).build());
@@ -90,7 +90,7 @@ public class PostService {
     @Transactional
     public LikeResponse unlikePost(Long postId) {
         Long memberId = currentUserProvider.currentUserId();
-        if (!postRepository.existsById(postId)) throw new CustomException(ErrorCode.POST_NOT_FOUND);
+        if (postRepository.findByIdForUpdate(postId).isEmpty()) throw new CustomException(ErrorCode.POST_NOT_FOUND);
         postLikeRepository.findByPostIdAndMemberId(postId, memberId).ifPresent(postLikeRepository::delete);
         return new LikeResponse(false, postLikeRepository.countByPostId(postId));
     }
@@ -98,7 +98,7 @@ public class PostService {
     @Transactional
     public BookmarkResponse bookmarkPost(Long postId) {
         Long memberId = currentUserProvider.currentUserId();
-        Post post = postRepository.findById(postId).orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+        Post post = postRepository.findByIdForUpdate(postId).orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
         if (postBookmarkRepository.findByPostIdAndMemberId(postId, memberId).isEmpty()) {
             Member member = memberRepository.findById(memberId).orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
             postBookmarkRepository.save(PostBookmark.builder().post(post).member(member).build());
@@ -109,7 +109,7 @@ public class PostService {
     @Transactional
     public BookmarkResponse removeBookmark(Long postId) {
         Long memberId = currentUserProvider.currentUserId();
-        if (!postRepository.existsById(postId)) throw new CustomException(ErrorCode.POST_NOT_FOUND);
+        if (postRepository.findByIdForUpdate(postId).isEmpty()) throw new CustomException(ErrorCode.POST_NOT_FOUND);
         postBookmarkRepository.findByPostIdAndMemberId(postId, memberId).ifPresent(postBookmarkRepository::delete);
         return new BookmarkResponse(false);
     }

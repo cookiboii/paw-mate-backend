@@ -297,7 +297,7 @@ Copy-Item .env.example .env
 | MySQL | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` |
 | Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` |
 | JWT | `JWT_SECRET_KEY`, `JWT_SECRET_KEY_RT`, `JWT_EXPIRATION`, `JWT_EXPIRATION_RT` |
-| Kakao | `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_REDIRECT_URI` |
+| Kakao | `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_OAUTH2_REDIRECT_URI` |
 | Mail | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` |
 | Client | `CLIENT_URL` |
 | JPA schema | `JPA_DDL_AUTO` (`update` for local development, `validate` by default/production) |
@@ -451,6 +451,8 @@ GET /post/cursor?lastPostId=42&size=10
 1. 팝업에서 `${VITE_API_BASE_URL}/oauth2/authorization/kakao`로 이동합니다.
 2. 로그인 성공 시 백엔드는 opener 창으로 `postMessage`를 보내고 팝업을 닫습니다.
 3. 프론트는 반드시 백엔드 주소를 `event.origin`과 비교한 뒤 메시지를 처리합니다.
+
+카카오 개발자 콘솔의 Redirect URI에는 `${API_BASE_URL}/login/oauth2/code/kakao`를 등록합니다. callback과 `state` 검증은 Spring Security OAuth2가 처리하며 별도의 수동 callback API는 사용하지 않습니다.
 
 ```ts
 window.addEventListener('message', (event) => {
@@ -683,7 +685,6 @@ erDiagram
 | POST | `/adoptmate/verify-reset-code?email={email}&code={code}` | 공개 | 쿼리: `email`, `code` | `null` |
 | PATCH | `/adoptmate/password` | 공개 | `email`, `password`(6자 이상) | `null` |
 | GET | `/oauth2/authorization/kakao` | 공개 | 없음 | Kakao 로그인 화면으로 리다이렉트 |
-| GET | `/adoptmate/kakao?code={code}` | 공개 | 쿼리: Kakao 인가 코드 | 팝업 완료 HTML 및 `OAUTH_SUCCESS` postMessage |
 
 `POST /adoptmate/password`는 로그인한 사용자의 비밀번호 변경이고, `PATCH /adoptmate/password`는 이메일 인증 후 비밀번호 재설정입니다.
 

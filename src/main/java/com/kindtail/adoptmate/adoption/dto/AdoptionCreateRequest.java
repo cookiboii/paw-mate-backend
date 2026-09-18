@@ -15,9 +15,10 @@ public record AdoptionCreateRequest(
         @NotNull(message = "거주 형태를 선택해주세요.")
         HousingType housingType,
         @NotBlank(message = "반려동물 유무를 선택해주세요.")
+        @Size(max = 50, message = "반려동물 정보는 50자 이하로 입력해주세요.")
         String hasPet,
         @NotBlank(message = "입양 동기 및 각오를 작성해주세요.")
-        @Size(min = 10, message = "입양 동기는 10자 이상 작성해주세요.")
+        @Size(min = 10, max = 3000, message = "입양 동기는 10자 이상 3,000자 이하로 작성해주세요.")
         String reason
 ) {
 }

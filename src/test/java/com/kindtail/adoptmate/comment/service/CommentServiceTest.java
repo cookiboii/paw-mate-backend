@@ -175,6 +175,38 @@ class CommentServiceTest {
     }
 
     @Test
+    void createCommentRejectsRepliesDeeperThanOneLevel() {
+        setupSecurityContext("commenter@example.com", Role.USER);
+        Comment child = Comment.builder()
+                .id(101L).content("대댓글").parent(parentComment)
+                .member(author).post(testPost).children(new ArrayList<>()).build();
+        given(memberRepository.findByEmail("commenter@example.com")).willReturn(Optional.of(author));
+        given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
+        given(commentRepository.findById(101L)).willReturn(Optional.of(child));
+
+        assertThatThrownBy(() -> commentService.createComment(
+                10L, new CommentCreateRequest(101L, "3단계 댓글")))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    @Test
+    void replyToSecretCommentInheritsSecretFlag() {
+        setupSecurityContext("commenter@example.com", Role.USER);
+        Comment secretParent = Comment.builder()
+                .id(102L).content("비밀 댓글").secret(true)
+                .member(author).post(testPost).children(new ArrayList<>()).build();
+        given(memberRepository.findByEmail("commenter@example.com")).willReturn(Optional.of(author));
+        given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
+        given(commentRepository.findById(102L)).willReturn(Optional.of(secretParent));
+
+        CommentResponse result = commentService.createComment(
+                10L, new CommentCreateRequest(102L, "비밀 답글", false));
+
+        assertThat(result.secret()).isTrue();
+    }
+
+    @Test
     @DisplayName("게시글의 최상위 댓글을 페이지 단위로 조회할 수 있다")
     void getComments_성공() {
         // given

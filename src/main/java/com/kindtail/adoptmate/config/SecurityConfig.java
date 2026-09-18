@@ -57,7 +57,6 @@ public class SecurityConfig {
                         "/adoptmate/send-reset-code",
                         "/adoptmate/verify-reset-code",
                         "/adoptmate/refresh-token",
-                        "/adoptmate/kakao",
                         "/login/oauth2/**",
                         "/oauth2/**",
                         "/favicon.ico",

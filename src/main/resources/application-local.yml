@@ -36,7 +36,7 @@ spring:
           kakao:
             client-id: ${KAKAO_CLIENT_ID:kakao-client-id}
             client-secret: ${KAKAO_CLIENT_SECRET:kakao-client-secret}
-            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8000/adoptmate/kakao}
+            redirect-uri: "${KAKAO_OAUTH2_REDIRECT_URI:{baseUrl}/login/oauth2/code/{registrationId}}"
 
 logging:
   level:

@@ -34,14 +34,15 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         if ("KAKAO".equalsIgnoreCase(provider)) {
             socialId = String.valueOf(attributes.get("id"));
 
-            Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
+            Map<?, ?> kakaoAccount = asMap(attributes.get("kakao_account"));
             if (kakaoAccount != null) {
-                email = (String) kakaoAccount.get("email");
+                boolean verifiedEmail = Boolean.TRUE.equals(kakaoAccount.get("is_email_verified"));
+                email = verifiedEmail ? asString(kakaoAccount.get("email")) : null;
 
-                Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+                Map<?, ?> profile = asMap(kakaoAccount.get("profile"));
                 if (profile != null) {
-                    name = (String) profile.get("nickname");
-                    profileImage = (String) profile.get("profile_image_url");
+                    name = asString(profile.get("nickname"));
+                    profileImage = asString(profile.get("profile_image_url"));
                 }
             }
             if (name == null) {
@@ -72,5 +73,13 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         );
 
         return new CustomUserDetails(member, attributes);
+    }
+
+    private Map<?, ?> asMap(Object value) {
+        return value instanceof Map<?, ?> map ? map : null;
+    }
+
+    private String asString(Object value) {
+        return value instanceof String string ? string : null;
     }
 }

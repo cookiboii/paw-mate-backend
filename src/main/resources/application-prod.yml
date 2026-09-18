@@ -49,7 +49,7 @@ spring:
           kakao:
             client-id: ${KAKAO_CLIENT_ID:kakao-client-id}
             client-secret: ${KAKAO_CLIENT_SECRET:kakao-client-secret}
-            redirect-uri: ${KAKAO_REDIRECT_URI:https://port-0-paw-mate-backend-msiq1pqe2aa00cb9.sel3.cloudtype.app/adoptmate/kakao}
+            redirect-uri: "${KAKAO_OAUTH2_REDIRECT_URI:{baseUrl}/login/oauth2/code/{registrationId}}"
 
 logging:
   level:
