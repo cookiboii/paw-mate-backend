@@ -29,15 +29,18 @@
 - 일반 API는 JWT 기반으로 동작하며, OAuth2 인가 코드 흐름에 필요한 경우에만 세션을 생성합니다(`IF_REQUIRED`).
 - `JwtAuthFilter`는 Bearer 토큰을 검증하고, Redis 블랙리스트와 사용자별 `tokenVersion`을 확인해 로그아웃·비밀번호 변경 전의 토큰을 차단합니다.
 - JWT에 담긴 회원 ID·역할 claim으로 인증 객체를 구성해 인증 요청마다 회원 DB를 다시 조회하지 않습니다. 탈퇴·비밀번호 변경으로 인한 토큰 무효화는 Redis `tokenVersion`으로 반영합니다.
-- Refresh Token은 Redis에 저장하며, Access Token 재발급·로그아웃·회원 탈퇴에 사용합니다. 재발급 시 Access Token과 Refresh Token을 모두 새로 발급하고 Redis 값을 교체하는 rotation 방식을 사용하므로, 기존 Refresh Token은 다시 사용할 수 없습니다. 비밀번호 변경 또는 재설정 시에는 Refresh Token을 삭제하고 `tokenVersion`을 증가시켜 이전 Access Token도 무효화합니다.
+- Refresh Token은 Redis에 저장하며, Access Token 재발급·로그아웃·회원 탈퇴에 사용합니다. 재발급 시 Redis Lua 스크립트로 기존 토큰 비교와 새 토큰 교체를 하나의 원자 연산으로 수행합니다. 따라서 동일 Refresh Token의 동시 재사용은 한 요청만 성공합니다. 비밀번호 변경 또는 재설정 시에는 Refresh Token을 삭제하고 `tokenVersion`을 증가시켜 이전 Access Token도 무효화합니다.
 - Access Token과 Refresh Token에는 각각 고유한 JWT ID(`jti`)가 포함됩니다.
 - 비밀번호는 BCrypt로 해시 처리합니다.
-- 카카오 OAuth2 로그인과 일반 이메일 로그인을 모두 지원하며, 회원의 인증 제공자는 `AuthProvider`로 구분합니다.
+- 카카오 OAuth2 로그인과 일반 이메일 로그인을 모두 지원하며, 회원의 인증 제공자는 `AuthProvider`로 구분합니다. OAuth callback과 `state` 검증은 Spring Security가 담당합니다. 카카오가 검증하지 않은 이메일은 계정 식별에 사용하지 않으며, 기존 이메일 회원과 이메일이 같더라도 자동으로 소셜 계정을 연결하지 않습니다.
 - 관리자 전용 기능은 `@PreAuthorize("hasRole('ADMIN')")`로 보호합니다.
 
 ## 이메일 인증과 비밀번호 재설정
 
 이메일 인증 관련 임시 상태는 Redis에만 저장하며, DB에 인증 코드를 저장하지 않습니다.
+
+- 비밀번호 재설정 완료 표시는 Redis `GETDEL`로 원자적으로 소비하므로 동시에 두 번 사용할 수 없습니다.
+- 회원가입 인증 완료 표시는 회원 DB 트랜잭션이 커밋된 뒤 삭제합니다. 회원 저장이 롤백되면 인증 상태는 남아 다시 가입을 시도할 수 있습니다.
 
 | 흐름 | 코드 유효 시간 | 실패 제한 | 추가 제한 |
 | --- | ---: | ---: | --- |
@@ -163,6 +166,8 @@ flowchart LR
     └─ 그 외 사용자 또는 비로그인 → "비밀 댓글입니다."로 마스킹
 ```
 
+댓글은 최상위 댓글과 1단계 대댓글까지만 허용합니다. 비밀 댓글의 대댓글은 자동으로 비밀 상태를 상속하며, 원댓글 작성자·게시글 작성자·관리자만 작성할 수 있습니다.
+
 ## API 빠른 명세
 
 모든 성공 응답은 `CommonResponse` 형식입니다. 인증이 필요한 요청은 `Authorization: Bearer {accessToken}` 헤더를 포함해야 합니다. `공개`는 비로그인 요청이 가능한 API이고, `인증`은 로그인 사용자, `관리자`는 `ADMIN` 역할을 뜻합니다.
@@ -242,7 +247,9 @@ flowchart LR
 
 - 비밀 댓글 내용은 댓글 작성자, 해당 게시글 작성자, `ADMIN` 역할만 확인할 수 있습니다.
 - 그 외 로그인 사용자와 비로그인 사용자는 댓글의 `secret` 값은 확인할 수 있지만, `content`에는 `비밀 댓글입니다.`가 반환됩니다.
-- 대댓글도 동일한 API에서 `parentId`와 `secret: true`를 함께 보내면 비밀 대댓글로 생성됩니다. 조회 권한과 내용 마스킹 규칙도 일반 비밀 댓글과 동일합니다.
+- 댓글은 최상위 댓글과 1단계 대댓글까지만 허용하며, 대댓글에 다시 답글을 작성할 수 없습니다.
+- 비밀 댓글의 대댓글은 요청의 `secret` 값과 관계없이 자동으로 비밀 상태를 상속합니다.
+- 비밀 댓글에는 원댓글 작성자, 해당 게시글 작성자, `ADMIN`만 대댓글을 작성할 수 있습니다.
 - 운영/기존 데이터베이스에는 아래 마이그레이션을 먼저 적용해야 합니다. `JPA_DDL_AUTO=validate` 환경에서는 이 컬럼이 없으면 애플리케이션이 시작되지 않습니다.
 
 ```sql
@@ -255,6 +262,7 @@ ALTER TABLE comment ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT FALSE;
 - `JwtAuthFilter`는 서명 검증된 JWT의 회원 ID·역할 claim으로 인증 객체를 만들기 때문에, 매 인증 요청마다 회원 DB를 조회하지 않습니다. 회원 탈퇴와 비밀번호 변경 시에는 `tokenVersion`을 증가시켜 기존 Access Token과 Refresh Token을 무효화합니다.
 - 이메일 기능은 역할에 따라 분리했습니다. `EmailVerificationService`는 회원가입 인증 코드 발송·검증을, `PasswordResetService`는 비밀번호 재설정 코드 발송·검증과 비밀번호 변경을 담당합니다.
 - 게시글은 명령과 조회를 분리했습니다. `PostService`는 작성·수정·삭제·좋아요·북마크 변경을, `PostQueryService`는 목록·검색·상세·내 북마크 조회를 담당합니다. 목록 조회 시 좋아요 수·댓글 수·사용자별 상태를 배치 조회해 N+1 조회를 피합니다.
+- 좋아요·북마크 변경은 게시글 행에 비관적 쓰기 락을 획득해 같은 게시글에 대한 동시 중복 요청을 직렬화합니다. DB 유니크 제약과 함께 중복 생성을 막고 멱등 응답을 유지합니다.
 - 사용처가 없는 동물·게시글 `findSliceBy` 조회, 종별 커서 조회의 미연결 Service/Repository 메서드, 이전 `MemberService` 인증·토큰 재발급 구현을 제거했습니다. 로그인·토큰 재발급은 `AuthenticationService`만 사용합니다.
 - 게시글의 이전 조회 구현은 제거하고, 모든 읽기 요청을 `PostQueryService`로 일원화했습니다. `PostService`는 변경 명령만 담당합니다.
 - 중복 생성일 getter, 사용되지 않는 soft-delete 헬퍼와 미사용 import도 정리했습니다.
@@ -289,7 +297,7 @@ Windows PowerShell에서는 다음 명령을 사용합니다.
 Copy-Item .env.example .env
 ```
 
-필수 설정 항목입니다.
+주요 설정 항목입니다. `(선택)` 표시가 없는 비밀값은 실행 환경에서 반드시 주입합니다.
 
 | 그룹 | 변수 |
 | --- | --- |
@@ -297,7 +305,7 @@ Copy-Item .env.example .env
 | MySQL | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` |
 | Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` |
 | JWT | `JWT_SECRET_KEY`, `JWT_SECRET_KEY_RT`, `JWT_EXPIRATION`, `JWT_EXPIRATION_RT` |
-| Kakao | `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_OAUTH2_REDIRECT_URI` |
+| Kakao | `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_OAUTH2_REDIRECT_URI`(선택) |
 | Mail | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` |
 | Client | `CLIENT_URL` |
 | JPA schema | `JPA_DDL_AUTO` (`update` for local development, `validate` by default/production) |
@@ -306,6 +314,8 @@ Copy-Item .env.example .env
 기본값과 운영 프로필은 `JPA_DDL_AUTO=validate`입니다. 기존 스키마와 데이터를 삭제할 수 있는 `create`는 운영에서 사용하지 마세요. 필요한 스키마 변경은 SQL 마이그레이션으로 적용해야 하며, 새 운영 DB도 애플리케이션 실행 전에 스키마를 준비해야 합니다.
 
 `animal.image`와 `post.image`는 이미지 URL 또는 Base64/data URL이 2,048자를 넘을 수 있으므로 MySQL `LONGTEXT`로 저장합니다. 기존 데이터베이스에서 다음 변경을 한 번 적용한 뒤 애플리케이션을 재배포하세요.
+
+API 입력 검증에서는 이미지 문자열을 최대 7,000,000자로 제한합니다. 대용량 이미지를 계속 지원해야 한다면 Base64를 DB에 저장하기보다 객체 스토리지에 업로드하고 URL만 저장하는 방식을 권장합니다.
 
 ```sql
 ALTER TABLE animal MODIFY COLUMN image LONGTEXT;
@@ -454,9 +464,14 @@ GET /post/cursor?lastPostId=42&size=10
 
 카카오 개발자 콘솔의 Redirect URI에는 `${API_BASE_URL}/login/oauth2/code/kakao`를 등록합니다. callback과 `state` 검증은 Spring Security OAuth2가 처리하며 별도의 수동 callback API는 사용하지 않습니다.
 
+`KAKAO_OAUTH2_REDIRECT_URI`를 생략하면 Spring이 `{baseUrl}/login/oauth2/code/kakao` 형식으로 생성합니다. 프록시 환경에서는 백엔드가 올바른 외부 주소를 계산하도록 `Forwarded` 또는 `X-Forwarded-*` 헤더를 전달해야 합니다.
+
+동일한 이메일로 가입한 일반 회원이 이미 존재하면 카카오 계정을 자동 연결하지 않고 로그인을 거부합니다. 계정 탈취 방지를 위한 정책입니다. 기존 회원의 소셜 계정 연결을 지원하려면 일반 로그인 후 본인 확인을 거치는 별도의 연결 API를 추가해야 합니다.
+
 ```ts
 window.addEventListener('message', (event) => {
-  if (event.origin !== import.meta.env.VITE_API_BASE_URL) return;
+  const backendOrigin = new URL(import.meta.env.VITE_API_BASE_URL).origin;
+  if (event.origin !== backendOrigin) return;
   if (event.data?.type !== 'OAUTH_SUCCESS') return;
 
   const { token, refreshToken, id, role, provider } = event.data;
@@ -688,13 +703,15 @@ erDiagram
 
 `POST /adoptmate/password`는 로그인한 사용자의 비밀번호 변경이고, `PATCH /adoptmate/password`는 이메일 인증 후 비밀번호 재설정입니다.
 
+카카오 OAuth callback은 `/login/oauth2/code/kakao`이며 카카오와 Spring Security가 내부적으로 사용합니다. 프론트에서 callback URL이나 인가 코드를 직접 호출하지 않습니다.
+
 ### 보호 동물
 
 `species`: `DOG`, `CAT`, `ETC` · `gender`: `MALE`, `FEMALE` · `status`: `WAITING`, `PROTECTED`, `ADOPTED`입니다. 동물 응답은 `id`, `species`, `breed`, `color`, `status`, `age`, `gender`, `image`를 반환합니다.
 
 | 메서드 | 경로 | 권한 | 요청 | `result` |
 | --- | --- | --- | --- | --- |
-| POST | `/api/v1/animals` | 인증 | `species`, `breed`, `color`, `image`(선택), `age`(0 이상), `gender`, `status` | 동물 1건 |
+| POST | `/api/v1/animals` | ADMIN | `species`, `breed`, `color`, `image`(선택), `age`(0 이상), `gender`, `status` | 동물 1건 |
 | GET | `/api/v1/animals` | 공개 | 쿼리: `page`, `size` | 동물 `Page` |
 | GET | `/api/v1/animals/cursor` | 공개 | 쿼리: `lastAnimalId`(선택), `size` | 동물 `Slice` |
 | GET | `/api/v1/animals/species` | 공개 | 쿼리: `species`(필수), `page`, `size` | 동물 `Page` |
@@ -711,7 +728,7 @@ erDiagram
 
 | 메서드 | 경로 | 권한 | 요청 | `result` |
 | --- | --- | --- | --- | --- |
-| POST | `/adoptions/animals/{animalId}` | 인증 | `phone`(휴대폰 형식), `housingType`, `hasPet`, `reason`(10자 이상) | 입양 신청 1건 |
+| POST | `/adoptions/animals/{animalId}` | 인증 | `phone`(휴대폰 형식), `housingType`, `hasPet`(최대 50자), `reason`(10~3,000자) | 입양 신청 1건 |
 | GET | `/adoptions/myAdoption` | 인증 | 없음 | 입양 신청 배열 |
 | GET | `/adoptions/all` | ADMIN | 없음 | 입양 신청 배열 |
 | GET | `/adoptions/list` | ADMIN | 쿼리: `page`, `size`, `sort` | 입양 신청 `Page` |
@@ -719,7 +736,7 @@ erDiagram
 
 ### 게시글 · 댓글
 
-게시글 작성·수정은 `title`, `content`가 필수이고 `img`, `category`는 선택입니다. `category`는 `REVIEW`, `FREE_ADOPTION`, `REPORT` 중 하나이며 생략 시 `REVIEW`입니다. 게시글 응답에는 `id`, `title`, `content`, `email`, `name`, `createdAt`, `img`, `likeCount`, `commentCount`, `likedByMe`, `bookmarkedByMe`가 포함됩니다. 비로그인 조회의 `likedByMe`, `bookmarkedByMe`는 항상 `false`입니다. 댓글 작성은 `content`와 `parentId`(대댓글일 때만)를 사용하며, 댓글 응답의 `children`에는 하위 댓글 배열이 포함됩니다.
+게시글 작성·수정은 `title`(최대 200자), `content`(최대 20,000자)가 필수이고 `img`(최대 7,000,000자), `category`는 선택입니다. `category`는 `REVIEW`, `FREE_ADOPTION`, `REPORT` 중 하나이며 생략 시 `REVIEW`입니다. 게시글 응답에는 `id`, `title`, `content`, `email`, `name`, `createdAt`, `img`, `likeCount`, `commentCount`, `likedByMe`, `bookmarkedByMe`가 포함됩니다. 비로그인 조회의 `likedByMe`, `bookmarkedByMe`는 항상 `false`입니다. 댓글 내용은 최대 2,000자이며 `parentId`는 1단계 대댓글을 작성할 때만 사용합니다. 댓글 응답의 `children`에는 해당 최상위 댓글의 대댓글 배열이 포함됩니다.
 
 | 메서드 | 경로 | 권한 | 요청 | `result` |
 | --- | --- | --- | --- | --- |
@@ -909,7 +926,7 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-좋아요와 북마크는 멱등 처리합니다. 같은 사용자가 이미 좋아요/북마크한 게시글에 다시 `POST` 요청해도 상태는 유지됩니다. 게시글 삭제 시 연결된 좋아요·북마크 레코드도 함께 제거됩니다.
+좋아요와 북마크는 멱등 처리합니다. 같은 사용자가 이미 좋아요/북마크한 게시글에 다시 `POST` 요청해도 상태는 유지됩니다. 변경 시 게시글 행을 잠가 동시 중복 요청도 순서대로 처리하며, 게시글 삭제 시 연결된 좋아요·북마크 레코드도 함께 제거됩니다.
 
 ```http
 POST /api/v1/posts/42/likes
@@ -930,9 +947,11 @@ Content-Type: application/json
 {"parentId":null,"content":"입양 관련 문의입니다.","secret":true}
 ```
 
-대댓글은 같은 요청에서 `parentId`에 부모 댓글 ID를 지정합니다. 댓글 목록은 `GET /comment/{postId}?page=0&size=20`으로 조회하며, `result.content`에는 최상위 댓글만 페이지 단위로 담깁니다. 각 항목은 `id`, `authorName`, `authorId`, `content`, `createdAt`, `children`을 포함하고, `children`에는 해당 최상위 댓글의 대댓글이 포함됩니다. 따라서 하나의 댓글 스레드는 서로 다른 페이지로 나뉘지 않습니다. 작성자의 이메일은 공개 응답에 포함하지 않습니다.
+대댓글은 같은 요청에서 `parentId`에 최상위 부모 댓글 ID를 지정합니다. 깊이는 한 단계로 제한되므로 대댓글에 다시 답글을 작성할 수 없습니다. 댓글 목록은 `GET /comment/{postId}?page=0&size=20`으로 조회하며, `result.content`에는 최상위 댓글만 페이지 단위로 담깁니다. 각 항목은 `id`, `authorName`, `authorId`, `content`, `secret`, `createdAt`, `children`을 포함하고, `children`에는 해당 최상위 댓글의 대댓글이 포함됩니다. 따라서 하나의 댓글 스레드는 서로 다른 페이지로 나뉘지 않습니다. 작성자의 이메일은 공개 응답에 포함하지 않습니다.
 
 비밀 댓글의 응답에는 `secret: true`가 포함됩니다. 댓글 작성자·게시글 작성자·관리자 외의 조회에서는 작성자 정보와 댓글 구조는 유지되지만 `content`는 `비밀 댓글입니다.`로 마스킹됩니다.
+
+비밀 댓글의 대댓글은 자동으로 비밀 상태를 상속하며, 원댓글 작성자·게시글 작성자·관리자만 작성할 수 있습니다.
 
 </details>
 
