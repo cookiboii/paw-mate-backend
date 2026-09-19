@@ -33,6 +33,7 @@ public enum ErrorCode {
 
     // Post & Comment
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "존재하지 않는 게시글입니다."),
+    POST_AUTHOR_REQUIRED(HttpStatus.FORBIDDEN, "P002", "게시글 작성자만 수정하거나 삭제할 수 있습니다."),
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "CM001", "존재하지 않는 댓글입니다."),
 
     // Lock

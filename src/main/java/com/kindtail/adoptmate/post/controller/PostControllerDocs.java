@@ -57,20 +57,22 @@ public interface PostControllerDocs {
             @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId
     );
 
-    @Operation(summary = "게시글 삭제", description = "게시글을 삭제합니다. (작성자 본인 또는 관리자만 가능)")
+    @Operation(summary = "게시글 삭제", description = "게시글 작성자 또는 관리자만 삭제할 수 있습니다. JWT 인증 정보의 회원 ID와 역할로 권한을 확인합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "삭제 완료"),
-            @ApiResponse(responseCode = "403", description = "수정/삭제 권한 없음"),
+            @ApiResponse(responseCode = "401", description = "로그인 필요 또는 유효하지 않은 인증 정보"),
+            @ApiResponse(responseCode = "403", description = "게시글 작성자 또는 관리자가 아님"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글")
     })
     ResponseEntity<CommonResponse<Void>> deletePostById(
             @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId
     );
 
-    @Operation(summary = "게시글 수정", description = "게시글 제목, 내용, 이미지를 수정합니다. (작성자 본인 또는 관리자만 가능)")
+    @Operation(summary = "게시글 수정", description = "JWT로 인증된 회원 ID와 작성자 ID가 일치할 때만 게시글 제목, 내용, 이미지를 수정합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "글 수정 완료"),
-            @ApiResponse(responseCode = "403", description = "수정/삭제 권한 없음"),
+            @ApiResponse(responseCode = "401", description = "로그인 필요 또는 유효하지 않은 인증 정보"),
+            @ApiResponse(responseCode = "403", description = "게시글 작성자가 아님"),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글")
     })
     ResponseEntity<CommonResponse<com.kindtail.adoptmate.post.dto.PostResponse>> updatePost(

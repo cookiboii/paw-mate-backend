@@ -98,7 +98,7 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
 
-        comment.validateAuthorOrAdmin(userDetails);
+        comment.validateAuthor(userDetails);
         comment.updateComment(dto.content());
         return CommentResponse.fromComment(comment, userDetails);
     }

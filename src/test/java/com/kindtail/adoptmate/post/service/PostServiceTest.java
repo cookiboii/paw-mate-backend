@@ -91,7 +91,11 @@ class PostServiceTest {
     }
 
     private void setupSecurityContext(String email, Role role) {
-        Long memberId = "other@example.com".equals(email) ? 2L : 1L;
+        Long memberId = switch (email) {
+            case "other@example.com" -> 2L;
+            case "admin@example.com" -> 99L;
+            default -> 1L;
+        };
         Member member = Member.builder()
             .id(memberId)
             .email(email)
@@ -191,19 +195,18 @@ class PostServiceTest {
     }
 
     @Test
-    @DisplayName("관리자(ADMIN) 권한으로 타인의 게시글을 수정할 수 있다")
-    void updatePost_관리자_성공() {
+    @DisplayName("관리자(ADMIN)라도 타인의 게시글을 수정할 수 없다")
+    void updatePost_관리자_예외() {
         // given
         setupSecurityContext("admin@example.com", Role.ADMIN);
         PostUpdateRequest request = new PostUpdateRequest("관리자 수정", "admin.jpg", "관리자 내용");
 
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
-        // when
-        PostResponse result = postService.updatePost(10L, request);
-
-        // then
-        assertThat(result.title()).isEqualTo("관리자 수정");
+        // when & then
+        assertThatThrownBy(() -> postService.updatePost(10L, request))
+            .isInstanceOf(CustomException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_AUTHOR_REQUIRED);
     }
 
     @Test
@@ -218,7 +221,7 @@ class PostServiceTest {
         // when & then
         assertThatThrownBy(() -> postService.updatePost(10L, request))
             .isInstanceOf(CustomException.class)
-            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_AUTHOR_REQUIRED);
     }
 
     @Test
@@ -226,6 +229,20 @@ class PostServiceTest {
     void deletePost_작성자_성공() {
         // given
         setupSecurityContext("author@example.com", Role.USER);
+        given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
+
+        // when
+        postService.deletePost(10L);
+
+        // then
+        verify(postRepository).delete(testPost);
+    }
+
+    @Test
+    @DisplayName("관리자는 타인의 게시글을 삭제할 수 있다")
+    void deletePost_관리자_성공() {
+        // given
+        setupSecurityContext("admin@example.com", Role.ADMIN);
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when

@@ -1,13 +1,17 @@
 package com.kindtail.adoptmate.comment.domain;
 
+import com.kindtail.adoptmate.auth.CustomUserDetails;
+import com.kindtail.adoptmate.common.exception.CustomException;
+import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.post.domain.Post;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CommentTest {
 

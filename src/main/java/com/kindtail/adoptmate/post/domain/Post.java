@@ -75,7 +75,27 @@ public class Post extends BaseTimeEntity {
     }
 
     /**
-     * 작성자 본인 또는 관리자 권한 검증 (Tell, Don't Ask)
+     * 작성자 본인 권한 검증 (수정은 본인만 가능)
+     */
+    public void validateAuthor(Long currentUserId) {
+        if (currentUserId == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        boolean isAuthor = this.member != null && this.member.getId() != null && this.member.getId().equals(currentUserId);
+        if (!isAuthor) {
+            throw new CustomException(ErrorCode.POST_AUTHOR_REQUIRED);
+        }
+    }
+
+    public void validateAuthor(CustomUserDetails userDetails) {
+        if (userDetails == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        validateAuthor(userDetails.getId());
+    }
+
+    /**
+     * 게시글 작성자 또는 관리자인지 검증한다. 게시글 삭제에 사용한다.
      */
     public void validateAuthorOrAdmin(Long currentUserId, boolean isAdmin) {
         if (currentUserId == null) {
@@ -93,4 +113,5 @@ public class Post extends BaseTimeEntity {
         }
         validateAuthorOrAdmin(userDetails.getId(), userDetails.isAdmin());
     }
+
 }

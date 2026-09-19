@@ -256,6 +256,21 @@ class CommentServiceTest {
     }
 
     @Test
+    @DisplayName("관리자(ADMIN)라도 타인의 댓글을 수정할 수 없다")
+    void updateComment_관리자_예외() {
+        // given
+        setupSecurityContext("admin@example.com", Role.ADMIN);
+        CommentUpdateRequest request = new CommentUpdateRequest(100L, "관리자 수정 시도");
+
+        given(commentRepository.findById(100L)).willReturn(Optional.of(parentComment));
+
+        // when & then
+        assertThatThrownBy(() -> commentService.updateComment(100L, request))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
+    }
+
+    @Test
     @DisplayName("작성자 본인이 댓글을 삭제할 수 있다")
     void deleteComment_작성자_성공() {
         // given

@@ -72,7 +72,7 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        post.validateAuthorOrAdmin(userDetails);
+        post.validateAuthor(userDetails);
         post.updatePost(dto.title(), dto.content(), dto.img());
         return toResponse(post, userDetails.getId());
     }

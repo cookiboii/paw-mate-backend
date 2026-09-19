@@ -765,14 +765,54 @@ erDiagram
 
 게시글 작성·수정은 `title`(최대 200자), `content`(최대 20,000자)가 필수이고 `img`(최대 7,000,000자), `category`는 선택입니다. `category`는 `REVIEW`, `FREE_ADOPTION`, `REPORT` 중 하나이며 생략 시 `REVIEW`입니다. 게시글 응답에는 `id`, `title`, `content`, `name`, `createdAt`, `img`, `likeCount`, `commentCount`, `likedByMe`, `bookmarkedByMe`가 포함되며 작성자 이메일은 공개하지 않습니다. 비로그인 조회의 `likedByMe`, `bookmarkedByMe`는 항상 `false`입니다. 댓글 내용은 최대 2,000자이며 `parentId`는 1단계 대댓글을 작성할 때만 사용합니다. 댓글 응답의 `children`에는 해당 최상위 댓글의 대댓글 배열이 포함됩니다.
 
+게시글 권한은 요청 본문의 이메일이나 회원 ID를 신뢰하지 않고 JWT 인증 정보의 회원 ID와 역할로 판단합니다. 게시글 수정은 작성자만 가능하며, 삭제는 작성자 또는 `ADMIN`만 가능합니다.
+
+#### 게시글 DTO
+
+`PostCreateRequest` — 게시글 작성 요청
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `title` | `string` | 예 | 제목. 공백일 수 없으며 최대 200자입니다. |
+| `content` | `string` | 예 | 본문. 공백일 수 없으며 최대 20,000자입니다. |
+| `img` | `string \\| null` | 아니요 | 이미지 URL 또는 이미지 데이터. 최대 7,000,000자이며 이미지가 없으면 생략하거나 `null`을 전달합니다. |
+| `category` | `REVIEW \\| FREE_ADOPTION \\| REPORT \\| null` | 아니요 | 게시글 카테고리. 생략하거나 `null`이면 `REVIEW`가 적용됩니다. |
+
+`PostUpdateRequest` — 게시글 수정 요청
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `title` | `string` | 예 | 수정할 제목. 최대 200자입니다. |
+| `img` | `string \\| null` | 아니요 | 수정할 이미지. `null`이면 기존 이미지가 제거됩니다. |
+| `content` | `string` | 예 | 수정할 본문. 최대 20,000자입니다. |
+
+수정 API는 부분 수정이 아닙니다. `PUT /api/v1/posts/{postId}` 호출 시 `title`과 `content`를 항상 함께 보내야 합니다. 작성자만 수정할 수 있으며, 관리자는 자신이 작성하지 않은 게시글을 수정할 수 없습니다.
+
+`PostResponse` — 게시글 응답
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `id` | `number` | 게시글 ID |
+| `title` | `string` | 게시글 제목 |
+| `content` | `string` | 게시글 본문 |
+| `name` | `string` | 작성자 표시 이름. 탈퇴한 회원은 `탈퇴한 사용자`로 표시됩니다. |
+| `createdAt` | `string(date-time)` | 작성 시각 |
+| `img` | `string \\| null` | 이미지 URL 또는 이미지 데이터 |
+| `likeCount` | `number` | 전체 좋아요 수 |
+| `commentCount` | `number` | 전체 댓글 수 |
+| `likedByMe` | `boolean` | 현재 로그인 사용자의 좋아요 여부. 비로그인은 `false`입니다. |
+| `bookmarkedByMe` | `boolean` | 현재 로그인 사용자의 북마크 여부. 비로그인은 `false`입니다. |
+
+`LikeResponse`는 변경 후 상태인 `liked: boolean`과 전체 좋아요 수인 `likeCount: number`를 반환합니다. `BookmarkResponse`는 변경 후 상태인 `bookmarked: boolean`을 반환합니다.
+
 | 메서드 | 경로 | 권한 | 요청 | `result` |
 | --- | --- | --- | --- | --- |
 | POST | `/api/v1/posts` | 인증 | `title`, `content`, `img`(선택), `category`(선택) | 게시글 1건 |
 | GET | `/api/v1/posts` | 공개 | 쿼리: `page`, `size`, `sort` | 게시글 `Page` |
 | GET | `/api/v1/posts/cursor` | 공개 | 쿼리: `lastPostId`(선택), `size`, `category`(선택), `keyword`(선택), `sort`(선택: `latest`/`popular`/`comments`) | 게시글 `Slice` |
 | GET | `/api/v1/posts/{postId}` | 공개 | 경로: `postId` | 게시글 1건 |
-| PUT | `/api/v1/posts/{postId}` | 인증 | `title`, `content`, `img`(선택) | 변경된 게시글 1건 |
-| DELETE | `/api/v1/posts/{postId}` | 인증 | 경로: `postId` | `null` |
+| PUT | `/api/v1/posts/{postId}` | 작성자 | `title`, `content`, `img`(선택) | 변경된 게시글 1건 |
+| DELETE | `/api/v1/posts/{postId}` | 작성자 또는 ADMIN | 경로: `postId` | `null` |
 | POST | `/api/v1/posts/{postId}/likes` | 인증 | 경로: `postId` | `liked`, `likeCount` |
 | DELETE | `/api/v1/posts/{postId}/likes` | 인증 | 경로: `postId` | `liked`, `likeCount` |
 | POST | `/api/v1/posts/{postId}/bookmarks` | 인증 | 경로: `postId` | `bookmarked` |
@@ -827,7 +867,7 @@ erDiagram
 }
 ```
 
-주요 오류 코드는 `C001`(입력값 오류), `M004`(인증 실패), `C004`(권한 없음), `A001`(동물 없음), `AD001`(입양 신청 없음), `P001`(게시글 없음), `CM001`(댓글 없음), `L001`·`L002`(동시성 충돌), `E001`·`E002`(인증 코드 만료·불일치)입니다.
+주요 오류 코드는 `C001`(입력값 오류), `M004`(인증 실패), `C004`(작성자 또는 관리자 권한 없음), `A001`(동물 없음), `AD001`(입양 신청 없음), `P001`(게시글 없음), `P002`(게시글 수정 시 작성자 권한 없음), `CM001`(댓글 없음), `L001`·`L002`(동시성 충돌), `E001`·`E002`(인증 코드 만료·불일치)입니다.
 
 #### 회원가입·로그인
 

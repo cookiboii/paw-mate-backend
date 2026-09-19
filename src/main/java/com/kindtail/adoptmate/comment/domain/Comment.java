@@ -62,6 +62,26 @@ public class Comment extends BaseTimeEntity {
     }
 
     /**
+     * 작성자 본인 권한 검증 (수정은 본인만 가능)
+     */
+    public void validateAuthor(Long currentUserId) {
+        if (currentUserId == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        boolean isAuthor = this.member != null && this.member.getId() != null && this.member.getId().equals(currentUserId);
+        if (!isAuthor) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED_AUTHOR);
+        }
+    }
+
+    public void validateAuthor(CustomUserDetails userDetails) {
+        if (userDetails == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        validateAuthor(userDetails.getId());
+    }
+
+    /**
      * 작성자 본인 또는 관리자 권한 검증 (Tell, Don't Ask)
      */
     public void validateAuthorOrAdmin(Long currentUserId, boolean isAdmin) {
