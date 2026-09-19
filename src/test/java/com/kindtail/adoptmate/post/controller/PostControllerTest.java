@@ -168,7 +168,8 @@ class PostControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.statusCode").value(200))
                 .andExpect(jsonPath("$.statusMessage").value("조회완료"))
-                .andExpect(jsonPath("$.result.id").value(1));
+                .andExpect(jsonPath("$.result.id").value(1))
+                .andExpect(jsonPath("$.result.email").doesNotExist());
     }
 
     @Test

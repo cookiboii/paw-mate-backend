@@ -187,7 +187,7 @@ flowchart LR
 | GET | `/adoptmate/all` | 관리자 | - | 회원 목록 |
 | DELETE | `/adoptmate/admin/{memberId}` | 관리자 | - | `null` |
 | POST | `/adoptmate/verify-email` | 공개 | `email` | `null` |
-| POST | `/adoptmate/verify-code` | 공개 | `email`, `code` | 검증한 이메일·코드 |
+| POST | `/adoptmate/verify-code` | 공개 | `email`, `code` | `null` |
 | POST | `/adoptmate/send-reset-code` | 공개 | query: `email` | `null` |
 | POST | `/adoptmate/verify-reset-code` | 공개 | query: `email`, `code` | `null` |
 | PATCH | `/adoptmate/password` | 공개 | `email`, `password` | `null` |
@@ -695,7 +695,7 @@ erDiagram
 | DELETE | `/adoptmate/delete` | 인증 | 없음 | `null` |
 | DELETE | `/adoptmate/admin/{memberId}` | ADMIN | 경로: `memberId` | `null` |
 | POST | `/adoptmate/verify-email` | 공개 | `email` | `null` |
-| POST | `/adoptmate/verify-code` | 공개 | `email`, `code` | `email`, `code` |
+| POST | `/adoptmate/verify-code` | 공개 | `email`, `code` | `null` |
 | POST | `/adoptmate/send-reset-code?email={email}` | 공개 | 쿼리: `email` | `null` |
 | POST | `/adoptmate/verify-reset-code?email={email}&code={code}` | 공개 | 쿼리: `email`, `code` | `null` |
 | PATCH | `/adoptmate/password` | 공개 | `email`, `password`(6자 이상) | `null` |
@@ -736,7 +736,7 @@ erDiagram
 
 ### 게시글 · 댓글
 
-게시글 작성·수정은 `title`(최대 200자), `content`(최대 20,000자)가 필수이고 `img`(최대 7,000,000자), `category`는 선택입니다. `category`는 `REVIEW`, `FREE_ADOPTION`, `REPORT` 중 하나이며 생략 시 `REVIEW`입니다. 게시글 응답에는 `id`, `title`, `content`, `email`, `name`, `createdAt`, `img`, `likeCount`, `commentCount`, `likedByMe`, `bookmarkedByMe`가 포함됩니다. 비로그인 조회의 `likedByMe`, `bookmarkedByMe`는 항상 `false`입니다. 댓글 내용은 최대 2,000자이며 `parentId`는 1단계 대댓글을 작성할 때만 사용합니다. 댓글 응답의 `children`에는 해당 최상위 댓글의 대댓글 배열이 포함됩니다.
+게시글 작성·수정은 `title`(최대 200자), `content`(최대 20,000자)가 필수이고 `img`(최대 7,000,000자), `category`는 선택입니다. `category`는 `REVIEW`, `FREE_ADOPTION`, `REPORT` 중 하나이며 생략 시 `REVIEW`입니다. 게시글 응답에는 `id`, `title`, `content`, `name`, `createdAt`, `img`, `likeCount`, `commentCount`, `likedByMe`, `bookmarkedByMe`가 포함되며 작성자 이메일은 공개하지 않습니다. 비로그인 조회의 `likedByMe`, `bookmarkedByMe`는 항상 `false`입니다. 댓글 내용은 최대 2,000자이며 `parentId`는 1단계 대댓글을 작성할 때만 사용합니다. 댓글 응답의 `children`에는 해당 최상위 댓글의 대댓글 배열이 포함됩니다.
 
 | 메서드 | 경로 | 권한 | 요청 | `result` |
 | --- | --- | --- | --- | --- |
@@ -954,6 +954,14 @@ Content-Type: application/json
 비밀 댓글의 대댓글은 자동으로 비밀 상태를 상속하며, 원댓글 작성자·게시글 작성자·관리자만 작성할 수 있습니다.
 
 </details>
+
+### 보안 응답 및 삭제 정책
+
+- 공개 게시글 응답은 작성자 식별을 위해 `name`만 제공하며 이메일은 포함하지 않습니다.
+- 회원가입 이메일 인증 성공 응답은 인증 코드나 이메일을 다시 반환하지 않습니다.
+- 로그인 실패는 존재하지 않는 이메일과 잘못된 비밀번호에 동일한 오류를 반환합니다.
+- 게시글을 삭제하면 연결된 댓글도 soft delete되어 이후 댓글 조회·수정에 노출되지 않습니다.
+- H2는 테스트 런타임 의존성으로만 포함하며 운영 API에서 H2 콘솔을 공개하지 않습니다.
 
 ### 상태 코드 및 재시도
 

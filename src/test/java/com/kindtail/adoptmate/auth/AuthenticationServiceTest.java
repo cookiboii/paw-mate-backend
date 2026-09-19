@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.auth;
 
 import com.kindtail.adoptmate.common.exception.CustomException;
+import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.domain.Role;
 import com.kindtail.adoptmate.member.dto.MemberLoginRequest;
@@ -74,6 +75,15 @@ class AuthenticationServiceTest {
 
         assertThatThrownBy(() -> authenticationService.login(new MemberLoginRequest(member.getEmail(), "wrong")))
                 .isInstanceOf(CustomException.class);
+    }
+
+    @Test
+    void loginUsesTheSameErrorForAnUnknownEmail() {
+        given(memberRepository.findByEmail("unknown@example.com")).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authenticationService.login(new MemberLoginRequest("unknown@example.com", "password")))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_PASSWORD);
     }
 
     private Member member() {

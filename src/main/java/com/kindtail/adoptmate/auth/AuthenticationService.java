@@ -22,7 +22,7 @@ public class AuthenticationService {
 
     public MemberLoginResponse login(MemberLoginRequest request) {
         Member member = memberRepository.findByEmail(request.email())
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_PASSWORD));
         if (!passwordEncoder.matches(request.password(), member.getPassword())) {
             throw new CustomException(ErrorCode.INVALID_PASSWORD);
         }

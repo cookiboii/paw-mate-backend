@@ -13,8 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.Map;
-
 @Tag(name = "2. 이메일 인증 & 비밀번호 재설정 API", description = "회원가입 이메일 인증 코드 발송/검증 및 비밀번호 재설정 관련 API")
 public interface EmailVerificationControllerDocs {
 
@@ -33,7 +31,7 @@ public interface EmailVerificationControllerDocs {
             @ApiResponse(responseCode = "200", description = "이메일 인증 성공"),
             @ApiResponse(responseCode = "400", description = "인증 코드 불일치 또는 만료")
     })
-    ResponseEntity<CommonResponse<Map<String, String>>> verifyCode(@Valid @RequestBody com.kindtail.adoptmate.common.dto.EmailVerifyRequest request);
+    ResponseEntity<CommonResponse<Void>> verifyCode(@Valid @RequestBody com.kindtail.adoptmate.common.dto.EmailVerifyRequest request);
 
     @Operation(summary = "비밀번호 재설정 인증 코드 발송", description = "가입된 이메일 계정으로 비밀번호 재설정용 인증 코드를 발송합니다.")
     @ApiResponses({

@@ -5,12 +5,17 @@ import com.kindtail.adoptmate.post.domain.Post;
 import java.time.LocalDateTime;
 
 public record PostResponse(
-        Long id, String title, String content, String email, String name,
+        Long id, String title, String content, String name,
         LocalDateTime createdAt, String img, long likeCount, long commentCount,
         boolean likedByMe, boolean bookmarkedByMe
 ) {
-    public PostResponse(Long id, String title, String content, String email, String name, LocalDateTime createdAt, String img) {
-        this(id, title, content, email, name, createdAt, img, 0L, 0L, false, false);
+    public PostResponse(Long id, String title, String content, String name, LocalDateTime createdAt, String img) {
+        this(id, title, content, name, createdAt, img, 0L, 0L, false, false);
+    }
+
+    /** Compatibility constructor: the email argument is intentionally discarded. */
+    public PostResponse(Long id, String title, String content, String ignoredEmail, String name, LocalDateTime createdAt, String img) {
+        this(id, title, content, name, createdAt, img, 0L, 0L, false, false);
     }
 
     public static PostResponse from(Post post) {
@@ -22,7 +27,7 @@ public record PostResponse(
 
     public static PostResponse from(Post post, long likeCount, long commentCount, boolean likedByMe, boolean bookmarkedByMe) {
         PostResponse basic = from(post);
-        return new PostResponse(basic.id(), basic.title(), basic.content(), basic.email(), basic.name(), basic.createdAt(),
+        return new PostResponse(basic.id(), basic.title(), basic.content(), basic.name(), basic.createdAt(),
                 basic.img(), likeCount, commentCount, likedByMe, bookmarkedByMe);
     }
 }

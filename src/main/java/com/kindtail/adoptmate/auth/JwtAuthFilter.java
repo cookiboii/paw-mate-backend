@@ -1,6 +1,7 @@
 package com.kindtail.adoptmate.auth;
 
 import com.kindtail.adoptmate.common.exception.ErrorCode;
+import com.kindtail.adoptmate.member.domain.Member;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -45,7 +46,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         return;
                     }
 
-                    CustomUserDetails userDetails = new CustomUserDetails(com.kindtail.adoptmate.member.domain.Member.builder()
+                    CustomUserDetails userDetails = new CustomUserDetails(Member.builder()
                             .id(tokenPrincipal.id()).email(email).role(tokenPrincipal.role()).name(email).build());
                     UsernamePasswordAuthenticationToken auth =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

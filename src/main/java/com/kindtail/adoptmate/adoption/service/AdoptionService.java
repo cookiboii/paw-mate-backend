@@ -12,6 +12,7 @@ import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,17 +23,14 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class AdoptionService {
 
     private final AdoptionRepository adoptionRepository;
     private final AnimalRepository animalRepository;
     private final MemberRepository memberRepository;
 
-    public AdoptionService(AdoptionRepository adoptionRepository, AnimalRepository animalRepository, MemberRepository memberRepository) {
-        this.adoptionRepository = adoptionRepository;
-        this.animalRepository = animalRepository;
-        this.memberRepository = memberRepository;
-    }
+
 
     @Transactional
     public AdoptionResponse applyAdoption(AdoptionCreateRequest dto, Long memberId, Long animalId) {

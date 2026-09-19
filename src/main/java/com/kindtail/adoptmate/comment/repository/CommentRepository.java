@@ -9,9 +9,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE comment SET is_deleted = true WHERE post_id = :postId AND is_deleted = false", nativeQuery = true)
+    int softDeleteByPostId(@Param("postId") Long postId);
 
     long countByPostId(Long postId);
 

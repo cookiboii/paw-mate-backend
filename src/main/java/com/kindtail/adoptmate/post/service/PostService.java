@@ -61,6 +61,7 @@ public class PostService {
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
         post.validateAuthorOrAdmin(userDetails);
+        commentRepository.softDeleteByPostId(postId);
         postRepository.delete(post);
     }
 

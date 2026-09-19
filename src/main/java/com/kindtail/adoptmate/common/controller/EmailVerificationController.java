@@ -39,10 +39,9 @@ public class EmailVerificationController implements EmailVerificationControllerD
 
     @Override
     @PostMapping("/verify-code")
-    public ResponseEntity<CommonResponse<Map<String, String>>> verifyCode(@Valid @RequestBody EmailVerifyRequest request) {
+    public ResponseEntity<CommonResponse<Void>> verifyCode(@Valid @RequestBody EmailVerifyRequest request) {
         emailVerificationService.verifyEmail(request.email(), request.code());
-        Map<String, String> result = Map.of("email", request.email(), "code", request.code());
-        return CommonResponse.toResponseEntity(SuccessCode.EMAIL_VERIFY_SUCCESS, result);
+        return CommonResponse.toResponseEntity(SuccessCode.EMAIL_VERIFY_SUCCESS);
     }
 
     @Override

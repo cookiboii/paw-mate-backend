@@ -12,6 +12,7 @@ import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.auth.CurrentUserProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,17 +21,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class AnimalService {
 
     private final AnimalRepository animalRepository;
     private final MemberRepository memberRepository;
     private final CurrentUserProvider currentUserProvider;
 
-    public AnimalService(AnimalRepository animalRepository, MemberRepository memberRepository, CurrentUserProvider currentUserProvider) {
-        this.animalRepository = animalRepository;
-        this.memberRepository = memberRepository;
-        this.currentUserProvider = currentUserProvider;
-    }
+
 
     @Transactional
     public AnimalResponse createAnimal(AnimalCreateRequest request) {

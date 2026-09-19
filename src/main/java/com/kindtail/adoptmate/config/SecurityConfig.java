@@ -61,7 +61,6 @@ public class SecurityConfig {
                         "/oauth2/**",
                         "/favicon.ico",
                         "/favicon.ico/**",
-                        "/h2-console/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
@@ -86,8 +85,6 @@ public class SecurityConfig {
                 .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                 .successHandler(oAuth2SuccessHandler)
         );
-
-        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
 
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
