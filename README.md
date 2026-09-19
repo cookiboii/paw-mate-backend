@@ -168,6 +168,33 @@ flowchart LR
 
 댓글은 최상위 댓글과 1단계 대댓글까지만 허용합니다. 비밀 댓글의 대댓글은 자동으로 비밀 상태를 상속하며, 원댓글 작성자·게시글 작성자·관리자만 작성할 수 있습니다.
 
+### 유스케이스와 어노테이션 맵
+
+주요 사용자는 비회원, 회원, 관리자이며 회원은 공개 조회 기능을 함께 사용할 수 있습니다. Kakao OAuth2는 소셜 로그인에 필요한 사용자 정보를 제공하고, SMTP는 이메일 인증·비밀번호 재설정 코드를 발송합니다.
+
+```mermaid
+flowchart LR
+    Guest[비회원] --> Auth[회원가입 · 로그인 · 토큰 갱신]
+    Guest --> Verify[이메일 인증 · 비밀번호 재설정]
+    Guest --> PublicView[보호동물 · 게시글 공개 조회]
+    Member[회원] --> Favorite[관심 동물 관리]
+    Member --> Adoption[입양 신청 · 내 신청 조회]
+    Member --> Community[게시글 · 댓글 · 좋아요 · 북마크]
+    Admin[관리자] --> AdminAnimal[보호동물 관리]
+    Admin --> AdminAdoption[입양 신청 승인 · 거절]
+    Admin --> AdminMember[회원 조회 · 삭제]
+```
+
+| 영역 | 주요 어노테이션 | 용도 |
+| --- | --- | --- |
+| 웹·API | `@RestController`, `@RequestMapping`, `@Valid`, `@AuthenticationPrincipal` | 엔드포인트 선언, 요청 검증, 인증 주체 주입 |
+| 서비스·보안 | `@Service`, `@Transactional`, `@PreAuthorize` | 유스케이스·트랜잭션 경계와 역할 권한 적용 |
+| JPA | `@Entity`, `@ManyToOne`, `@Version`, `@EntityGraph`, `@Query` | 모델·연관관계·동시성·조회 전략 정의 |
+| 영속성 정책 | `@SQLDelete`, `@SQLRestriction`, `@CreatedDate`, `@LastModifiedDate` | soft delete와 생성·수정 시각 감사 |
+| 구성·문서화 | `@Configuration`, `@Bean`, `@Operation`, `@Schema` | 인프라 Bean과 OpenAPI 문서 구성 |
+
+전체 유스케이스, 실제 사용 위치, Hibernate 전용 `@NotFound` 사용 시 주의 사항은 [아키텍처 문서](docs/ARCHITECTURE.md)를 참고하세요.
+
 ## API 빠른 명세
 
 모든 성공 응답은 `CommonResponse` 형식입니다. 인증이 필요한 요청은 `Authorization: Bearer {accessToken}` 헤더를 포함해야 합니다. `공개`는 비로그인 요청이 가능한 API이고, `인증`은 로그인 사용자, `관리자`는 `ADMIN` 역할을 뜻합니다.
