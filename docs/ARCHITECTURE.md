@@ -17,6 +17,128 @@ Controller ──► Service / Facade ──► Repository ──► MySQL
                      └── SMTP mail
 ```
 
+## 유스케이스 다이어그램
+
+실제 Controller 엔드포인트와 보안 권한을 기준으로 주요 사용자를 비회원, 회원, 관리자, 외부 인증·메일 시스템으로 구분한다. 회원은 비회원이 할 수 있는 공개 조회 기능을 포함한다.
+
+```mermaid
+flowchart LR
+    Guest[비회원]
+    Member[회원]
+    Admin[관리자]
+    Kakao[Kakao OAuth2]
+    Mail[SMTP 메일]
+
+    subgraph PawMate[PawMate Backend]
+        Auth([회원가입 · 로그인 · 토큰 갱신])
+        Verify([이메일 인증 · 비밀번호 재설정])
+        AnimalView([보호동물 목록 · 검색 · 상세 조회])
+        AnimalFavorite([관심 동물 관리])
+        AdoptionApply([입양 신청 · 내 신청 조회])
+        PostView([게시글 목록 · 검색 · 상세 조회])
+        PostManage([게시글 · 댓글 작성 및 관리])
+        PostReaction([좋아요 · 북마크 관리])
+        AnimalAdmin([보호동물 등록 · 상태 변경 · 삭제])
+        AdoptionAdmin([입양 신청 전체 조회 · 승인 · 거절])
+        MemberAdmin([회원 목록 조회 · 회원 삭제])
+    end
+
+    Guest --> Auth
+    Guest --> Verify
+    Guest --> AnimalView
+    Guest --> PostView
+
+    Member --> Auth
+    Member --> AnimalFavorite
+    Member --> AdoptionApply
+    Member --> PostManage
+    Member --> PostReaction
+
+    Admin --> AnimalAdmin
+    Admin --> AdoptionAdmin
+    Admin --> MemberAdmin
+
+    Auth <--> Kakao
+    Verify --> Mail
+```
+
+| 사용자 | 대표 유스케이스 |
+| --- | --- |
+| 비회원 | 회원가입, 로그인, 이메일 인증, 비밀번호 재설정, 보호동물·게시글 공개 조회 |
+| 회원 | 관심 동물, 입양 신청, 게시글·댓글 작성/수정/삭제, 좋아요·북마크 |
+| 관리자 | 보호동물 관리, 입양 신청 상태 관리, 회원 조회·삭제 |
+| Kakao OAuth2 | 소셜 로그인에 필요한 사용자 정보 제공 |
+| SMTP 메일 | 이메일 인증 코드와 비밀번호 재설정 코드를 발송 |
+
+## 어노테이션 맵
+
+프로젝트의 어노테이션은 계층의 책임을 드러내고, 공통 정책을 선언적으로 적용하기 위해 사용한다. 아래 목록은 `src/main/java`에서 실제 사용 중인 주요 어노테이션을 역할별로 정리한 것이다.
+
+### 웹·API 계층
+
+| 어노테이션 | 역할 | 사용 위치/의도 |
+| --- | --- | --- |
+| `@RestController`, `@RequestMapping` | REST 컨트롤러와 공통 URL 경로를 선언 | Controller |
+| `@GetMapping`, `@PostMapping`, `@PutMapping`, `@PatchMapping`, `@DeleteMapping` | HTTP 메서드별 엔드포인트를 선언 | Controller |
+| `@RequestBody`, `@RequestParam`, `@PathVariable` | 요청 본문·쿼리 파라미터·경로 변수를 바인딩 | Controller 메서드 파라미터 |
+| `@Valid`, `@Validated` | DTO Bean Validation을 실행 | 요청 DTO, Controller |
+| `@AuthenticationPrincipal` | SecurityContext의 인증 주체를 주입 | 인증이 필요한 Controller |
+| `@RestControllerAdvice`, `@ExceptionHandler` | 예외를 공통 API 오류 응답으로 변환 | `GlobalExceptionHandler` |
+| `@PageableDefault` | 페이지 크기·정렬 기본값을 지정 | 목록 조회 API |
+
+### 입력 검증과 API 문서화
+
+| 어노테이션 | 역할 | 사용 위치/의도 |
+| --- | --- | --- |
+| `@NotBlank`, `@NotNull`, `@Email`, `@Size`, `@Min`, `@Pattern` | 요청 DTO 필드의 형식과 범위를 검증 | Request DTO |
+| `@Operation`, `@ApiResponse`, `@ApiResponses`, `@Parameter`, `@Tag`, `@Schema` | OpenAPI/Swagger 문서를 생성 | `*ControllerDocs`, DTO |
+
+### 서비스·트랜잭션·보안 계층
+
+| 어노테이션 | 역할 | 사용 위치/의도 |
+| --- | --- | --- |
+| `@Service`, `@Component` | Spring Bean으로 등록 | Service, Filter, Listener 등 |
+| `@Transactional` | DB 작업의 원자성과 읽기 전용 경계를 선언 | Service 메서드 |
+| `@TransactionalEventListener` | 트랜잭션 단계에 맞춰 도메인 이벤트를 처리 | 이벤트 리스너 |
+| `@PreAuthorize` | 메서드 진입 전 역할·권한을 검사 | 권한이 필요한 API/서비스 |
+| `@EnableMethodSecurity`, `@EnableWebSecurity` | 메서드 보안과 Spring Security를 활성화 | Security 설정 |
+| `@PostConstruct` | Bean 생성 후 초기화 작업을 실행 | 초기화가 필요한 컴포넌트 |
+
+### JPA 모델링·조회
+
+| 어노테이션 | 역할 | 사용 위치/의도 |
+| --- | --- | --- |
+| `@Entity`, `@Table`, `@Id`, `@GeneratedValue`, `@Column` | 엔티티와 테이블·기본 키·컬럼 매핑 | Domain Entity |
+| `@ManyToOne`, `@OneToMany`, `@JoinColumn` | 엔티티 연관관계를 매핑 | Domain Entity |
+| `@Enumerated`, `@Lob` | Enum 저장 형식과 대용량 텍스트 컬럼을 지정 | Domain Entity |
+| `@Index`, `@UniqueConstraint` | 조회 성능과 중복 방지를 위한 DB 제약을 선언 | `@Table` 설정 |
+| `@Version` | 낙관적 락으로 동시 수정 충돌을 감지 | 수정 충돌이 중요한 Entity |
+| `@EntityGraph` | 목록/상세 조회 때 필요한 연관 엔티티를 함께 조회 | Repository |
+| `@Query`, `@Param`, `@Modifying` | JPQL과 파라미터 바인딩, 변경 쿼리를 선언 | Repository |
+| `@Lock` | 특정 조회에 비관적 락을 적용 | 동시 변경이 민감한 Repository 메서드 |
+| `@BatchSize` | 컬렉션 연관관계의 배치 조회 크기를 지정 | Comment children 등 |
+
+### 영속성 공통 정책
+
+| 어노테이션 | 역할 | 사용 위치/의도 |
+| --- | --- | --- |
+| `@MappedSuperclass`, `@CreatedDate`, `@LastModifiedDate`, `@EntityListeners`, `@EnableJpaAuditing` | 생성·수정 시각을 공통 감사 필드로 관리 | `BaseTimeEntity`, JPA 설정 |
+| `@SQLDelete`, `@SQLRestriction` | 삭제 시 soft delete로 전환하고, 일반 조회에서 삭제 데이터를 제외 | 주요 Entity |
+| `@NotFound(action = NotFoundAction.IGNORE)` | FK는 남아 있지만 대상 엔티티를 찾지 못하면 예외 대신 연관 필드를 `null` 처리 | Post·Comment·Adoption의 Member 연관관계 |
+
+`@NotFound`는 Hibernate 전용 기능이다. 삭제되었거나 조회 필터로 제외된 회원 때문에 과거 게시글·댓글·입양 신청 조회가 실패하지 않게 하지만, 데이터 무결성 문제를 숨길 수 있고 연관관계 조회 전략에 영향을 줄 수 있다. 따라서 FK 무결성을 대체하는 수단으로 사용하지 않는다.
+
+### 구성·코드 생성·직렬화
+
+| 어노테이션 | 역할 | 사용 위치/의도 |
+| --- | --- | --- |
+| `@Configuration`, `@Bean`, `@Value`, `@SpringBootApplication` | 애플리케이션과 인프라 Bean을 구성하고 설정값을 주입 | Config, Application |
+| `@Lazy` | 순환 의존 또는 불필요한 조기 생성을 피하도록 지연 주입 | 필요한 Bean 의존성 |
+| `@Getter`, `@Builder`, `@RequiredArgsConstructor`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@ToString` | Lombok으로 보일러플레이트 코드를 생성 | Domain, DTO, Component |
+| `@Slf4j` | 클래스별 Logger를 생성 | 로그가 필요한 Component |
+| `@JsonIgnore` | 민감 정보나 순환 참조 대상의 JSON 직렬화를 제외 | DTO/응답 모델 |
+| `@Override` | 상위 타입의 메서드를 재정의함을 컴파일 단계에서 검증 | 인터페이스·상속 구현부 |
+
 주요 기술은 Java 17, Spring Boot, Spring Data JPA/Hibernate, MySQL 8, Redis/Redisson, Spring Security, JWT다. 테스트는 H2와 Mockito를 사용한다.
 
 ## 2. 계층 규칙
