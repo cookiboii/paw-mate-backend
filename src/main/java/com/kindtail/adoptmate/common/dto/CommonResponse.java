@@ -17,7 +17,7 @@ public record CommonResponse<T>(
         @Schema(description = "응답 상태 메시지", example = "성공")
         String statusMessage,
 
-        @Schema(description = "응답 데이터 본문")
+        @Schema(description = "응답 데이터 본문. 반환 데이터가 없는 성공 응답은 null입니다.", nullable = true)
         T result
 ) {
 

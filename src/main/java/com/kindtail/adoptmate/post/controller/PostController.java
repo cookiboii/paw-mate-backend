@@ -1,5 +1,6 @@
 package com.kindtail.adoptmate.post.controller;
 
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.dto.CommonResponse;
 import com.kindtail.adoptmate.common.dto.SuccessCode;
 import com.kindtail.adoptmate.post.domain.Post;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.annotation.Validated;
 import jakarta.validation.constraints.Max;
@@ -32,8 +34,11 @@ public class PostController implements PostControllerDocs {
 
     @Override
     @PostMapping({"", "/create"})
-    public ResponseEntity<CommonResponse<PostResponse>> createPost(@Valid @RequestBody PostCreateRequest dto) {
-        PostResponse response = postService.createPost(dto);
+    public ResponseEntity<CommonResponse<PostResponse>> createPost(
+            @Valid @RequestBody PostCreateRequest dto,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        PostResponse response = postService.createPost(dto, userDetails);
         return CommonResponse.toResponseEntity(SuccessCode.POST_CREATE_SUCCESS, response);
     }
 
@@ -49,15 +54,14 @@ public class PostController implements PostControllerDocs {
     public ResponseEntity<CommonResponse<Slice<PostResponse>>> getPostsByCursor(
             @RequestParam(required = false) Long lastPostId,
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
-            @RequestParam(required = false) String category,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String sort
     ) {
         // Keep the legacy cursor call working for older clients that send none of
         // the new search parameters; all new cursor options use the richer query.
-        Slice<PostResponse> postSlice = category == null && keyword == null && (sort == null || "latest".equalsIgnoreCase(sort))
+        Slice<PostResponse> postSlice = keyword == null && (sort == null || "latest".equalsIgnoreCase(sort))
                 ? postQueryService.getPostsByCursor(lastPostId, size)
-                : postQueryService.searchPosts(lastPostId, size, category, keyword, sort);
+                : postQueryService.searchPosts(lastPostId, size, keyword, sort);
         return CommonResponse.toResponseEntity(SuccessCode.POST_LIST_SUCCESS, postSlice);
     }
 
@@ -95,15 +99,22 @@ public class PostController implements PostControllerDocs {
 
     @Override
     @DeleteMapping("/{postId}")
-    public ResponseEntity<CommonResponse<Void>> deletePostById(@PathVariable Long postId) {
-        postService.deletePost(postId);
+    public ResponseEntity<CommonResponse<Void>> deletePostById(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        postService.deletePost(postId, userDetails);
         return CommonResponse.toResponseEntity(SuccessCode.POST_DELETE_SUCCESS);
     }
 
     @Override
     @PutMapping("/{postId}")
-    public ResponseEntity<CommonResponse<PostResponse>> updatePost(@PathVariable Long postId, @Valid @RequestBody PostUpdateRequest dto) {
-        PostResponse post = postService.updatePost(postId, dto);
+    public ResponseEntity<CommonResponse<PostResponse>> updatePost(
+            @PathVariable Long postId,
+            @Valid @RequestBody PostUpdateRequest dto,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        PostResponse post = postService.updatePost(postId, dto, userDetails);
         return CommonResponse.toResponseEntity(SuccessCode.POST_UPDATE_SUCCESS, post);
     }
 }

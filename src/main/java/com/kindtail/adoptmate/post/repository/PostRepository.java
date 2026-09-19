@@ -1,7 +1,6 @@
 package com.kindtail.adoptmate.post.repository;
 
 import com.kindtail.adoptmate.post.domain.Post;
-import com.kindtail.adoptmate.post.domain.PostCategory;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,32 +38,29 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                                   Pageable pageable);
 
     @EntityGraph(attributePaths = {"member"})
-    @Query("SELECT p FROM Post p WHERE (:category IS NULL OR p.category = :category) AND (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR (:lastCreatedAt IS NULL AND p.id < :lastPostId) OR (:lastCreatedAt IS NOT NULL AND (p.createdAt < :lastCreatedAt OR (p.createdAt = :lastCreatedAt AND p.id < :lastPostId)))) ORDER BY p.createdAt DESC, p.id DESC")
-    // 카테고리와 제목·내용·작성자명 키워드를 선택적으로 필터링한 뒤 최신순으로 커서 페이징한다.
+    @Query("SELECT p FROM Post p WHERE (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR (:lastCreatedAt IS NULL AND p.id < :lastPostId) OR (:lastCreatedAt IS NOT NULL AND (p.createdAt < :lastCreatedAt OR (p.createdAt = :lastCreatedAt AND p.id < :lastPostId)))) ORDER BY p.createdAt DESC, p.id DESC")
+    // 제목·내용·작성자명 키워드를 선택적으로 필터링한 뒤 최신순으로 커서 페이징한다.
     // 생성 시각이 같은 게시글은 ID를 보조 커서로 사용해 중복·누락 없이 다음 페이지를 조회한다.
     Slice<Post> searchLatest(@Param("lastPostId") Long lastPostId,
                               @Param("lastCreatedAt") LocalDateTime lastCreatedAt,
-                              @Param("category") PostCategory category,
                               @Param("keyword") String keyword,
                               Pageable pageable);
 
     @EntityGraph(attributePaths = {"member"})
-    @Query("SELECT p FROM Post p WHERE (:category IS NULL OR p.category = :category) AND (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR (SELECT count(pl) FROM PostLike pl WHERE pl.post = p) < :lastLikeCount OR ((SELECT count(pl) FROM PostLike pl WHERE pl.post = p) = :lastLikeCount AND p.id < :lastPostId)) ORDER BY (SELECT count(pl) FROM PostLike pl WHERE pl.post = p) DESC, p.id DESC")
-    // 카테고리·키워드 검색 결과를 좋아요 수 내림차순으로 조회한다.
+    @Query("SELECT p FROM Post p WHERE (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR (SELECT count(pl) FROM PostLike pl WHERE pl.post = p) < :lastLikeCount OR ((SELECT count(pl) FROM PostLike pl WHERE pl.post = p) = :lastLikeCount AND p.id < :lastPostId)) ORDER BY (SELECT count(pl) FROM PostLike pl WHERE pl.post = p) DESC, p.id DESC")
+    // 키워드 검색 결과를 좋아요 수 내림차순으로 조회한다.
     // 마지막 좋아요 수보다 적거나, 같은 좋아요 수에서 ID가 더 작은 게시글을 다음 페이지로 가져온다.
     Slice<Post> searchPopular(@Param("lastPostId") Long lastPostId,
                                @Param("lastLikeCount") long lastLikeCount,
-                               @Param("category") PostCategory category,
                                @Param("keyword") String keyword,
                                Pageable pageable);
 
     @EntityGraph(attributePaths = {"member"})
-    @Query("SELECT p FROM Post p WHERE (:category IS NULL OR p.category = :category) AND (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR (SELECT count(cm) FROM Comment cm WHERE cm.post = p) < :lastCommentCount OR ((SELECT count(cm) FROM Comment cm WHERE cm.post = p) = :lastCommentCount AND p.id < :lastPostId)) ORDER BY (SELECT count(cm) FROM Comment cm WHERE cm.post = p) DESC, p.id DESC")
-    // 카테고리·키워드 검색 결과를 댓글 수 내림차순으로 조회한다.
+    @Query("SELECT p FROM Post p WHERE (:keyword IS NULL OR lower(p.title) LIKE lower(concat('%', :keyword, '%')) OR p.content LIKE concat('%', :keyword, '%') OR lower(p.member.name) LIKE lower(concat('%', :keyword, '%'))) AND (:lastPostId IS NULL OR (SELECT count(cm) FROM Comment cm WHERE cm.post = p) < :lastCommentCount OR ((SELECT count(cm) FROM Comment cm WHERE cm.post = p) = :lastCommentCount AND p.id < :lastPostId)) ORDER BY (SELECT count(cm) FROM Comment cm WHERE cm.post = p) DESC, p.id DESC")
+    // 키워드 검색 결과를 댓글 수 내림차순으로 조회한다.
     // 마지막 댓글 수보다 적거나, 같은 댓글 수에서 ID가 더 작은 게시글을 다음 페이지로 가져온다.
     Slice<Post> searchByCommentCount(@Param("lastPostId") Long lastPostId,
                                       @Param("lastCommentCount") long lastCommentCount,
-                                      @Param("category") PostCategory category,
                                       @Param("keyword") String keyword,
                                       Pageable pageable);
 }

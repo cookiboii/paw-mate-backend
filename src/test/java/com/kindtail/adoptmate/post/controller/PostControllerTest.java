@@ -95,7 +95,7 @@ class PostControllerTest {
     void createPost_성공() throws Exception {
         // given
         PostCreateRequest request = new PostCreateRequest("테스트 제목", "테스트 내용", "test.jpg");
-        given(postService.createPost(any(PostCreateRequest.class))).willReturn(PostResponse.from(testPost));
+        given(postService.createPost(any(PostCreateRequest.class), any(CustomUserDetails.class))).willReturn(PostResponse.from(testPost));
 
         // when
         ResultActions resultActions = mockMvc.perform(post("/post/create")
@@ -180,7 +180,7 @@ class PostControllerTest {
         PostUpdateRequest request = new PostUpdateRequest("수정 제목", "new.jpg", "수정 내용");
         PostResponse updatedResponse = new PostResponse(1L, "수정 제목", "수정 내용", "test@example.com", "테스트 사용자", LocalDateTime.now(), "new.jpg");
 
-        given(postService.updatePost(eq(postId), any(PostUpdateRequest.class))).willReturn(updatedResponse);
+        given(postService.updatePost(eq(postId), any(PostUpdateRequest.class), any(CustomUserDetails.class))).willReturn(updatedResponse);
 
         // when
         ResultActions resultActions = mockMvc.perform(put("/post/{postId}", postId)
@@ -200,7 +200,7 @@ class PostControllerTest {
     void deletePostById_성공() throws Exception {
         // given
         Long postId = 1L;
-        doNothing().when(postService).deletePost(postId);
+        doNothing().when(postService).deletePost(eq(postId), any(CustomUserDetails.class));
 
         // when
         ResultActions resultActions = mockMvc.perform(delete("/post/{postId}", postId));

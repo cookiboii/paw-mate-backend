@@ -1,5 +1,6 @@
 package com.kindtail.adoptmate.post.controller;
 
+import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.common.dto.CommonResponse;
 import com.kindtail.adoptmate.post.dto.PostCreateRequest;
 import com.kindtail.adoptmate.post.dto.PostUpdateRequest;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,7 +28,10 @@ public interface PostControllerDocs {
             @ApiResponse(responseCode = "400", description = "유효성 검사 실패"),
             @ApiResponse(responseCode = "401", description = "로그인 필요")
     })
-    ResponseEntity<CommonResponse<com.kindtail.adoptmate.post.dto.PostResponse>> createPost(@Valid @RequestBody PostCreateRequest dto);
+    ResponseEntity<CommonResponse<com.kindtail.adoptmate.post.dto.PostResponse>> createPost(
+            @Valid @RequestBody PostCreateRequest dto,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    );
 
     @Operation(summary = "게시글 목록 조회 (오프셋 페이징)", description = "커뮤니티 게시글 목록을 오프셋 기반으로 페이징하여 조회합니다.")
     @ApiResponses({
@@ -43,8 +48,9 @@ public interface PostControllerDocs {
             @RequestParam(required = false) Long lastPostId,
             @Parameter(description = "조회할 게시글 수 (기본값: 10)", example = "10")
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
-            @RequestParam(required = false) String category,
+            @Parameter(description = "제목·본문·작성자명 검색어", example = "몽이")
             @RequestParam(required = false) String keyword,
+            @Parameter(description = "정렬 방식", example = "latest")
             @RequestParam(required = false) String sort
     );
 
@@ -65,7 +71,8 @@ public interface PostControllerDocs {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 게시글")
     })
     ResponseEntity<CommonResponse<Void>> deletePostById(
-            @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId
+            @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     );
 
     @Operation(summary = "게시글 수정", description = "JWT로 인증된 회원 ID와 작성자 ID가 일치할 때만 게시글 제목, 내용, 이미지를 수정합니다.")
@@ -77,6 +84,7 @@ public interface PostControllerDocs {
     })
     ResponseEntity<CommonResponse<com.kindtail.adoptmate.post.dto.PostResponse>> updatePost(
             @Parameter(description = "게시글 ID", example = "1") @PathVariable Long postId,
-            @Valid @RequestBody PostUpdateRequest dto
+            @Valid @RequestBody PostUpdateRequest dto,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     );
 }

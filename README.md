@@ -244,9 +244,9 @@ flowchart LR
 
 | Method | Path | 권한 | 요청/쿼리 요약 | 결과 |
 | --- | --- | --- | --- | --- |
-| POST | `/api/v1/posts` | 인증 | `title`, `content`, `img`, `category` | 게시글 1건 |
+| POST | `/api/v1/posts` | 인증 | `title`, `content`, `img` | 게시글 1건 |
 | GET | `/api/v1/posts` | 공개 | `page`, `size`, `sort` | 게시글 `Page` |
-| GET | `/api/v1/posts/cursor` | 공개 | `lastPostId`, `size`(1~100), `category`, `keyword`, `sort` | 게시글 `Slice` |
+| GET | `/api/v1/posts/cursor` | 공개 | `lastPostId`, `size`(1~100), `keyword`, `sort` | 게시글 `Slice` |
 | GET | `/api/v1/posts/{postId}` | 공개 | - | 게시글 1건 |
 | PUT | `/api/v1/posts/{postId}` | 인증 | `title`, `content`, `img` | 변경된 게시글 |
 | DELETE | `/api/v1/posts/{postId}` | 인증 | - | `null` |
@@ -763,9 +763,9 @@ erDiagram
 
 ### 게시글 · 댓글
 
-게시글 작성·수정은 `title`(최대 200자), `content`(최대 20,000자)가 필수이고 `img`(최대 7,000,000자), `category`는 선택입니다. `category`는 `REVIEW`, `FREE_ADOPTION`, `REPORT` 중 하나이며 생략 시 `REVIEW`입니다. 게시글 응답에는 `id`, `title`, `content`, `name`, `createdAt`, `img`, `likeCount`, `commentCount`, `likedByMe`, `bookmarkedByMe`가 포함되며 작성자 이메일은 공개하지 않습니다. 비로그인 조회의 `likedByMe`, `bookmarkedByMe`는 항상 `false`입니다. 댓글 내용은 최대 2,000자이며 `parentId`는 1단계 대댓글을 작성할 때만 사용합니다. 댓글 응답의 `children`에는 해당 최상위 댓글의 대댓글 배열이 포함됩니다.
+게시글 작성·수정은 `title`(최대 200자), `content`(최대 20,000자)가 필수이고 `img`(최대 7,000,000자)는 선택입니다. 게시글 응답에는 `id`, `title`, `content`, `name`, `createdAt`, `img`, `likeCount`, `commentCount`, `likedByMe`, `bookmarkedByMe`가 포함되며 작성자 이메일은 공개하지 않습니다. 비로그인 조회의 `likedByMe`, `bookmarkedByMe`는 항상 `false`입니다. 댓글 내용은 최대 2,000자이며 `parentId`는 1단계 대댓글을 작성할 때만 사용합니다. 댓글 응답의 `children`에는 해당 최상위 댓글의 대댓글 배열이 포함됩니다.
 
-게시글 권한은 요청 본문의 이메일이나 회원 ID를 신뢰하지 않고 JWT 인증 정보의 회원 ID와 역할로 판단합니다. 게시글 수정은 작성자만 가능하며, 삭제는 작성자 또는 `ADMIN`만 가능합니다.
+게시글 작성자는 요청 본문의 이메일이나 회원 ID를 받지 않고 JWT의 `memberId`로 저장합니다. 컨트롤러는 `@AuthenticationPrincipal`로 검증된 로그인 회원을 받고 서비스에 전달합니다. 수정·삭제 시에도 JWT의 `memberId`와 게시글의 `member_id`를 비교합니다. 게시글 수정은 작성자만 가능하며, 삭제는 작성자 또는 `ADMIN`만 가능합니다.
 
 #### 게시글 DTO
 
@@ -776,7 +776,6 @@ erDiagram
 | `title` | `string` | 예 | 제목. 공백일 수 없으며 최대 200자입니다. |
 | `content` | `string` | 예 | 본문. 공백일 수 없으며 최대 20,000자입니다. |
 | `img` | `string \\| null` | 아니요 | 이미지 URL 또는 이미지 데이터. 최대 7,000,000자이며 이미지가 없으면 생략하거나 `null`을 전달합니다. |
-| `category` | `REVIEW \\| FREE_ADOPTION \\| REPORT \\| null` | 아니요 | 게시글 카테고리. 생략하거나 `null`이면 `REVIEW`가 적용됩니다. |
 
 `PostUpdateRequest` — 게시글 수정 요청
 
@@ -793,6 +792,7 @@ erDiagram
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
 | `id` | `number` | 게시글 ID |
+| `authorId` | `number \\| null` | 게시글 작성자의 회원 ID. 탈퇴한 회원이면 `null`입니다. |
 | `title` | `string` | 게시글 제목 |
 | `content` | `string` | 게시글 본문 |
 | `name` | `string` | 작성자 표시 이름. 탈퇴한 회원은 `탈퇴한 사용자`로 표시됩니다. |
@@ -807,9 +807,9 @@ erDiagram
 
 | 메서드 | 경로 | 권한 | 요청 | `result` |
 | --- | --- | --- | --- | --- |
-| POST | `/api/v1/posts` | 인증 | `title`, `content`, `img`(선택), `category`(선택) | 게시글 1건 |
+| POST | `/api/v1/posts` | 인증 | `title`, `content`, `img`(선택) | 게시글 1건 |
 | GET | `/api/v1/posts` | 공개 | 쿼리: `page`, `size`, `sort` | 게시글 `Page` |
-| GET | `/api/v1/posts/cursor` | 공개 | 쿼리: `lastPostId`(선택), `size`, `category`(선택), `keyword`(선택), `sort`(선택: `latest`/`popular`/`comments`) | 게시글 `Slice` |
+| GET | `/api/v1/posts/cursor` | 공개 | 쿼리: `lastPostId`(선택), `size`, `keyword`(선택), `sort`(선택: `latest`/`popular`/`comments`) | 게시글 `Slice` |
 | GET | `/api/v1/posts/{postId}` | 공개 | 경로: `postId` | 게시글 1건 |
 | PUT | `/api/v1/posts/{postId}` | 작성자 | `title`, `content`, `img`(선택) | 변경된 게시글 1건 |
 | DELETE | `/api/v1/posts/{postId}` | 작성자 또는 ADMIN | 경로: `postId` | `null` |
@@ -962,11 +962,11 @@ POST /api/v1/posts
 Authorization: Bearer <accessToken>
 Content-Type: application/json
 
-{"title":"입양 후기","content":"우리 아이를 만난 이야기입니다.","img":"/uploads/review.jpg","category":"REVIEW"}
+{"title":"입양 후기","content":"우리 아이를 만난 이야기입니다.","img":"/uploads/review.jpg"}
 ```
 
 ```http
-GET /api/v1/posts/cursor?size=10&category=REVIEW&keyword=몽이&sort=popular
+GET /api/v1/posts/cursor?size=10&keyword=몽이&sort=popular
 Authorization: Bearer <accessToken>
 ```
 
@@ -978,6 +978,7 @@ Authorization: Bearer <accessToken>
   "result": {
     "content": [{
       "id": 42,
+      "authorId": 7,
       "title": "[REVIEW] 새 가족이 된 몽이",
       "content": "...",
       "name": "pawuser",
@@ -1005,6 +1006,58 @@ Authorization: Bearer <accessToken>
 ```
 
 좋아요 응답 `result`는 `{ "liked": true, "likeCount": 13 }`, 북마크 응답 `result`는 `{ "bookmarked": true }` 형식입니다.
+
+#### 프론트엔드 게시글 권한 처리 예시
+
+게시글 작성·수정·삭제 요청 본문에는 `email`, `memberId`, `authorId`를 보내지 않습니다. 서버는 `Authorization` 헤더의 JWT에서 회원 ID와 역할을 검증합니다.
+
+로그인 후 현재 회원 정보는 `GET /adoptmate/myInfo`로 조회합니다. 게시글 응답의 `authorId`와 현재 회원의 `id`를 비교해 버튼을 표시할 수 있습니다. 프론트의 버튼 숨김은 UX를 위한 것이며, 실제 권한은 서버가 다시 검사합니다.
+
+```js
+const currentUser = await api.get("/adoptmate/myInfo");
+const post = await api.get("/api/v1/posts/42");
+
+const myId = currentUser.data.result.id;
+const myRole = currentUser.data.result.role;
+const postData = post.data.result;
+
+const canEdit = myId === postData.authorId;
+const canDelete = canEdit || myRole === "ADMIN";
+```
+
+게시글 작성 요청 예시입니다. 작성자 정보는 JWT에서 결정됩니다.
+
+```js
+await api.post("/api/v1/posts", {
+  title: "입양 후기",
+  content: "우리 아이를 만난 이야기입니다.",
+  img: "/uploads/review.jpg"
+}, {
+  headers: { Authorization: `Bearer ${accessToken}` }
+});
+```
+
+작성자만 가능한 수정 요청 예시입니다. `PUT`이므로 `title`과 `content`를 모두 전달합니다.
+
+```js
+await api.put("/api/v1/posts/42", {
+  title: "수정한 입양 후기",
+  content: "수정한 내용입니다.",
+  img: null
+}, {
+  headers: { Authorization: `Bearer ${accessToken}` }
+});
+```
+
+작성자 또는 관리자만 가능한 삭제 요청 예시입니다.
+
+```js
+await api.delete("/api/v1/posts/42", {
+  headers: { Authorization: `Bearer ${accessToken}` }
+});
+```
+
+수정 또는 삭제 응답이 `401`이면 재로그인 또는 토큰 재발급을 처리하고, `403`이면 버튼 상태를 다시 계산한 뒤 게시글을 재조회합니다. 클라이언트가 다른 회원의 `memberId`나 이메일을 임의로 보내도 서버 권한에는 사용되지 않습니다.
 
 ```http
 POST /comment/1

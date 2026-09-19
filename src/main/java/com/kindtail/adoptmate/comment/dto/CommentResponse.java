@@ -3,18 +3,20 @@ package com.kindtail.adoptmate.comment.dto;
 import com.kindtail.adoptmate.auth.CustomUserDetails;
 import com.kindtail.adoptmate.comment.domain.Comment;
 import com.kindtail.adoptmate.member.domain.Member;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Schema(description = "댓글 응답. 비밀 댓글을 볼 권한이 없으면 content가 '비밀 댓글입니다.'로 마스킹됩니다.")
 public record CommentResponse(
-        Long id,
-        String authorName,
-        Long authorId,
-        String content,
-        boolean secret,
-        LocalDateTime createdAt,
-        List<CommentResponse> children
+        @Schema(description = "댓글 ID", example = "10") Long id,
+        @Schema(description = "작성자 표시 이름. 탈퇴한 회원이면 '탈퇴한 사용자'로 표시됩니다.", example = "홍길동") String authorName,
+        @Schema(description = "작성자 회원 ID. 탈퇴한 회원이면 null입니다.", example = "1", nullable = true) Long authorId,
+        @Schema(description = "댓글 내용 또는 권한이 없는 비밀 댓글의 마스킹 문구", example = "입양 관련 문의드립니다.") String content,
+        @Schema(description = "비밀 댓글 여부", example = "false") boolean secret,
+        @Schema(description = "댓글 작성 시각", example = "2026-09-20T14:30:00") LocalDateTime createdAt,
+        @Schema(description = "대댓글 목록. 최상위 댓글 조회 시 1단계 대댓글이 포함됩니다.") List<CommentResponse> children
 ) {
     public CommentResponse(Long id, String authorName, Long authorId, String content,
                            LocalDateTime createdAt, List<CommentResponse> children) {

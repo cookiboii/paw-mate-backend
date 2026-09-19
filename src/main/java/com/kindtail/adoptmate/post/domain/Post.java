@@ -50,10 +50,7 @@ public class Post extends BaseTimeEntity {
     @NotFound(action = NotFoundAction.IGNORE)
     private Member member;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
-    private PostCategory category = PostCategory.REVIEW;
+
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @Builder.Default

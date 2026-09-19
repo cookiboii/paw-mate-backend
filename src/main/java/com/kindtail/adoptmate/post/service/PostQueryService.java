@@ -5,7 +5,6 @@ import com.kindtail.adoptmate.common.exception.CustomException;
 import com.kindtail.adoptmate.common.exception.ErrorCode;
 import com.kindtail.adoptmate.comment.repository.CommentRepository;
 import com.kindtail.adoptmate.post.domain.Post;
-import com.kindtail.adoptmate.post.domain.PostCategory;
 import com.kindtail.adoptmate.post.dto.PostResponse;
 import com.kindtail.adoptmate.post.repository.PostBookmarkRepository;
 import com.kindtail.adoptmate.post.repository.PostLikeRepository;
@@ -48,16 +47,15 @@ public class PostQueryService {
         return slice(posts, currentUserProvider.optionalCurrentUserId().orElse(null));
     }
 
-    public Slice<PostResponse> searchPosts(Long lastPostId, int size, String category, String keyword, String sort) {
+    public Slice<PostResponse> searchPosts(Long lastPostId, int size, String keyword, String sort) {
         validateSize(size);
-        PostCategory postCategory = category == null || category.isBlank() ? null : PostCategory.valueOf(category.trim().toUpperCase());
         String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
         String normalizedSort = sort == null || sort.isBlank() ? "latest" : sort.trim().toLowerCase();
         Pageable pageable = PageRequest.of(0, size);
         Slice<Post> posts = switch (normalizedSort) {
-            case "latest" -> postRepository.searchLatest(lastPostId, cursorCreatedAt(lastPostId), postCategory, normalizedKeyword, pageable);
-            case "popular" -> postRepository.searchPopular(lastPostId, likeCount(lastPostId), postCategory, normalizedKeyword, pageable);
-            case "comments" -> postRepository.searchByCommentCount(lastPostId, commentCount(lastPostId), postCategory, normalizedKeyword, pageable);
+            case "latest" -> postRepository.searchLatest(lastPostId, cursorCreatedAt(lastPostId), normalizedKeyword, pageable);
+            case "popular" -> postRepository.searchPopular(lastPostId, likeCount(lastPostId), normalizedKeyword, pageable);
+            case "comments" -> postRepository.searchByCommentCount(lastPostId, commentCount(lastPostId), normalizedKeyword, pageable);
             default -> throw new IllegalArgumentException("sort must be latest, popular, or comments");
         };
         return slice(posts, currentUserProvider.optionalCurrentUserId().orElse(null));

@@ -118,11 +118,11 @@ class PostServiceTest {
             "테스트 제목", "테스트 내용", "http://example.com/image.jpg"
         );
 
-        given(memberRepository.findByEmail("author@example.com")).willReturn(Optional.of(author));
+        given(memberRepository.findById(1L)).willReturn(Optional.of(author));
         given(postRepository.save(any(Post.class))).willReturn(testPost);
 
         // when
-        PostResponse result = postService.createPost(request);
+        PostResponse result = postService.createPost(request, currentUserProvider.currentUser());
 
         // then
         assertThat(result).isNotNull();
@@ -139,10 +139,10 @@ class PostServiceTest {
             "제목", "내용", "img.jpg"
         );
 
-        given(memberRepository.findByEmail("notfound@example.com")).willReturn(Optional.empty());
+        given(memberRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> postService.createPost(request))
+        assertThatThrownBy(() -> postService.createPost(request, currentUserProvider.currentUser()))
             .isInstanceOf(CustomException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MEMBER_NOT_FOUND);
     }
@@ -187,7 +187,7 @@ class PostServiceTest {
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when
-        PostResponse result = postService.updatePost(10L, request);
+        PostResponse result = postService.updatePost(10L, request, currentUserProvider.currentUser());
 
         // then
         assertThat(result.title()).isEqualTo("수정 제목");
@@ -204,7 +204,7 @@ class PostServiceTest {
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when & then
-        assertThatThrownBy(() -> postService.updatePost(10L, request))
+        assertThatThrownBy(() -> postService.updatePost(10L, request, currentUserProvider.currentUser()))
             .isInstanceOf(CustomException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_AUTHOR_REQUIRED);
     }
@@ -219,7 +219,7 @@ class PostServiceTest {
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when & then
-        assertThatThrownBy(() -> postService.updatePost(10L, request))
+        assertThatThrownBy(() -> postService.updatePost(10L, request, currentUserProvider.currentUser()))
             .isInstanceOf(CustomException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POST_AUTHOR_REQUIRED);
     }
@@ -232,7 +232,7 @@ class PostServiceTest {
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when
-        postService.deletePost(10L);
+        postService.deletePost(10L, currentUserProvider.currentUser());
 
         // then
         verify(postRepository).delete(testPost);
@@ -246,7 +246,7 @@ class PostServiceTest {
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when
-        postService.deletePost(10L);
+        postService.deletePost(10L, currentUserProvider.currentUser());
 
         // then
         verify(postRepository).delete(testPost);
@@ -260,7 +260,7 @@ class PostServiceTest {
         given(postRepository.findById(10L)).willReturn(Optional.of(testPost));
 
         // when & then
-        assertThatThrownBy(() -> postService.deletePost(10L))
+        assertThatThrownBy(() -> postService.deletePost(10L, currentUserProvider.currentUser()))
             .isInstanceOf(CustomException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.UNAUTHORIZED_AUTHOR);
     }

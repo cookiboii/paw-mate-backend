@@ -8,7 +8,6 @@ import com.kindtail.adoptmate.member.domain.Member;
 import com.kindtail.adoptmate.member.repository.MemberRepository;
 import com.kindtail.adoptmate.post.domain.Post;
 import com.kindtail.adoptmate.post.domain.PostBookmark;
-import com.kindtail.adoptmate.post.domain.PostCategory;
 import com.kindtail.adoptmate.post.domain.PostLike;
 import com.kindtail.adoptmate.post.dto.BookmarkResponse;
 import com.kindtail.adoptmate.post.dto.LikeResponse;
@@ -36,27 +35,27 @@ public class PostService {
     private final CurrentUserProvider currentUserProvider;
 
     @Transactional
-    public PostResponse createPost(PostCreateRequest dto) {
-        String email = currentUserProvider.currentUserEmail();
-        Member member = memberRepository.findByEmail(email)
+    public PostResponse createPost(PostCreateRequest dto, CustomUserDetails userDetails) {
+        if (userDetails == null || userDetails.getId() == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
+        Long memberId = userDetails.getId();
+        Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         Post post = Post.builder()
                 .title(dto.title())
                 .content(dto.content())
                 .image(dto.img())
-                .category(dto.category() == null ? PostCategory.REVIEW : dto.category())
                 .member(member)
                 .build();
 
         Post saved = postRepository.save(post);
-        return toResponse(saved, currentUserProvider.optionalCurrentUserId().orElse(null));
+        return toResponse(saved, memberId);
     }
 
     @Transactional
-    public void deletePost(Long postId) {
-        CustomUserDetails userDetails = currentUserProvider.currentUser();
-
+    public void deletePost(Long postId, CustomUserDetails userDetails) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
@@ -66,9 +65,7 @@ public class PostService {
     }
 
     @Transactional
-    public PostResponse updatePost(Long postId, PostUpdateRequest dto) {
-        CustomUserDetails userDetails = currentUserProvider.currentUser();
-
+    public PostResponse updatePost(Long postId, PostUpdateRequest dto, CustomUserDetails userDetails) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
